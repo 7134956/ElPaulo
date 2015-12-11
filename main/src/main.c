@@ -518,8 +518,10 @@ void buttonsParse() {
 			if (!navigate[1]) {
 				changePos(0, 1, 6, ACTION_DEC);
 			} else
-			changeVal(8, &termo.speed, 1, 10, ACTION_INC);
-//FIXME			SysTick_task_add(&addTermItem, 1000/termo.speed);
+				changeVal(8, &termo.speed, 1, 10, ACTION_INC);
+#ifdef SYSTEM_STM32
+			SysTick_task_add(&addTermItem, 1000/termo.speed);
+#endif
 		}
 			break;
 		case BUTTON_DOWN: {
@@ -527,13 +529,16 @@ void buttonsParse() {
 				changePos(0, 1, 6, ACTION_INC);
 			} else
 				changeVal(8, &termo.speed, 1, 10, ACTION_DEC);
-			//FIXME			SysTick_task_add(&addTermItem, 1000/termo.speed);
+#ifdef SYSTEM_STM32
+			SysTick_task_add(&addTermItem, 1000/termo.speed);
+#endif
 		}
 			break;
 		case BUTTON_LEFT: {
-
 			if (navigate[1]) {
-				//FIXME				SysTick_task_del(&addTermItem);
+#ifdef SYSTEM_STM32
+				SysTick_task_del(&addTermItem);
+#endif
 				termo.count = 0;
 				termo.min = 0xff;
 				termo.max = 0;
@@ -547,7 +552,9 @@ void buttonsParse() {
 		case BUTTON_RIGHT: {
 			if (navigate[0]) {
 				termo.speed = 1;
-				//FIXME				SysTick_task_add(&addTermItem, 1000/termo.speed);
+#ifdef SYSTEM_STM32
+				SysTick_task_add(&addTermItem, 1000/termo.speed);
+#endif
 				changePos(1, 1, 1, ACTION_IS);
 			}
 		}

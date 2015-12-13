@@ -1,5 +1,5 @@
-#ifndef SPI_H
-#define SPI_H
+#ifndef _SPI_H_
+#define _SPI_H_
 
 #include "stm32f10x_spi.h"
 void SPIInit(uint8_t);
@@ -13,4 +13,4 @@ void SPIInit(uint8_t);
 #define A0_HIGH() GPIO_SetBits (GPIOA, GPIO_Pin_4)
 #define A0_LOW()  GPIO_ResetBits (GPIOA, GPIO_Pin_4)
 
-#endif
+#endif /* _SPI_H_ */

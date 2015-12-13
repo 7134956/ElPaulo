@@ -1,6 +1,6 @@
 //#define SYSTEM_WIN
+//#define DEBUG_DISPLAY
 
-#define DEBUG_DISPLAY
 #ifndef _MAIN_H_
 #define _MAIN_H_
 

@@ -352,7 +352,6 @@ void I2C_EE_BufferRead(uint8_t* pBuffer, uint16_t ReadAddr,	uint16_t NumByteToRe
 	    io->read(io, pBuffer, NumByteToRead, 1);
 	    io->close(io);
 	}
-
 }
 #endif
 

@@ -1,11 +1,14 @@
 #include "main.h"
 #include "timer.h"
+#include "thread.h"
 #include "beeper.h"
 #include "buttons.h"
 #include "printf.h"
+#include "draw.h"
 
 #ifdef SYSTEM_STM32
 #include "stm32f10x_conf.h"
+#include "spi.h"
 #endif
 
 typedef struct slot_func_t {
@@ -20,6 +23,8 @@ typedef struct systick_t {
 } systick_t;
 
 systick_t systick;
+extern state_t state;
+extern uint32_t thread_SP, thread_PC;
 
 #ifdef SYSTEM_STM32
 /*******************************************************************************
@@ -84,6 +89,13 @@ void SysTick_Handler(void) {
 			}
 		}
 	}
-//	if(state.button)
+	if(state.button){ //Если считали нажатие кнопки
+		if(state.taskList & TASK_DRAWING){  //Если идет процесс рисования
+			if(state.taskList & TASK_TRANSFER){  //Если идет передача данных в дисплей
+//					state.taskList |= TASK_KILL_TRANSFER; //Просим завершить
+				}else
+			thread_kill(redrawDisplay); //Выйдем из потока чтоб пройти главный цыкл повторно
+		}
+	}
 }
 #endif

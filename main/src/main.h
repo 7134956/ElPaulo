@@ -1,6 +1,6 @@
 //#define SYSTEM_WIN
 
-//#define DEBUG_DISPLAY
+#define DEBUG_DISPLAY
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
@@ -87,6 +87,9 @@ typedef struct config_t { //Глобальная структура с наст�
 #define TASK_UPDATETIME 4
 #define TASK_TIMESETUP 8
 #define TASK_SAVEPARAMS 16
+#define TASK_DRAWING 32 //В данный момент идет рисование
+#define TASK_TRANSFER 64 //Идет передача данных в дисплей
+#define TASK_KILL_TRANSFER 128 //Запрос остановки передачи
 
 typedef struct calendar_t {
 	uint16_t year; //Год

@@ -28,6 +28,10 @@
 #include "u8g.h" // Графическая библиотека
 #include "i2c.h"
 
+#include "thread.h"
+#include "main.h"
+extern state_t state;
+
 uint8_t control = 0;
 uint32_t i2cTimeLimit = 0;
 
@@ -336,6 +340,7 @@ uint8_t u8g_com_hw_spi_9bit_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *a
 		case U8G_COM_MSG_WRITE_SEQ: {
 		register uint8_t *ptr = arg_ptr;
 		uint8_t byte, i;
+		state.taskList |= TASK_TRANSFER; //Установим флаг передачи данных
 		while (arg_val > 0) {
 			for (i = 0; i < 4; i++) {
 				byte = ((*ptr & 128) >> 3) | ((*ptr & 64) << 1); //Старший бит
@@ -352,6 +357,7 @@ uint8_t u8g_com_hw_spi_9bit_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *a
 			ptr++;
 			arg_val--;
 		}
+		state.taskList &=~ TASK_TRANSFER; //Снимаем флаг передачи данных
 	}
 		break;
 //		case U8G_COM_MSG_WRITE_SEQ: {

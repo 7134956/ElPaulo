@@ -10,6 +10,7 @@
 #include "string.h"
 #include "menu.h"
 #include "power.h"
+#include "thread.h"
 
 #ifdef SYSTEM_STM32
 #include "timer.h"
@@ -44,6 +45,9 @@ void loadRacelist(void);
 void mainLoop(void);
 void newState(void);
 
+uint32_t thread_SP = NULL;
+uint32_t thread_PC = NULL;
+
 config_t config;
 state_t state;
 calendar_t calendar; //Структура с данными открытого календаря
@@ -61,7 +65,6 @@ uint8_t stateMainPrev = STATE_NULL; //Предыдущее выбраное со
 uint16_t keyPass = 0;
 uint8_t contrast;
 uint8_t testFlag = 0;
-uint32_t MSP;
 
 mtk_element_t
 		mtkPassword, //Пароль
@@ -86,6 +89,7 @@ mtk_select_t mtkLangList;
 int main(void) {
 #ifdef SYSTEM_WIN
 	uint8_t i;
+	uint32_t R14;
 	for (i = 0; i < 6; i++) {
 		racelist.startTime[i] = 8888; //Время старта
 		racelist.distance[i] = 88888; //Пройденное расстояние
@@ -197,13 +201,16 @@ int main(void) {
 	state.powerMode = POWERMODE_NORMAL;
 	//Перед входом в главный цыкл...
 	while (1) {
-//		MSP = __get_MSP();
 #ifdef SYSTEM_WIN
 		state.button = getButton(); //Проверяем нажатия
 #endif
-#ifdef SYSTEM_STM32
-		parseUSART();
-#endif
+//#ifdef SYSTEM_STM32
+//		parseUSART();
+//		/*Запомним размер стека и cчетчик команд в этом месте программы
+//		что бы перезапустить программу с этого места при необходимости*/
+//		thread_SP = __get_MSP();
+//		thread_PC = __current_pc();	
+//#endif
 		if (state.button != BUTTON_NULL) {
 			beep(2000, 50);
 			setPowerMode(POWERMODE_NORMAL);
@@ -218,7 +225,15 @@ int main(void) {
 			TIM_Cmd(TIM4, ENABLE); //Включаем таймер
 			TIM_SetCounter(TIM4, 0); //Обнуляем счетчик
 #endif
+#ifdef SYSTEM_STM32
+//			asm_switch_to_psp(); //Перейдем в режим процесса
+			state.taskList |= TASK_DRAWING;
+			thread_run(redrawDisplay);
+			state.taskList &= ~TASK_DRAWING;
+#endif
+#ifdef SYSTEM_WIN
 			redrawDisplay();
+#endif	
 #ifdef DEBUG_DISPLAY
 			track.circleTics=TIM_GetCounter(TIM4); //Считали значение счетчика. 32768 импульсов в секунду
 #endif

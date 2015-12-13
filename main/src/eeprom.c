@@ -467,9 +467,9 @@ void loadParams(void) {
 //******************************************************************************
 //	uint8_t Buffer[HIST_ITEM_COUNT*4];
 	uint8_t Rx2_Buffer[HIST_UNINT_SIZE];
-tm_t histTime;
 void loadRacelist(void) {
 #ifdef SYSTEM_STM32
+	tm_t histTime;
 	uint8_t i, j;
 	uint16_t pos;
 	racelist.itemsDisplay = 0;

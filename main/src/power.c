@@ -92,6 +92,10 @@ void initMCU(uint8_t state) {
 		case STATE_NULL : {
 			init_printf(NULL, putcUSART); //Для использования функций printf, sprintf
 			ButtonsInit(MODE_ADC);//Настройка портов кнопок
+			/* Разрешим прерывания отказов */
+			SCB->SHCSR |= SCB_SHCSR_BUSFAULTENA;
+			SCB->SHCSR |= SCB_SHCSR_MEMFAULTENA;
+			SCB->SHCSR |= SCB_SHCSR_USGFAULTENA;
 		}break;
 		case STATE_SLEEP : {
 			displayOff();

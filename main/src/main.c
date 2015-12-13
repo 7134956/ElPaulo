@@ -61,7 +61,6 @@ uint8_t stateMainPrev = STATE_NULL; //Предыдущее выбраное со
 uint16_t keyPass = 0;
 uint8_t contrast;
 uint8_t testFlag = 0;
-uint32_t MSP;
 
 mtk_element_t
 		mtkPassword, //Пароль
@@ -196,8 +195,14 @@ int main(void) {
 	state.taskList |= TASK_REDRAW; //Запросим первую перерисовку экрана
 	state.powerMode = POWERMODE_NORMAL;
 	//Перед входом в главный цыкл...
+	mainLoop();
+}
+
+/*******************************************************************************
+ *Главный цыкл после включения устройства
+ ******************************************************************************/
+void mainLoop() {
 	while (1) {
-//		MSP = __get_MSP();
 #ifdef SYSTEM_WIN
 		state.button = getButton(); //Проверяем нажатия
 #endif
@@ -212,11 +217,42 @@ int main(void) {
 		}
 		if (stateMainPrev != stateMain)
 			newState();
-		mainLoop();
+		switch (stateMain) {
+		case STATE_START: {
+			if (keyPass == config.password)
+				stateMain = STATE_MAIN;
+		}
+			break;
+		case STATE_STAT: {
+			calculateStat(&track);
+		}
+			break;
+		case STATE_MAIN: {
+		}
+			break;
+		case STATE_TERMO: {
+		}
+			break;
+		case STATE_OFF: {
+			setPowerMode(POWERMODE_OFF);
+		}
+			break;
+		case STATE_CALENDAR: {
+			if (!VB(racelist.dayActiv_f, 0)) {
+				racelist.dayActiv_f = readDayActiv(calendar.year,
+						calendar.month);
+			}
+		}
+			break;
+		case STATE_SLEEP: {
+			setPowerMode(POWERMODE_SLEEP);
+		}
+			break;
+		}
 		if ((state.taskList & TASK_REDRAW) && (stateMain != STATE_SLEEP)) {
 #ifdef DEBUG_DISPLAY
 			TIM_Cmd(TIM4, ENABLE); //Включаем таймер
-			TIM_SetCounter(TIM4, 0); //Обнуляем счетчик
+			TIM_SetCounter(TIM4, 0);//Обнуляем счетчик
 #endif
 			redrawDisplay();
 #ifdef DEBUG_DISPLAY
@@ -225,43 +261,6 @@ int main(void) {
 			state.taskList &= ~TASK_REDRAW;
 		}
 		setPowerState(state.powerMode);
-	}
-}
-
-/*******************************************************************************
- *Главный цыкл после включения устройства
- ******************************************************************************/
-void mainLoop() {
-	switch (stateMain) {
-	case STATE_START: {
-		if (keyPass == config.password)
-			stateMain = STATE_MAIN;
-	}
-		break;
-	case STATE_STAT: {
-		calculateStat(&track);
-	}
-		break;
-	case STATE_MAIN: {
-	}
-		break;
-	case STATE_TERMO: {
-	}
-		break;
-	case STATE_OFF: {
-		setPowerMode(POWERMODE_OFF);
-	}
-		break;
-	case STATE_CALENDAR: {
-		if (!VB(racelist.dayActiv_f, 0)) {
-			racelist.dayActiv_f = readDayActiv(calendar.year, calendar.month);
-		}
-	}
-		break;
-	case STATE_SLEEP: {
-		setPowerMode(POWERMODE_SLEEP);
-	}
-		break;
 	}
 }
 

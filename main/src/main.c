@@ -183,7 +183,7 @@ int main(void) {
 	mtk_SetupElement(&mtkSleepSec, ELEMENT_NUM16, NULL, 4, 0, &config.SleepSec, &mtkSleepDisplayOff);
 	mtk_SetupElement(&mtkSleepDisplayOff, ELEMENT_FLAG, NULL, 0, TYPE_NEEDOK, &config.SleepDisplayOff, NULL);
 //--------------------------------------
-	mtk_SetupElement(&mtkAbout, ELEMENT_GFUNC, NULL, 0, TYPE_NEEDOK, &about, NULL);
+	mtk_SetupElement(&mtkAbout, ELEMENT_GFUNC, NULL, 0, 0, &about, NULL);
 //---------
 
 	setStrings(1);
@@ -196,6 +196,7 @@ int main(void) {
 	state.powerMode = POWERMODE_NORMAL;
 	//Перед входом в главный цыкл...
 	mainLoop();
+	return 0;
 }
 
 /*******************************************************************************

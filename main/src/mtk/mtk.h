@@ -38,9 +38,10 @@ typedef struct _mtk_select_t mtk_select_t;
 #define TYPE_FUNC 1		//Редактирование параметра через вызов функции
 #define TYPE_NEEDOK 2	//Редактирование  параметра с подтверждением
 #define TYPE_LOCK 4		//Редактирование без возможности выхода
+#define TYPE_CMD_ACCEPT 8	//GFUNC сама обрабатывает команды
 //Флаги состояния
-#define EDITING_PROCESS 8 //Редактирование начато(Выделен редактируемый разряд)
-#define EDITING_EDITED 16 //Требуется сохранение (число изменено) Выставляется только для TYPE_NEEDOK
+#define EDITING_PROCESS 16 //Редактирование начато(Выделен редактируемый разряд)
+#define EDITING_EDITED 32 //Требуется сохранение (число изменено) Выставляется только для TYPE_NEEDOK
 
 //Тип элемента
 #define ELEMENT_NULL 0

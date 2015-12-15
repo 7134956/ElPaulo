@@ -282,6 +282,13 @@ void newState() {
 		if (stateMainPrev == STATE_SLEEP)
 			initMCU(stateMain);
 		dateTime_p = timeGetSet(NULL); //Настроим указатель на дату, время.
+		if (state.taskList & TASK_TIMESETUP) {
+			stateMain = STATE_SETUP;
+			changePos(0, 1, 1, ACTION_IS);
+			mtk_SetRootElement(&mtkDate);
+			mtk_SelectElement(1);
+			state.taskList &= ~ TASK_TIMESETUP;
+		}
 	}
 		break;
 	case STATE_SETUP: {
@@ -291,13 +298,6 @@ void newState() {
 	case STATE_START: {
 		if ((stateMainPrev == STATE_NULL) || (stateMainPrev == STATE_MAIN))
 			initMCU(stateMain);
-		if (state.taskList & TASK_TIMESETUP) {
-			stateMain = STATE_SETUP;
-			changePos(0, 1, 1, ACTION_IS);
-			mtk_SetRootElement(&mtkDate);
-			mtk_SelectElement(1);
-			state.taskList &= ~ TASK_TIMESETUP;
-		}
 	}
 		break;
 	case STATE_SLEEP:

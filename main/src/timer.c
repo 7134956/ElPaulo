@@ -5,7 +5,7 @@
 #include "printf.h"
 
 #ifdef SYSTEM_STM32
-#include "stm32f10x_conf.h"
+#include "stm32f10x.h"
 #endif
 
 typedef struct slot_func_t {

@@ -1,8 +1,7 @@
 #include "main.h"
 #include "rtc.h"
 #ifdef SYSTEM_STM32
-#include "stm32f10x_rtc.h"
-#include "stm32f10x_bkp.h"
+#include "stm32f10x.h"
 #include "i2c.h"
 #include "printf.h"
 #include "power.h"

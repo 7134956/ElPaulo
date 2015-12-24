@@ -2,7 +2,7 @@
 #include "pwm.h"
 #include "u8g.h"
 #ifdef SYSTEM_STM32
-#include "stm32f10x_conf.h"
+#include "stm32f10x.h"
 #endif
 
 extern config_t config;

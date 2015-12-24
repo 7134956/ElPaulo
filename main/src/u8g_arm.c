@@ -15,15 +15,8 @@
  SysTick->CTRL = 7;   // enable, generate interrupt (SysTick_Handler), do not divide by 2
  */
 
-#include "u8g_arm.h"
-#include "usart.h"
-#include "printf.h"
 #include "spi.h"
-#include "stm32f10x_rcc.h"
-#include "stm32f10x_gpio.h"
-#include "led.h"
-#include "stm32f10x_usart.h"
-#include "printf.h"
+#include "stm32f10x.h"
 #include "u8g_arm.h"
 #include "u8g.h" // Графическая библиотека
 #include "i2c.h"
@@ -97,9 +90,10 @@ void delay_init(void) {
 
 	/* Time base configuration */
 	TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
+	SystemCoreClockUpdate ();
 	TIM_TimeBaseStructure.TIM_Prescaler = (SystemCoreClock / DELAY_TIM_FREQUENCY) - 1;
 	TIM_TimeBaseStructure.TIM_Period = UINT16_MAX;
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
 

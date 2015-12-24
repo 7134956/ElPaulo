@@ -1,7 +1,6 @@
 #include "buttons.h"
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
-#include "stm32f10x_conf.h"
 #include "printf.h"
 #endif
 

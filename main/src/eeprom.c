@@ -7,10 +7,7 @@
 #include "i2c.h"
 
 #ifdef SYSTEM_STM32
-#include "stm32f10x_usart.h"
-#include "stm32f10x_gpio.h"
-#include "stm32f10x_i2c.h"
-#include "stm32f10x_rcc.h"
+#include "stm32f10x.h"
 #endif
 
 #ifdef SYSTEM_WIN

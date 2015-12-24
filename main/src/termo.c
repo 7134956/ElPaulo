@@ -1,8 +1,5 @@
 #include "termo.h"
-#include <stm32f10x.h>
-#include <stm32f10x_rcc.h>
-#include <stm32f10x_gpio.h>
-#include <stm32f10x_adc.h>
+#include "stm32f10x.h"
 
 /*******************************************************************************
  *Настройка ADC для термометра

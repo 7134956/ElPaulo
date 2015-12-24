@@ -2,7 +2,7 @@
 #include "power.h"
 
 #ifdef SYSTEM_STM32
-#include "stm32f10x_rcc.h"
+#include "stm32f10x.h"
 #include "led.h"
 #include "termo.h"
 #include "buttons.h"
@@ -47,7 +47,7 @@ void setPowerMode(uint8_t mode) {
  ******************************************************************************/
 void setPowerState(uint8_t mode) {
 #ifdef SYSTEM_STM32
-	state.taskList |= 16; //FIXME delite for work
+	state.taskList |= 128; //FIXME delite for work
 	if(!state.taskList) {
 		set_leds(LED_BLUE); //Потушили диод пошли спать
 		switch(mode) {

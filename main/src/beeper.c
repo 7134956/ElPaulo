@@ -2,8 +2,7 @@
 #include "timer.h"
 #include "beeper.h"
 #ifdef SYSTEM_STM32
-#include "stm32f10x_conf.h"
-#include "stm32f10x_tim.h"
+#include "stm32f10x.h"
 #endif
 
 typedef struct beep_buffer_t{

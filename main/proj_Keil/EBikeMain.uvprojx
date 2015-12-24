@@ -708,6 +708,16 @@
               <FileType>1</FileType>
               <FilePath>..\src\u8g\u8g_state.c</FilePath>
             </File>
+            <File>
+              <FileName>u8g_dev_ssd1306_128x64.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\u8g\u8g_dev_ssd1306_128x64.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb16v1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\u8g\u8g_pb16v1.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

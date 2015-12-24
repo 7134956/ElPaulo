@@ -1,0 +1,144 @@
+/* This file has been prepared for Doxygen automatic documentation generation.*/
+/*! \file *********************************************************************
+ *
+ * \brief
+ *      Lookup table.
+ *
+ * \par Documentation
+ *      For comprehensive code documentation, supported compilers, compiler
+ *      settings and supported devices see readme.html
+ *
+ * \author
+ *      Atmel Corporation: http://www.atmel.com \n
+ *      Support email: avr@atmel.com
+ *
+ * 
+ * $Date: 2011-02-22 \n
+ *
+ * Copyright (c) 2011, Atmel Corporation All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * 3. The name of ATMEL may not be used to endorse or promote products derived
+ * from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE EXPRESSLY AND
+ * SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ******************************************************************************/
+1457,
+1455,
+1452,
+1450,
+1447,
+1445,
+1442,
+1439,
+1436,
+1432,
+1429,
+1426,
+1422,
+1419,
+1415,
+1411,
+1407,
+1403,
+1398,
+1394,
+1389,
+1385,
+1380,
+1375,
+1370,
+1364,
+1359,
+1353,
+1348,
+1342,
+1336,
+1330,
+1324,
+1317,
+1311,
+1304,
+1297,
+1290,
+1283,
+1276,
+1269,
+1262,
+1254,
+1246,
+1239,
+1231,
+1223,
+1215,
+1207,
+1199,
+1190,
+1182,
+1174,
+1165,
+1156,
+1148,
+1139,
+1130,
+1122,
+1113,
+1104,
+1095,
+1086,
+1077,
+1068,
+1059,
+1050,
+1042,
+1033,
+1024,
+1015,
+1006,
+997,
+988,
+980,
+971,
+962,
+954,
+945,
+936,
+928,
+920,
+911,
+903,
+895,
+887,
+879,
+871,
+863,
+855,
+847,
+840,
+832,
+825,
+817,
+810,
+803,
+796,
+789,
+782,
+776,

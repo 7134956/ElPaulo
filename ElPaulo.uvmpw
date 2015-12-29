@@ -9,12 +9,11 @@
 
   <project>
     <PathAndName>.\BMS\proj_Keil\EBikeBMS.uvprojx</PathAndName>
-    <NodeIsActive>1</NodeIsActive>
-    <NodeIsExpanded>1</NodeIsExpanded>
   </project>
 
   <project>
     <PathAndName>.\main\proj_Keil\EBikeMain.uvprojx</PathAndName>
+    <NodeIsActive>1</NodeIsActive>
     <NodeIsExpanded>1</NodeIsExpanded>
   </project>
 

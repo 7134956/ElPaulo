@@ -1,3 +1,7 @@
+#ifndef _I2C_H_
+#define _I2C_H_
+
+#include "config.h"
 void i2c_init(void);
-#define I2C             I2C1
-#define I2C_SPEED       200000
+
+#endif /* _I2C_H_ */

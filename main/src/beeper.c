@@ -18,7 +18,9 @@ typedef struct beep_t {
 
 beep_t beepTask;
 
+#ifdef SYSTEM_STM32
 uint8_t beep_systick_calback(void);
+#endif
 
 /*******************************************************************************
  *Настройка бипера
@@ -32,19 +34,13 @@ void beep_init() {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 
-	//Включаем тактирование TIM3
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
-
-	//Включаем тактирование порта B и альтернативной функции
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
-
-	//Включаем тактирование порта B
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+	//Включаем тактирование таймера порта и альтернативной функции
+	RCC_APB2PeriphClockCmd(BEEP_RCC, ENABLE);
 
 	//Настрока порта B0 = TIM3 на выход ШИМ
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+	GPIO_InitStructure.GPIO_Pin = BEEP_PIN;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 	//Настройка счетчика
@@ -61,12 +57,12 @@ void beep_init() {
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;// настройка полярности выхода
 
 	//Ввод значений переменной TIM_OCInitStructure в регистры ШИМ канала 3 таймера3
-	TIM_OC3Init(TIM3, &TIM_OCInitStructure);
+	TIM_OC3Init(BEEP_TIM, &TIM_OCInitStructure);
 
-	TIM_OC3PreloadConfig(TIM3, TIM_OCPreload_Enable);
+	TIM_OC3PreloadConfig(BEEP_TIM, TIM_OCPreload_Enable);
 
 	//Включение счетчика TIM3
-	TIM_Cmd(TIM3, ENABLE);
+	TIM_Cmd(BEEP_TIM, ENABLE);
 #endif
 }
 
@@ -76,12 +72,12 @@ void beep_init() {
  ******************************************************************************/
 void beep(uint16_t f, uint16_t t) {
 #ifdef SYSTEM_STM32
-		if (!TIM3->CCR3) //Если пищалка свободна пускаем звук на нее
+		if (!BEEP_TIM->BEEP_CCR) //Если пищалка свободна пускаем звук на нее
 		{
 			SysTick_task_add(&beep_timer_callback, t);
-			TIM3->ARR = 1000000 / f;
-			RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
-			TIM3->CCR3 = 100000 / f; //Устанавливаем скважность половина
+			BEEP_TIM->BEEP_ARR = 1000000 / f;
+			RCC_APB1PeriphClockCmd(BEEP_RCC, ENABLE);
+			BEEP_TIM->BEEP_CCR = 100000 / f; //Устанавливаем скважность половина
 		} else //Если зянята откладываем звук
 		{
 			beepTask.buf[beepTask.idxIN].freq = f;
@@ -97,14 +93,13 @@ void beep(uint16_t f, uint16_t t) {
 uint8_t beep_timer_callback(void){
 #ifdef SYSTEM_STM32
 	if (beepTask.idxIN == beepTask.idxOUT) {//Если звук отработал
-		TIM3->CCR3 = 0; //Устанавливаем скважность 0
+		BEEP_TIM->BEEP_CCR = 0; //Устанавливаем скважность 0
+		RCC_APB1PeriphClockCmd(BEEP_RCC, DISABLE);
 		return 0;
 	} else //Запускаем отложенный звук
 	{
-		TIM3->ARR = 1000000 / beepTask.buf[beepTask.idxOUT].freq;
-		//RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
-		TIM3->CCR3 = 500000 / beepTask.buf[beepTask.idxOUT].freq;//Устанавливаем скважность половина
-
+		BEEP_TIM->BEEP_ARR = 1000000 / beepTask.buf[beepTask.idxOUT].freq;
+		BEEP_TIM->BEEP_CCR = 500000 / beepTask.buf[beepTask.idxOUT].freq;//Устанавливаем скважность половина
 		SysTick_task_add(&beep_timer_callback, beepTask.buf[beepTask.idxOUT++].time);
 		beepTask.idxOUT &= BEEP_BUF_MASK;
 	}

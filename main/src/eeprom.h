@@ -1,13 +1,6 @@
+#include "config.h"
 #include "u8g.h"
 #include "main.h"
-
-#define HIST_TIMES_CACHE 1791 //Место хранения времен сохраненных заездов (64 ячейки) Х (4 байта)
-#define HIST_INDEX_START 2047 //Место однобайтного указателя номера последней ячейки с заездом
-#define HIST_CONTENT_START 2048 //Начало блока с заездами
-#define HIST_UNINT_SIZE 32	//Размер блока сохраненного заезда
-#define CONFIG_UNINT_SIZE 64 //Размер блока настроек
-#define HIST_ITEM_COUNT 64 //Число сохраняемых заездов в памяти (Вторая половина eeprom)
-#define BUF_MASK (HIST_ITEM_COUNT-1)
 
 //*****************************************************************************
 // Declare function prototypes

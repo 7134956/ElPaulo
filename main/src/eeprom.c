@@ -10,28 +10,19 @@
 #include "stm32f10x.h"
 #endif
 
-#ifdef SYSTEM_WIN
-#include <SDL.h>
-#define FILE "SAVE.BIN"
-#endif
-
-extern track_t histItem;
 extern track_t track;
 extern config_t config;
+
+#ifdef SYSTEM_STM32
+extern track_t histItem;
 extern racelist_t racelist;
 extern calendar_t calendar;
 extern uint8_t navigate[];
+#endif
 
 /*******************************************************************************
  Global variables, private define, macro and typedef
  ******************************************************************************/
-
-#define EEPROM_WriteAddress    0x50
-#define EEPROM_ReadAddress     0x50
-
-#define I2C_SLAVE_ADDRESS7     0xA0
-#define I2C_FLASH_PAGESIZE     32
-#define EEPROM_HW_ADDRESS      0xA0   /* E0 = E1 = E2 = 0 */
 
 uint8_t Buffer[256];
 
@@ -45,42 +36,42 @@ uint8_t Buffer[256];
 #ifdef SYSTEM_STM32
 void I2C_EE_ByteWrite(uint8_t* pBuffer, uint16_t WriteAddr) {
 	/* Send STRAT condition */
-	I2C_GenerateSTART(I2C, ENABLE);
+	I2C_GenerateSTART(I2C_UNIT, ENABLE);
 
 	/* Test on EV5 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_MODE_SELECT))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_MODE_SELECT))
 		;
 
 	/* Send EEPROM address for write */
-	I2C_Send7bitAddress(I2C, EEPROM_HW_ADDRESS, I2C_Direction_Transmitter);
+	I2C_Send7bitAddress(I2C_UNIT, EEPROM_HW_ADDRESS, I2C_Direction_Transmitter);
 
 	/* Test on EV6 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
 		;
 
 	/* Send the EEPROM's internal address to write to : MSB of the address first */
-	I2C_SendData(I2C, (uint8_t) ((WriteAddr & 0xFF00) >> 8));
+	I2C_SendData(I2C_UNIT, (uint8_t) ((WriteAddr & 0xFF00) >> 8));
 
 	/* Test on EV8 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
 		;
 
 	/* Send the EEPROM's internal address to write to : LSB of the address */
-	I2C_SendData(I2C, (uint8_t) (WriteAddr & 0x00FF));
+	I2C_SendData(I2C_UNIT, (uint8_t) (WriteAddr & 0x00FF));
 
 	/* Test on EV8 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
 		;
 
 	/* Send the byte to be written */
-	I2C_SendData(I2C, *pBuffer);
+	I2C_SendData(I2C_UNIT, *pBuffer);
 
 	/* Test on EV8 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
 		;
 
 	/* Send STOP condition */
-	I2C_GenerateSTOP(I2C, ENABLE);
+	I2C_GenerateSTOP(I2C_UNIT, ENABLE);
 }
 
 /*******************************************************************************
@@ -93,65 +84,65 @@ void I2C_EE_ByteWrite(uint8_t* pBuffer, uint16_t WriteAddr) {
  ******************************************************************************/
 void I2C_EE_BufferRead(uint8_t* pBuffer, uint16_t ReadAddr, uint16_t NumByteToRead) {
 	/* While the bus is busy */
-	while (I2C_GetFlagStatus(I2C, I2C_FLAG_BUSY))
+	while (I2C_GetFlagStatus(I2C_UNIT, I2C_FLAG_BUSY))
 		;
 
 	/* Send START condition */
-	I2C_GenerateSTART(I2C, ENABLE);
+	I2C_GenerateSTART(I2C_UNIT, ENABLE);
 
 	/* Test on EV5 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_MODE_SELECT))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_MODE_SELECT))
 		;
 
 	/* Send EEPROM address for write */
-	I2C_Send7bitAddress(I2C, EEPROM_HW_ADDRESS, I2C_Direction_Transmitter);
+	I2C_Send7bitAddress(I2C_UNIT, EEPROM_HW_ADDRESS, I2C_Direction_Transmitter);
 
 	/* Test on EV6 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
 		;
 
 	/* Send the EEPROM's internal address to read from: MSB of the address first */
-	I2C_SendData(I2C, (uint8_t) ((ReadAddr & 0xFF00) >> 8));
+	I2C_SendData(I2C_UNIT, (uint8_t) ((ReadAddr & 0xFF00) >> 8));
 
 	/* Test on EV8 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
 		;
 
 	/* Send the EEPROM's internal address to read from: LSB of the address */
-	I2C_SendData(I2C, (uint8_t) (ReadAddr & 0x00FF));
+	I2C_SendData(I2C_UNIT, (uint8_t) (ReadAddr & 0x00FF));
 
 	/* Test on EV8 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
 		;
 
 	/* Send STRAT condition a second time */
-	I2C_GenerateSTART(I2C, ENABLE);
+	I2C_GenerateSTART(I2C_UNIT, ENABLE);
 
 	/* Test on EV5 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_MODE_SELECT))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_MODE_SELECT))
 		;
 
 	/* Send EEPROM address for read */
-	I2C_Send7bitAddress(I2C, EEPROM_HW_ADDRESS, I2C_Direction_Receiver);
+	I2C_Send7bitAddress(I2C_UNIT, EEPROM_HW_ADDRESS, I2C_Direction_Receiver);
 
 	/* Test on EV6 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED))
 		;
 
 	/* While there is data to be read */
 	while (NumByteToRead) {
 		if (NumByteToRead == 1) {
 			/* Disable Acknowledgement */
-			I2C_AcknowledgeConfig(I2C, DISABLE);
+			I2C_AcknowledgeConfig(I2C_UNIT, DISABLE);
 
 			/* Send STOP Condition */
-			I2C_GenerateSTOP(I2C, ENABLE);
+			I2C_GenerateSTOP(I2C_UNIT, ENABLE);
 		}
 
 		/* Test on EV7 and clear it */
-		if (I2C_CheckEvent(I2C, I2C_EVENT_MASTER_BYTE_RECEIVED)) {
+		if (I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_RECEIVED)) {
 			/* Read a byte from the EEPROM */
-			*pBuffer = I2C_ReceiveData(I2C);
+			*pBuffer = I2C_ReceiveData(I2C_UNIT);
 
 			/* Point to the next location where the byte read will be saved */
 			pBuffer++;
@@ -162,7 +153,7 @@ void I2C_EE_BufferRead(uint8_t* pBuffer, uint16_t ReadAddr, uint16_t NumByteToRe
 	}
 
 	/* Enable Acknowledgement to be ready for another reception */
-	I2C_AcknowledgeConfig(I2C, ENABLE);
+	I2C_AcknowledgeConfig(I2C_UNIT, ENABLE);
 }
 
 /*******************************************************************************
@@ -260,52 +251,52 @@ void I2C_EE_BufferWrite(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteTo
  ******************************************************************************/
 void I2C_EE_PageWrite(uint8_t* pBuffer, uint16_t WriteAddr, uint8_t NumByteToWrite) {
 	/* While the bus is busy */
-	while (I2C_GetFlagStatus(I2C, I2C_FLAG_BUSY))
+	while (I2C_GetFlagStatus(I2C_UNIT, I2C_FLAG_BUSY))
 		;
 
 	/* Send START condition */
-	I2C_GenerateSTART(I2C, ENABLE);
+	I2C_GenerateSTART(I2C_UNIT, ENABLE);
 
 	/* Test on EV5 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_MODE_SELECT))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_MODE_SELECT))
 		;
 
 	/* Send EEPROM address for write */
-	I2C_Send7bitAddress(I2C, EEPROM_HW_ADDRESS, I2C_Direction_Transmitter);
+	I2C_Send7bitAddress(I2C_UNIT, EEPROM_HW_ADDRESS, I2C_Direction_Transmitter);
 
 	/* Test on EV6 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
 		;
 
 	/* Send the EEPROM's internal address to write to : MSB of the address first */
-	I2C_SendData(I2C, (uint8_t) ((WriteAddr & 0xFF00) >> 8));
+	I2C_SendData(I2C_UNIT, (uint8_t) ((WriteAddr & 0xFF00) >> 8));
 
 	/* Test on EV8 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
 		;
 
 	/* Send the EEPROM's internal address to write to : LSB of the address */
-	I2C_SendData(I2C, (uint8_t) (WriteAddr & 0x00FF));
+	I2C_SendData(I2C_UNIT, (uint8_t) (WriteAddr & 0x00FF));
 
 	/* Test on EV8 and clear it */
-	while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
 		;
 
 	/* While there is data to be written */
 	while (NumByteToWrite--) {
 		/* Send the current byte */
-		I2C_SendData(I2C, *pBuffer);
+		I2C_SendData(I2C_UNIT, *pBuffer);
 
 		/* Point to the next byte to be written */
 		pBuffer++;
 
 		/* Test on EV8 and clear it */
-		while (!I2C_CheckEvent(I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
+		while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
 			;
 	}
 
 	/* Send STOP condition */
-	I2C_GenerateSTOP(I2C, ENABLE);
+	I2C_GenerateSTOP(I2C_UNIT, ENABLE);
 }
 
 /*******************************************************************************
@@ -316,19 +307,19 @@ void I2C_EE_WaitEepromStandbyState(void) {
 
 	do {
 		/* Send START condition */
-		I2C_GenerateSTART(I2C, ENABLE);
+		I2C_GenerateSTART(I2C_UNIT, ENABLE);
 
 		/* Read I2C_EE SR1 register to clear pending flags */
 //        SR1_Tmp = I2C_ReadRegister(I2C_EE, I2C_Register_SR1);
 		/* Send EEPROM address for write */
-		I2C_Send7bitAddress(I2C, EEPROM_HW_ADDRESS, I2C_Direction_Transmitter);
-	} while (!(I2C_ReadRegister(I2C, I2C_Register_SR1) & 0x0002));
+		I2C_Send7bitAddress(I2C_UNIT, EEPROM_HW_ADDRESS, I2C_Direction_Transmitter);
+	} while (!(I2C_ReadRegister(I2C_UNIT, I2C_Register_SR1) & 0x0002));
 
 	/* Clear AF flag */
-	I2C_ClearFlag(I2C, I2C_FLAG_AF);
+	I2C_ClearFlag(I2C_UNIT, I2C_FLAG_AF);
 
 	/* STOP condition */
-	I2C_GenerateSTOP(I2C, ENABLE);
+	I2C_GenerateSTOP(I2C_UNIT, ENABLE);
 }
 #endif
 
@@ -413,14 +404,14 @@ void saveParams(void) {
 
 	config.crc = crc32_calc(Buffer, CONFIG_UNINT_SIZE - 4);
 	memcpy(&Buffer[60], &config.crc, 4);
-	I2C_EE_BufferWrite(Buffer, EEPROM_WriteAddress, CONFIG_UNINT_SIZE);
+	I2C_EE_BufferWrite(Buffer, EEPROM_WRITE_ADDRESS, CONFIG_UNINT_SIZE);
 }
 
 /*******************************************************************************
  *Загрузка из памяти настроек
  ******************************************************************************/
 void loadParams(void) {
-	I2C_EE_BufferRead(Buffer, EEPROM_ReadAddress, CONFIG_UNINT_SIZE);
+	I2C_EE_BufferRead(Buffer, EEPROM_READ_ADDRESS, CONFIG_UNINT_SIZE);
 	if (*((uint32_t *) (&Buffer[CONFIG_UNINT_SIZE - 4])) == crc32_calc(Buffer, CONFIG_UNINT_SIZE - 4)) {
 		memcpy(&config.PWM[0], &Buffer[0], 3);
 		memcpy(&track.odometr, &Buffer[3], 8);

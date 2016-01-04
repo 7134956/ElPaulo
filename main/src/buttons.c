@@ -85,7 +85,7 @@ void ButtonsInit(uint8_t mode) {
 		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;// Это PA0
 		GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-		GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource0);// выбор порта на котором хотим получить внешнее прерывание
+		GPIO_EXTILineConfig(GPIO_PortSourceGPIOA | RCC_APB2Periph_AFIO, GPIO_PinSource0);// выбор порта на котором хотим получить внешнее прерывание
 		EXTI_InitStructure.EXTI_Line = EXTI_Line0;// выбираем линию порта
 		EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;// настраиваем на внешнее прерывание
 		EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
@@ -174,9 +174,9 @@ void CircleSensorInit() {
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);//Включаем порт B
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);//Включаем тактирование порта B и альтернативной функции
 
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;//Это свободный вход
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;//Это вход с подтяжкой к плюсу
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;//
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;// Это PB12
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
@@ -188,14 +188,15 @@ void CircleSensorInit() {
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	//далее идут настройки приоритета прерываний.
+	//Настройка приоритетов прерываний 
+	//FIXME Спланировать и расставить приоритеты
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI15_10_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x00;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0F;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 
-	NVIC_EnableIRQ(EXTI15_10_IRQn);//разрешаем прерывание
+	NVIC_EnableIRQ(EXTI15_10_IRQn);//Разрешаем прерывание
 #endif
 }
 
@@ -216,6 +217,7 @@ void EXTI15_10_IRQHandler(void) {
 				TIM_SetCounter(TIM4, 0);//Обнуляем счетчик
 				track.tics += track.circleTics;
 				circleStep(track.circleTics);//Вызвали функцию рассчета скорости
+				state.taskList |= TASK_REDRAW;//Запросили перерисовку экрана
 			}
 		}
 		setPowerMode(POWERMODE_NORMAL);

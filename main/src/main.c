@@ -483,7 +483,7 @@ void buttonsParse() {
 						else
 							changePos(1, 0, 15, ACTION_IS);
 					} else
-						changePos(1, 1, 30, ACTION_INC);
+						changePos(1, 1, lastdayofmonth(calendar.year, calendar.month), ACTION_INC);
 				}
 			}
 				break;

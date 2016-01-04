@@ -108,7 +108,7 @@ void initMCU(uint8_t state) {
 			SysTickInit(100);//Запуск таймера. Вызов 100 раз в секунд
 			i2c_init();//Запустили i2c шину
 			loadParams();//Загрузили параметры из EEPROM
-			PWM_init();//Настройка ШИМ яркости
+			PWM_init();//Настройка ШИМ
 			PWMSet(0, config.PWM[0]);
 			PWMSet(1, config.PWM[1]);
 			PWMSet(2, config.PWM[2]);

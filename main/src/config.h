@@ -31,7 +31,7 @@
 #define I2C_UNIT			I2C1
 #define	I2C_PORT			GPIOB
 #define	I2C_PINS			GPIO_Pin_6 | GPIO_Pin_7
-#define I2C_SPEED			200000
+#define I2C_SPEED			100000
 
 #define EEPROM_WRITE_ADDRESS	0x50
 #define EEPROM_READ_ADDRESS		0x50

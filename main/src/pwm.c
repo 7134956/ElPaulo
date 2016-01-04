@@ -44,7 +44,7 @@ void PWM_init(void) {
 	TIM_OC_InitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OC_InitStructure.TIM_OutputNState = TIM_OutputNState_Disable;
 
-	TIM_OC_InitStructure.TIM_Pulse = config.PWM[2];
+//	TIM_OC_InitStructure.TIM_Pulse = config.PWM[2];
 
 	TIM_OC4Init(TIM2, &TIM_OC_InitStructure);
 

@@ -94,7 +94,7 @@ uint8_t beep_timer_callback(void){
 #ifdef SYSTEM_STM32
 	if (beepTask.idxIN == beepTask.idxOUT) {//Если звук отработал
 		BEEP_TIM->BEEP_CCR = 0; //Устанавливаем скважность 0
-		RCC_APB1PeriphClockCmd(BEEP_RCC, DISABLE);
+		//RCC_APB1PeriphClockCmd(BEEP_RCC, DISABLE); //FIXME Вырубает таймер шим
 		return 0;
 	} else //Запускаем отложенный звук
 	{

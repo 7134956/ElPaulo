@@ -1,9 +1,11 @@
 /*
 Частота процессора и шин пускай 8MHz
-CELL 24
+CELLS 24
 Number of ATA6870N 4
 SCK Frequency (kHz) 250
 CLK Frequency(kHz) 500
+Получение напряжения всех ячеек 11.5ms
+Будем считывать напряжение 10 раз в секунду
 Балансировочное сопротивление 33 Ом
 Ток до 110ма
 */
@@ -13,6 +15,8 @@ CLK Frequency(kHz) 500
 #define CONFIG_H
 
 #include "stdint.h"
+
+#define SELLS 24
 
 #define CLK_PORT 
 #define CLK_PIN 
@@ -74,5 +78,78 @@ CLK Frequency(kHz) 500
 
 //!< F_CPU Value in Hz
 #define F_CPU 8000000UL //Should not be changed!(See Applicationnote for further info)
+
+//Sell default params
+#define SELL_CAPACITY_REF	15000			//Номинальная емкость ячейки
+#define SELL_VOLATEGE_MIN	2000			//Минимальное напряжение ячейки 2.0V
+#define SELL_VOLATEGE_MAX	3650			//Максимальное напряжение ячейки 3.65V
+#define SELL_CURRENT_NOM	75000			//Номинальный ток разряда 5C (75A)
+#define SELL_CURRENT_MAX	100000			//Пиковый ток разряда 10C (150A)
+#define SELL_CURRENT_MAX_TIME 10000			//Допустимая продолжительность пикового тока 10 Сек
+
+#define SELL_DISCHARGE_VOLATEGE_END	2500	//Разряжать до напряжения 2.5V
+#define SELL_CHARGE_CURRENT_MAX		45000	//Максимальный ток зарядки 3C (45A)
+#define SELL_CHARGE_VOLATEGE_END	36000	//Максимальное напряжение зарядки 3.6V
+#define SELL_BALANCE_VOLATEGE		3500	//Начало балансировки 3.5V
+
+#define SELL_TEMP_CHARGE_MIN	0000	//Минимальная температуру для зарядки 0℃
+#define SELL_TEMP_CHARGE_MAX	4500	//Миаксимальная температуру для зарядки 45℃
+#define SELL_TEMP_DISCHARGE_MIN	-2000	//Минимальная температуру работы -20℃
+#define SELL_TEMP_DISCHARGE_MAX	6000	//Миаксимальная температуру работы 60℃
+
+config_t config;
+BMSinfo_t BMSinfo;
+BMS_t BMS;
+sell_t sell[24];
+
+typedef struct config_t { //Глобальная структура с настройками сохраняется в EEPROM
+	uint8_t BMSVersion; //Номер версии bms
+	char batString[30]; //Описание батареи
+	uint16_t cCount; //Счетчик зарядок
+	uint8_t batNum; //Число банок
+	uint16_t v[24]; //Напряжение на банках
+	uint16_t vAbsMax[24]; //Зарегистрированый максимум на ячейке
+	uint16_t vAbsMin[24]; //Зарегистрированый минимум на ячейке
+	uint16_t vMin; //Разрешенный минимум на ячейке
+	uint16_t vMax; //Разрешенный максимум на ячейке
+	uint32_t mAHIN; //Сколько А*ч съела батарея всего
+	uint32_t mAHOut; //Сколько А*ч отдала батарея всего
+	uint8_t tAbsMax; //Замерянный максимум на ячейке
+	uint8_t tAbsMin; //Замерянный минимум на ячейке
+	uint16_t maxCap; //Емкость батареи А*ч от vMin до vMax
+	uint32_t maxCurrent; //Максимальный потребляемый ток
+} config_t;
+
+typedef struct BMSinfo_t {	//информация BMS
+	uint8_t BMSVersion;		//Номер версии bms
+	char batString[30];		//Описание батареи
+	uint16_t cCount;		//Счетчик зарядок
+	uint8_t batNum;			//Число банок
+	uint16_t v[24];			//Напряжение на банках
+	uint16_t vAbsMax[24];	//Зарегистрированый максимум на ячейке
+	uint16_t vAbsMin[24];	//Зарегистрированый минимум на ячейке
+	uint16_t vMin;			//Разрешенный минимум на ячейке
+	uint16_t vMax;			//Разрешенный максимум на ячейке
+	uint32_t mAHIN;			//Сколько А*ч съела батарея всего
+	uint32_t mAHOut;		//Сколько А*ч отдала батарея всего
+	uint8_t tAbsMax;		//Замерянный максимум на ячейке
+	uint8_t tAbsMin;		//Замерянный минимум на ячейке
+	uint16_t maxCap;		//Емкость батареи А*ч от vMin до vMax
+	uint32_t maxCurrent;	//Максимальный потребляемый ток
+} BMSinfo_t;
+
+typedef struct BMS_t {	//информация BMS
+	uint32_t voltage;	//Напряжение батареи в милливольтах
+	uint32_t capacity;	//Остаток заряда в миллиамер часах
+	int32_t current;	//Ток батареи в миллиамерах
+} BMS_t;
+
+typedef struct sell_t {	//Глобальная структура с настройками сохраняется в EEPROM
+	uint16_t vCurr;	//Текущее напряжение на ячейке
+	uint16_t rCurr;	//Текущее сопротивление ячейки
+	uint16_t vMin;	//Зарегистрированый минимум на ячейке
+	uint16_t vMax;	//Зарегистрированый максимум на ячейке
+	uint32_t over;	//Потрачено времени на балансировку(разрядку ячейки)
+} sell_t;
 
 #endif

@@ -17,6 +17,8 @@
 //!< Sets the connected Cells. Value defined in config.h
 uint8_t ActiveCells[CHIPS];
 
+uint32_t ActiveShunt;
+
 //!< Cellvoltages*10000.[Chip][Cell]
 uint32_t VBAT[CHIPS][6];
 //!< ADC Voltage acquisition.[Chip][Cell]

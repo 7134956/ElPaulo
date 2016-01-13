@@ -14,7 +14,7 @@
 #endif
 
 uint8_t hStart, vStart, hStep, vStep, j, k;
-char sTemp[20]; //Общая временная переменная для строки
+char sTemp[30]; //Общая временная переменная для строки
 extern char *month[2][12];
 extern char *days[2][7];
 
@@ -58,6 +58,7 @@ void drawMainQuickMenu(void);
 void drawStatQuickMenu(void);
 void drawBat(void);
 void drawOff(void);
+void graphBar(char * str, uint8_t num, uint16_t * mas, uint32_t active );
 
 /*******************************************************************************
  *Запуск дисплея и настройка графики
@@ -616,12 +617,8 @@ void drawStatQuickMenu(void) {
  *Вкладка с параметрами батареи
  ******************************************************************************/
 void drawBat(void) {
-	uint8_t i;
-	uint16_t vMax = 0;
-	uint16_t vMin = 9999;
-	uint8_t value;
 	//FIXME
-	BMS.ActiveShunt = 342131;
+	BMS.ActiveShunt = 8418334;
 	BMSinfo.batNum = 24;
 	BMSinfo.v[0] = 3252;
 	BMSinfo.v[1] = 3296;
@@ -629,7 +626,7 @@ void drawBat(void) {
 	BMSinfo.v[3] = 3284;
 	BMSinfo.v[4] = 3296;
 	BMSinfo.v[5] = 3253;
-	BMSinfo.v[6] = 3212;
+	BMSinfo.v[6] = 3250;
 	BMSinfo.v[7] = 3237;
 	BMSinfo.v[8] = 3234;
 	BMSinfo.v[9] = 3265;
@@ -641,46 +638,59 @@ void drawBat(void) {
 	BMSinfo.v[15] = 3268;
 	BMSinfo.v[16] = 3236;
 	BMSinfo.v[17] = 3232;
-	BMSinfo.v[18] = 3222;
-	BMSinfo.v[19] = 3221;
+	BMSinfo.v[18] = 3255;
+	BMSinfo.v[19] = 3254;
 	BMSinfo.v[20] = 3232;
-	BMSinfo.v[21] = 3213;
+	BMSinfo.v[21] = 3260;
 	BMSinfo.v[22] = 3239;
 	BMSinfo.v[23] = 3285;
+	graphBar("(Voltage)", BMSinfo.batNum, &BMSinfo.v[0], BMS.ActiveShunt);
+}
+
+/*******************************************************************************
+ *Отрисовка гистограммы
+ ******************************************************************************/
+void graphBar(char * title, uint8_t num, uint16_t * mas, uint32_t active) {
+	uint8_t x, y;
+	uint8_t i;
+	uint16_t vMax = 0;
+	uint16_t vMin = 9999;
+	uint8_t value;
 	vStart = 35;
 	hStart = 0;
 	vStep = 93;
-	hStep = 10;
+	hStep = 240 / num;
 	u8g_SetFont(&u8g, u8g_font_elpaulo20);
 	u8g_DrawLine(&u8g, 0, vStart, 239, vStart);
 	u8g_DrawLine(&u8g, 0, vStart + vStep, 239, vStart + vStep);
-	for (i = 0; i < BMSinfo.batNum; i++) //Находим минимум и максимум
+	for (i = 0; i < num; i++) //Находим минимум и максимум
 			{
-		if (BMSinfo.v[i] < vMin)
-			vMin = BMSinfo.v[i];
-		if (BMSinfo.v[i] > vMax)
-			vMax = BMSinfo.v[i];
+		if (mas[i] < vMin)
+			vMin = mas[i];
+		if (mas[i] > vMax)
+			vMax = mas[i];
 	}
-	sprintf(sTemp, "Min%d.%dV", vMin / 1000, vMin % 1000);
-	u8g_DrawStr(&u8g, hStart + 10, vStart - 2, sTemp);
-	sprintf(sTemp, "Max%d.%dV", vMax / 1000, vMax % 1000);
-	u8g_DrawStr(&u8g, hStart + 140, vStart - 2, sTemp);
-	for (i = 0; i < BMSinfo.batNum; i++) {
-		value = vStep * (BMSinfo.v[i] - vMin) / (vMax - vMin);
-		if (VB(BMS.ActiveShunt, i)) //Если элемент шунтирован
-			u8g_DrawFrame(&u8g, hStart + hStep * i, vStart + vStep - value,
-					hStep - 1, value + 1);
-		else
-			u8g_DrawBox(&u8g, hStart + hStep * i, vStart + vStep - value,
-					hStep - 1, value + 1);
+	sprintf(sTemp, "%d.%d - %d.%d %s", vMax / 1000, vMax % 1000, vMin / 1000,
+			vMin % 1000, title);
+	u8g_DrawStr(&u8g, hStart, vStart - 2, sTemp);
+	for (i = 0; i < num; i++) {
+		value = 1 + ((vStep) * (mas[i] - vMin) / (vMax - vMin));
+		x = hStart + hStep * i;
+		y = vStart + 1 + vStep - value;
+		if (VB(active, i)) //Если элемент шунтирован
+			u8g_DrawBox(&u8g, x, y, hStep - 1, value);
+		else {
+			u8g_DrawFrame(&u8g, x, y, hStep - 1, value);
+		}
+		y = vStart + vStep + 16;
 		if (i < 9) {
 			sprintf(sTemp, "%d", i + 1);
-			u8g_DrawStr(&u8g, hStart + hStep * i, vStart + vStep + 16, sTemp);
+			u8g_DrawStr(&u8g, x, y, sTemp);
 		} else {
 			sprintf(sTemp, "%d", (i + 1) / 10);
-			u8g_DrawStr(&u8g, hStart + hStep * i, vStart + vStep + 16, sTemp);
+			u8g_DrawStr(&u8g, x, y, sTemp);
 			sprintf(sTemp, "%d", (i + 1) % 10);
-			u8g_DrawStr(&u8g, hStart + hStep * i, vStart + vStep + 32, sTemp);
+			u8g_DrawStr(&u8g, x, y + 16, sTemp);
 		}
 	}
 }

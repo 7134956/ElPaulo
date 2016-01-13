@@ -674,7 +674,7 @@ void graphBar(char * title, uint8_t num, uint16_t * mas, uint32_t active) {
 			vMin % 1000, title);
 	u8g_DrawStr(&u8g, hStart, vStart - 2, sTemp);
 	for (i = 0; i < num; i++) {
-		value = 1 + ((vStep) * (mas[i] - vMin) / (vMax - vMin));
+		value = 3 + ((vStep - 5) * (mas[i] - vMin) / (vMax - vMin));
 		x = hStart + hStep * i;
 		y = vStart + 1 + vStep - value;
 		if (VB(active, i)) //Если элемент шунтирован

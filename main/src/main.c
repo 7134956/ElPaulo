@@ -98,7 +98,6 @@ int main() {
 	track.odometr = 1000000000; //Общий путь в мм (0 ... 18446744073709551615)
 	config.lang = 0;
 	stateMain = STATE_START;
-//	state.taskList |= TASK_TIMESETUP;
 	RTC_init();
 	drawInit();
 	loadParams();//Загрузили параметры из EEPROM

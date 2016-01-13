@@ -48,7 +48,7 @@
 #define BUF_MASK (HIST_ITEM_COUNT-1)
 
 #ifdef SYSTEM_WIN
-#include <SDL.h>
+#include <SDL_rwops.h>
 #define FILE "SAVE.BIN"
 #endif
 

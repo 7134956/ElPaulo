@@ -156,6 +156,7 @@ typedef struct BMS_t { //информация BMS
 	uint32_t voltage; //Напряжение батареи в милливольтах
 	uint32_t capacity; //Остаток заряда в миллиамер часах
 	int32_t current; //Ток батареи в миллиамерах
+	uint32_t ActiveShunt; //Активные шунты балансировки
 } BMS_t;
 
 #endif /* _MAIN_H_ */

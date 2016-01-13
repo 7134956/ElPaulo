@@ -621,6 +621,7 @@ void drawBat(void) {
 	uint16_t vMin = 9999;
 	uint8_t value;
 	//FIXME
+	BMS.ActiveShunt = 342131;
 	BMSinfo.batNum = 24;
 	BMSinfo.v[0] = 3252;
 	BMSinfo.v[1] = 3296;
@@ -666,8 +667,12 @@ void drawBat(void) {
 	u8g_DrawStr(&u8g, hStart + 140, vStart - 2, sTemp);
 	for (i = 0; i < BMSinfo.batNum; i++) {
 		value = vStep * (BMSinfo.v[i] - vMin) / (vMax - vMin);
-		u8g_DrawBox(&u8g, hStart + hStep * i, vStart + vStep - value, hStep - 1,
-				value + 1);
+		if (VB(BMS.ActiveShunt, i)) //Если элемент шунтирован
+			u8g_DrawFrame(&u8g, hStart + hStep * i, vStart + vStep - value,
+					hStep - 1, value + 1);
+		else
+			u8g_DrawBox(&u8g, hStart + hStep * i, vStart + vStep - value,
+					hStep - 1, value + 1);
 		if (i < 9) {
 			sprintf(sTemp, "%d", i + 1);
 			u8g_DrawStr(&u8g, hStart + hStep * i, vStart + vStep + 16, sTemp);

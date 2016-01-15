@@ -88,6 +88,7 @@ void mtk_drawLL(mtk_t *mtk) {
 			break;
 		if ((mtk->element->type == ELEMENT_GFUNC) && (mtk->element->flags & EDITING_PROCESS)) {
 			mtk_elementGfunc(mtk);
+			break; //Если графика активна, остальные пункты не рисуем
 			mtk->element = mtk->element->next;
 		} else {			//Иначе рисуем строку
 			//Рисуем указатель на выбраную строку если ее элемент не в процессе редактирования
@@ -304,7 +305,7 @@ void mtk_elementSelect(mtk_t *mtk) {
  *Отрисовка элемента типа GFUNC
  ******************************************************************************/
 void mtk_elementGfunc(mtk_t *mtk) {
-	if (mtk->rootHist[mtk->indexHist]->type == ELEMENT_GFUNC) {
+	if (mtk->element->flags & EDITING_PROCESS) {
 		void (*fp)(mtk_t *);
 		fp = (void (*)(mtk_t *)) mtk->element->pointer;
 		fp(mtk);

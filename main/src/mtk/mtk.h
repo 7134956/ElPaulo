@@ -40,7 +40,7 @@ typedef struct _mtk_select_t mtk_select_t;
 #define TYPE_LOCK 4		//Редактирование без возможности выхода
 #define TYPE_CMD_ACCEPT 8	//GFUNC сама обрабатывает команды
 //Флаги состояния
-#define EDITING_PROCESS 16 //Редактирование начато(Выделен редактируемый разряд)
+#define EDITING_PROCESS 16 //Редактирование начато(Выделен редактируемый разряд или активирована графическая функция)
 #define EDITING_EDITED 32 //Требуется сохранение (число изменено) Выставляется только для TYPE_NEEDOK
 
 //Тип элемента

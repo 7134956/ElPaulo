@@ -105,7 +105,7 @@ void RTC_init(void) {
 //		uint16_t tm_yday;	/* Days since Jan. 1: 0-365 */
 //		uint8_t	tm_isdst;	/* +1 Daylight Savings Time, 0 No DST,*/
 
-		dateTime.tm_year = 115;
+		dateTime.tm_year = 116;
 		dateTime.tm_mon = 1;
 		dateTime.tm_mday = 1;
 		dateTime.tm_hour = 12;

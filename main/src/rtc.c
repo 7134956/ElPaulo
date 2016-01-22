@@ -160,7 +160,7 @@ void NVIC_Configuration(void) {
 	/* Enable the RTC Interrupt */
 	NVIC_InitStructure.NVIC_IRQChannel = RTC_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 }
@@ -264,6 +264,7 @@ void RTC_IRQHandler(void) {
 			if (state.taskList & TASK_UPDATETIME) {
 				CounterToFtime(RTC_GetCounter(), &dateTime);
 				state.taskList &=~ TASK_UPDATETIME;
+				state.taskList |= TASK_REDRAW;
 			}
 			else {
 				dateTime.tm_sec++;

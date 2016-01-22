@@ -6,6 +6,7 @@
 #include "main.h"
 #include "power.h"
 #include "termo.h"
+#include "bms.h"
 
 #ifdef SYSTEM_STM32
 #include "u8g_arm.h"
@@ -14,6 +15,7 @@
 #endif
 
 uint8_t hStart, vStart, hStep, vStep, j, k;
+popup_t popup;
 char sTemp[30]; //Общая временная переменная для строки
 extern char *month[2][12];
 extern char *days[2][7];
@@ -29,14 +31,18 @@ extern BMS_t BMS;
 extern track_t histItem;
 extern uint8_t navigate[5];
 extern uint8_t stateMain;
-extern mtk_element_t mtkPassword,	//Пароль
+
+extern mtk_element_t mtkPin;	//Пароль стартового экрана
+/*		mtkPassword,	//Пароль
 		mtkDisplay,		//Меню настройки дисплея
 		mtkContrast,	//Настройка контрастности
 		mtkAutoBright,	//Включение автояркости дисплея
 		mtkOdometr,		//Меню настройки одометра
 		mtkCircle,		//Настройка длины окружности колеса
-		mtkPin,			//Пароль стартового экрана
-		mtkDateTime, mtkDate, mtkTime;
+		mtkDateTime,
+		mtkDate,
+		mtkTime;
+*/
 
 extern config_t config;
 extern state_t state;
@@ -57,13 +63,14 @@ void drawTempChart(void);
 void drawMainQuickMenu(void);
 void drawStatQuickMenu(void);
 void drawBat(void);
+void drawCell(uint8_t, uint8_t, uint8_t);
 void drawOff(void);
-void graphBar(char * str, uint8_t num, uint16_t * mas, uint32_t active );
 
 /*******************************************************************************
  *Запуск дисплея и настройка графики
  ******************************************************************************/
 void drawInit(void) {
+	popup.type = POPUP_ALERT;
 	#ifdef SYSTEM_WIN
 	u8g_Init(&u8g, &u8g_dev_sdl_2bit);
 #endif
@@ -172,6 +179,7 @@ void draw(void) {
 	}
 		break;
 	}
+	if(popup.type)message();
 }
 
 /*******************************************************************************
@@ -223,7 +231,7 @@ void drawMain(void) {
 	u8g_DrawStr(&u8g, 155, 37, "km");
 	u8g_DrawLine(&u8g, 155, 39, 175, 39);
 	u8g_DrawStr(&u8g, 161, 54, "h");
-	u8g_DrawStr(&u8g, 155, 78, "A*h");
+	u8g_DrawStr(&u8g, 155, 78, "A\xb7h");
 	u8g_DrawLine(&u8g, 155, 80, 186, 80);
 	u8g_DrawStr(&u8g, 161, 95, "km");
 	u8g_DrawStr(&u8g, 176, 136, "km");
@@ -569,7 +577,6 @@ void drawTempChart(void) {
  ******************************************************************************/
 void drawSetup(void) {
 	mtk_Pos(12, 35);
-//	mtk_SetRootElement(&mtkDisplay);
 	mtk_Draw();
 }
 
@@ -617,84 +624,37 @@ void drawStatQuickMenu(void) {
  *Вкладка с параметрами батареи
  ******************************************************************************/
 void drawBat(void) {
-	//FIXME
-	BMS.ActiveShunt = 8418334;
-	BMSinfo.batNum = 24;
-	BMSinfo.v[0] = 3252;
-	BMSinfo.v[1] = 3296;
-	BMSinfo.v[2] = 3283;
-	BMSinfo.v[3] = 3284;
-	BMSinfo.v[4] = 3296;
-	BMSinfo.v[5] = 3253;
-	BMSinfo.v[6] = 3250;
-	BMSinfo.v[7] = 3237;
-	BMSinfo.v[8] = 3234;
-	BMSinfo.v[9] = 3265;
-	BMSinfo.v[10] = 3285;
-	BMSinfo.v[11] = 3252;
-	BMSinfo.v[12] = 3297;
-	BMSinfo.v[13] = 3298;
-	BMSinfo.v[14] = 3297;
-	BMSinfo.v[15] = 3268;
-	BMSinfo.v[16] = 3236;
-	BMSinfo.v[17] = 3232;
-	BMSinfo.v[18] = 3255;
-	BMSinfo.v[19] = 3254;
-	BMSinfo.v[20] = 3232;
-	BMSinfo.v[21] = 3260;
-	BMSinfo.v[22] = 3239;
-	BMSinfo.v[23] = 3285;
-	graphBar("(Voltage)", BMSinfo.batNum, &BMSinfo.v[0], BMS.ActiveShunt);
+	uint8_t x, y, v;
+	x = 0;
+	y = 38;
+	v = 20;
+	u8g_DrawStr(&u8g, x, y, "Control");
+	drawCell(x, 40, 8);
+	x = 115;
+	u8g_DrawStr(&u8g, x, y, "83%");
+	u8g_DrawStr(&u8g, x, y += v, "3.956V");
+	u8g_DrawStr(&u8g, x, y += v, "Discharge");
+	x = 0; y = 108;
+	u8g_DrawLine(&u8g, x, 88, 239, 88);
+	u8g_DrawStr(&u8g, x, y, "Power");
+	drawCell(x, 111, 6);
+	x = 115;
+	u8g_DrawStr(&u8g, x, y, "60%");
+	u8g_DrawStr(&u8g, x, y += v, "9000mA·h");
+	u8g_DrawStr(&u8g, x, y += v, "Discharge");
 }
 
 /*******************************************************************************
- *Отрисовка гистограммы
+ *Рисуем батарейку
  ******************************************************************************/
-void graphBar(char * title, uint8_t num, uint16_t * mas, uint32_t active) {
-	uint8_t x, y;
+void drawCell(uint8_t x, uint8_t y, uint8_t val) {
 	uint8_t i;
-	uint16_t vMax = 0;
-	uint16_t vMin = 9999;
-	uint8_t value;
-	vStart = 35;
-	hStart = 0;
-	vStep = 93;
-	hStep = 240 / num;
-	u8g_SetFont(&u8g, u8g_font_elpaulo20);
-	u8g_DrawLine(&u8g, 0, vStart, 239, vStart);
-	u8g_DrawLine(&u8g, 0, vStart + vStep, 239, vStart + vStep);
-	for (i = 0; i < num; i++) //Находим минимум и максимум
-			{
-		if (mas[i] < vMin)
-			vMin = mas[i];
-		if (mas[i] > vMax)
-			vMax = mas[i];
-	}
-	sprintf(sTemp, "%d.%d - %d.%d %s", vMax / 1000, vMax % 1000, vMin / 1000,
-			vMin % 1000, title);
-	u8g_DrawStr(&u8g, hStart, vStart - 2, sTemp);
-	for (i = 0; i < num; i++) {
-		value = 3 + ((vStep - 5) * (mas[i] - vMin) / (vMax - vMin));
-		x = hStart + hStep * i;
-		y = vStart + 1 + vStep - value;
-		if (VB(active, i)) //Если элемент шунтирован
-			u8g_DrawBox(&u8g, x, y, hStep - 1, value);
-		else {
-			u8g_DrawFrame(&u8g, x, y, hStep - 1, value);
-		}
-		y = vStart + vStep + 16;
-		if (i < 9) {
-			sprintf(sTemp, "%d", i + 1);
-			u8g_DrawStr(&u8g, x, y, sTemp);
-		} else {
-			sprintf(sTemp, "%d", (i + 1) / 10);
-			u8g_DrawStr(&u8g, x, y, sTemp);
-			sprintf(sTemp, "%d", (i + 1) % 10);
-			u8g_DrawStr(&u8g, x, y + 16, sTemp);
-		}
+	u8g_DrawFrame(&u8g, x + 72, y + 10, 6, 20);
+	u8g_DrawFrame(&u8g, x, y, 73, 40);
+	for (i = 0; i < val; i++) {
+		u8g_DrawBox(&u8g, x + 2 + i * 7, y + 2, 6, 36);
 	}
 }
-
 /*******************************************************************************
  *Отрисовка прощания
  ******************************************************************************/
@@ -723,7 +683,6 @@ void drawStat(void) {
 	}
 	u8g_DrawLine(&u8g, 115, 18, 115, 159);
 	//Максимальная скорость за заезд.
-	u8g_DrawLine(&u8g, 115, 18, 115, 18 + vStep * i);
 	sprintf(sTemp, "%02d.%02d km/h", track.peakSpeed / 100, track.peakSpeed % 100);
 	u8g_DrawStr(&u8g, 120, vStart + 0 * vStep, sTemp);
 	// Расход на километр
@@ -739,12 +698,11 @@ void drawStat(void) {
 	// Предпологаемый пробег до разряда
 	sprintf(sTemp, "%02d.%01d km", track.toCharging / 10, track.toCharging % 10);
 	u8g_DrawStr(&u8g, 120, vStart + 4 * vStep, sTemp);
-	// Пройдено километров за все время
-	sprintf(sTemp, "%06lu.%02u km", (uint32_t)(track.odometr / 1000000), (uint16_t)((track.odometr % 1000000) / 10000));
-	u8g_DrawStr(&u8g, 120, vStart + 5 * vStep, sTemp);
-	sprintf(sTemp, "%02d.%03d Ah/km", track.expense / 1000,	track.expense % 1000);
 	//Средняя скорость.  32768 тиков в секунду.
 	sprintf(sTemp, "%02d.%02d km/h", track.averageSpeed / 100, track.averageSpeed % 100);
+	u8g_DrawStr(&u8g, 120, vStart + 5 * vStep, sTemp);
+	// Пройдено километров за все время
+	sprintf(sTemp, "%06lu.%02u km", (uint32_t)(track.odometr / 1000000), (uint16_t)((track.odometr % 1000000) / 10000));
 	u8g_DrawStr(&u8g, 120, vStart + 6 * vStep, sTemp);
 }
 
@@ -779,4 +737,55 @@ void drawHistItem(void) {
 	// Потрачено емкости за заезд
 	sprintf(sTemp, "%02d.%03d Ah", histItem.discharge / 1000, histItem.discharge % 1000);
 	u8g_DrawStr(&u8g, 120, vStart + 3 * vStep, sTemp);
+}
+
+/*******************************************************************************
+ *Выводит всплывающее окно
+ ******************************************************************************/
+void message(void) {
+	uint8_t x, y, x2, y2, w, h, i, j;
+	char *str1[4] = {"", "Alert", "!!! Error !!!", "??? Query ???"};
+	if(!popup.head)
+		popup.head = str1[popup.type];
+	if(!popup.body)
+		popup.body = "Empty message!";
+	u8g_SetFont(&u8g, u8g_font_elpaulo20);
+	w = 10 + u8g_GetStrWidth(&u8g, popup.body);
+	h = 66;
+	x = (DISPLAY_WIDTH - w) / 2;
+	y = (DISPLAY_HEIGHT - h) / 2;
+	u8g_SetDefaultBackgroundColor(&u8g);
+	u8g_DrawBox(&u8g, x + 1, y + 1, w - 2, h - 2);
+	u8g_SetDefaultForegroundColor(&u8g);
+	u8g_DrawFrame(&u8g, x, y, w, h);
+	u8g_DrawFrame(&u8g, x + 2, y + 2, w - 4, h - 4);
+	u8g_DrawLine(&u8g, x + 3, y + 20, x + w - 4, y + 20);
+	u8g_DrawStr(&u8g, x + ((w - u8g_GetStrWidth(&u8g, popup.head)) / 2), y + 17, popup.head);
+	u8g_DrawStr(&u8g, x + 5, y + 37, popup.body);
+
+	sTemp[1] = 0;
+	y2 = y + h - 24;
+	u8g_DrawLine(&u8g, x + 3, y2, x + w - 4, y2);
+	y2 = y+h-7;
+	u8g_DrawStr(&u8g, x+15, y2, "Cancel");
+	u8g_DrawStr(&u8g, x+w-35, y2, "Ok");
+	u8g_SetFont(&u8g, u8g_font_elpauloIco); //мои иконки
+	y2 +=2;
+	sTemp[0] = ARROW_LEFT;
+	u8g_DrawStr(&u8g, x, y2, sTemp);
+	sTemp[0] = ARROW_RIGHT;
+	u8g_DrawStr(&u8g, x+w-17, y2, sTemp);
+
+	for (i = 0; i < 8; i++) {
+		y2 = y + h + i;
+		for (j = 8 + x; j < w + x; j++) {
+			if ((j + i) % 2)
+				u8g_DrawPixel(&u8g, j, y2);
+		}
+		x2 = x + w + i;
+		for (j = 8 + y; j < h + 8 + y; j++) {
+			if ((j + i) % 2)
+				u8g_DrawPixel(&u8g, x2, j);
+		}
+	}
 }

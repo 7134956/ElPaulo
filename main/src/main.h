@@ -1,5 +1,6 @@
 //#define SYSTEM_WIN
 //#define DEBUG_DISPLAY
+#define DEBUG
 
 #ifndef _MAIN_H_
 #define _MAIN_H_
@@ -54,6 +55,19 @@ typedef unsigned int uint32_t;
 typedef signed int int32_t;
 typedef unsigned long long uint64_t;
 typedef signed long long int64_t;
+
+// shorthand for prnt
+//#define P(arg)    do{prnt((uint8_t*)arg);}while(0)
+// debug message - over USB
+#ifdef DEBUG
+	#define DBG(arg)    printf("%s", (uint8_t*)arg)
+#else
+	#define DBG(arg)
+#endif
+
+#define ERR(arg) printf("%s", (uint8_t*)arg)
+
+#define INT(arg)
 
 //Операции с битами
 #define B(bit_no)         (1 << (bit_no))
@@ -133,30 +147,5 @@ typedef struct racelist_t {
 	uint16_t averSpeed[6]; //Средняя скорость (655.35)km/h
 	uint16_t adres[6]; //Расположение найденого элемента
 } racelist_t;
-
-typedef struct BMSinfo_t { //информация BMS
-	uint8_t BMSVersion; //Номер версии bms
-	char batString[30]; //Описание батареи
-	uint16_t cCount; //Счетчик зарядок
-	uint8_t batNum; //Число банок
-	uint16_t v[24]; //Напряжение на банках
-	uint16_t vAbsMax[24]; //Зарегистрированый максимум на ячейке
-	uint16_t vAbsMin[24]; //Зарегистрированый минимум на ячейке
-	uint16_t vMin; //Разрешенный минимум на ячейке
-	uint16_t vMax; //Разрешенный максимум на ячейке
-	uint32_t mAHIN; //Сколько А*ч съела батарея всего
-	uint32_t mAHOut; //Сколько А*ч отдала батарея всего
-	uint8_t tAbsMax; //Замерянный максимум на ячейке
-	uint8_t tAbsMin; //Замерянный минимум на ячейке
-	uint16_t maxCap; //Емкость батареи А*ч от vMin до vMax
-	uint32_t maxCurrent; //Максимальный потребляемый ток
-} BMSinfo_t;
-
-typedef struct BMS_t { //информация BMS
-	uint32_t voltage; //Напряжение батареи в милливольтах
-	uint32_t capacity; //Остаток заряда в миллиамер часах
-	int32_t current; //Ток батареи в миллиамерах
-	uint32_t ActiveShunt; //Активные шунты балансировки
-} BMS_t;
 
 #endif /* _MAIN_H_ */

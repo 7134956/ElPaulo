@@ -1,5 +1,6 @@
 #include "main.h"
 #include "power.h"
+#include "bms.h"
 
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
@@ -112,11 +113,12 @@ void initMCU(uint8_t state) {
 			PWMSet(0, config.PWM[0]);
 			PWMSet(1, config.PWM[1]);
 			PWMSet(2, config.PWM[2]);
-//			USARTInit();//Настройка портов USART
+			USARTInit();//Настройка портов USART
 			LED_init();//Настройка портов светодиодов
 			beep_init();//Настройка бипера
 			drawInit();//Запуск дисплея
 			term_init();//Запуск внутреннего термометра
+			BMS_init();//Подготовка к работе с BMS
 		}break;
 		case STATE_MAIN : {
 			SysTickInit(100); //Запуск таймера. Вызов 100 раз в секунд

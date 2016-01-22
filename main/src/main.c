@@ -10,6 +10,7 @@
 #include "string.h"
 #include "menu.h"
 #include "power.h"
+#include "bms.h"
 
 #ifdef SYSTEM_STM32
 #include "timer.h"
@@ -49,9 +50,10 @@ state_t state;
 calendar_t calendar; //Структура с данными открытого календаря
 tm_t * dateTime_p; //Указатель на структуру с датой и временем
 extern termo_t termo;
+extern BMSinfo_t BMSinfo;
+extern BMS_t BMS;
+extern popup_t popup;
 count_t count;
-BMSinfo_t BMSinfo;
-BMS_t BMS;
 track_t track; //Структура с данными текущей езды
 track_t histItem; //Структура с данными сохраненного заезда
 racelist_t racelist;
@@ -62,6 +64,7 @@ uint16_t keyPass = 0;
 uint8_t contrast;
 uint8_t testFlag = 0;
 
+extern mtk_element_t mtk_BMS_info; //Информация по батарее
 mtk_element_t
 		mtkPassword, //Пароль
 		mtkDisplay, //Меню настройки дисплея
@@ -73,7 +76,7 @@ mtk_element_t
 		mtkPin, //Пароль стартового экрана
 		mtkLang, //Выбор языка интерфейса
 		mtkDateTime, mtkDate, mtkTime, mtkPower, mtkSecInTime,
-		mtkSleepDisplayOff, mtkSleepSec, mtkAbout;
+		mtkSleepDisplayOff, mtkSleepSec, mtkMenuBMS, mtkAbout;
 
 mtk_select_t mtkLangList;
 
@@ -100,6 +103,7 @@ int main() {
 	stateMain = STATE_START;
 	RTC_init();
 	drawInit();
+	BMS_init();//Подготовка к работе с BMS
 	loadParams();//Загрузили параметры из EEPROM
 #endif
 #ifdef SYSTEM_STM32
@@ -177,10 +181,12 @@ int main() {
 	mtk_SetupElement(&mtkLang, ELEMENT_SEL, NULL, 2, 0, &mtkLangList, &mtkPower);
 	mtkLangList.pointer = &config.lang;
 //------------------------------------------
-	mtk_SetupElement(&mtkPower, ELEMENT_MENU, NULL, 0, 0, &mtkSecInTime, &mtkAbout);
+	mtk_SetupElement(&mtkPower, ELEMENT_MENU, NULL, 0, 0, &mtkSecInTime, &mtkMenuBMS);
 	mtk_SetupElement(&mtkSecInTime, ELEMENT_FLAG, NULL, 0, 0, &config.SecInTime, &mtkSleepSec);
 	mtk_SetupElement(&mtkSleepSec, ELEMENT_NUM16, NULL, 4, 0, &config.SleepSec, &mtkSleepDisplayOff);
 	mtk_SetupElement(&mtkSleepDisplayOff, ELEMENT_FLAG, NULL, 0, TYPE_NEEDOK, &config.SleepDisplayOff, NULL);
+//--------------------------------------
+	mtk_SetupElement(&mtkMenuBMS, ELEMENT_MENU, NULL, 0, 0, &mtk_BMS_info,	&mtkAbout);
 //--------------------------------------
 	mtk_SetupElement(&mtkAbout, ELEMENT_GFUNC, NULL, 0, 0, &about, NULL);
 //---------
@@ -300,6 +306,10 @@ void newState() {
 			initMCU(stateMain);
 	}
 		break;
+	case STATE_BAT: {
+		mtk_SetRootElement(&mtk_BMS_info);
+	}
+		break;
 	case STATE_SLEEP:
 	case STATE_OFF: {
 		saveParams();
@@ -348,6 +358,26 @@ void newState() {
  *Обработка нажатий кнопок в зависимости от стостояния
  ******************************************************************************/
 void buttonsParse() {
+	if (popup.type) { //Если есть всплывающее сообщение
+		switch (state.button) {
+		case BUTTON_UP:
+			break;
+		case BUTTON_DOWN:
+			break;
+		case BUTTON_LEFT: {
+			popup.type = POPUP_NULL;
+		}
+			break;
+		case BUTTON_RIGHT: {
+			popup.type++;
+			popup.head = NULL;
+			if (popup.type == 4)
+				popup.type = 1;
+		}
+			break;
+		}
+		state.button = BUTTON_NULL;
+	}
 	switch (stateMain) {
 	case STATE_START: {
 		mtk_Command(state.button);
@@ -510,12 +540,32 @@ void buttonsParse() {
 		}
 	}
 		break;
+/*-----------------------------------BAT--------------------------------------*/
+	case STATE_BAT: {
+		if (!navigate[0]) {
+			switch (state.button) {
+			case BUTTON_UP:
+			case BUTTON_DOWN: {
+				changePos(0, 1, 1, ACTION_IS);
+				mtk_Command(state.button);
+				//	state.taskList |= TASK_SAVEPARAMS;
+			}
+				break;
+			}
+		} else {
+			if (!mtk_Command(state.button)) {
+				changePos(0, 0, 0, ACTION_IS);
+				state.button = BUTTON_NULL;
+			}
+		}
+	}
+		break;
 /*--------------------------------TERMO---------------------------------------*/
 	case STATE_TERMO: {
 		switch (state.button) {
 		case BUTTON_UP: {
 			if (!navigate[1]) {
-				changePos(0, 1, 6, ACTION_DEC);
+				changePos(0, 0, 6, ACTION_DEC);
 			} else
 				changeVal(8, &termo.speed, 1, 10, ACTION_INC);
 #ifdef SYSTEM_STM32
@@ -525,7 +575,7 @@ void buttonsParse() {
 			break;
 		case BUTTON_DOWN: {
 			if (!navigate[1]) {
-				changePos(0, 1, 6, ACTION_INC);
+				changePos(0, 0, 6, ACTION_INC);
 			} else
 				changeVal(8, &termo.speed, 1, 10, ACTION_DEC);
 #ifdef SYSTEM_STM32

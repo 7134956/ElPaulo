@@ -27,6 +27,7 @@ void i2c_command(uint8_t data);
 uint8_t u8g_com_hw_i2c_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val,	void *arg_ptr);
 void delay_init(void);
 uint8_t u8g_com_hw_spi_fn(u8g_t*, uint8_t, uint8_t, void *);
+uint8_t u8g_com_hw_spi_dma_fn(u8g_t*, uint8_t, uint8_t, void *);
 uint8_t u8g_com_hw_spi_9bit_fn(u8g_t*, uint8_t, uint8_t, void *);
 
 #endif /* _U8G_ARM_H_ */

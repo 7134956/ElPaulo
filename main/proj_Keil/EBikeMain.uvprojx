@@ -351,7 +351,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>4</Optim>
+            <Optim>2</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -373,7 +373,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\src;..\src\mtk;..\src\u8g</IncludePath>
+              <IncludePath>..\src;..\src\mtk;..\src\u8g;..\src\onewire</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -593,6 +593,16 @@
               <FileType>5</FileType>
               <FilePath>..\src\config.h</FilePath>
             </File>
+            <File>
+              <FileName>bms.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\bms.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_dev_st75256.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\u8g_dev_st75256.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -733,7 +743,15 @@
               <FileType>1</FileType>
               <FilePath>..\src\mtk\mtk.c</FilePath>
             </File>
+            <File>
+              <FileName>charts.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\mtk\charts.c</FilePath>
+            </File>
           </Files>
+        </Group>
+        <Group>
+          <GroupName>onewire</GroupName>
         </Group>
         <Group>
           <GroupName>::CMSIS</GroupName>

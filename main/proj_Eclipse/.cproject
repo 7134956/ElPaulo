@@ -68,6 +68,7 @@
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.114424718" name="u8g_arm.h" rcbsApplicability="disable" resourcePath="src/u8g_arm.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.238426366" name="timer.h" rcbsApplicability="disable" resourcePath="src/timer.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.589006392" name="string.h" rcbsApplicability="disable" resourcePath="src/string.h" toolsToInvoke=""/>
+					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.1070055688" name="u8g_dev_st75256.h" rcbsApplicability="disable" resourcePath="src/u8g_dev_st75256.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.1066014519" name="flash.h" rcbsApplicability="disable" resourcePath="src/flash.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.2100462607" name="termo.h" rcbsApplicability="disable" resourcePath="src/termo.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.356807329" name="can.h" rcbsApplicability="disable" resourcePath="src/can.h" toolsToInvoke=""/>
@@ -76,7 +77,7 @@
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.499656854" name="spi.h" rcbsApplicability="disable" resourcePath="src/spi.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.1626375862" name="usart.h" rcbsApplicability="disable" resourcePath="src/usart.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="can.h|can.c|termo.c|termo.h|dma.h|dma.c|u8g_arm.h|u8g_arm.c|usart.h|u8g_dev_st7586s.h|u8g_dev_st7669a.h|u8g_dev_st7669a.c|u8g_dev_st7586s.c|usart.c|printf.h|printf.c|flash.h|flash.c|led.h|i2c.h|i2c.c|spi.h|spi.c|led.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry excluding="u8g_dev_st75256.h|u8g_dev_st75256.c|onewire|ds18b20|can.h|can.c|termo.c|termo.h|dma.h|dma.c|u8g_arm.h|u8g_arm.c|usart.h|u8g_dev_st7586s.h|u8g_dev_st7669a.h|u8g_dev_st7669a.c|u8g_dev_st7586s.c|usart.c|printf.h|printf.c|flash.h|flash.c|led.h|i2c.h|i2c.c|spi.h|spi.c|led.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

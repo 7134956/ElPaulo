@@ -1,6 +1,7 @@
 #ifndef _MTK_H_
 #define _MTK_H_
 
+
 #define LANG_COUNT 2
 
 #include "u8g.h"
@@ -15,6 +16,10 @@
 #define MTK_ACTION_INC 1
 #define MTK_ACTION_DEC 2
 #define MTK_ACTION_IS 3
+
+//#define UNLOCK_CLOSE 0
+//#define UNLOCK_OPEN 1
+//#define UNLOCK_RETURN 2
 
 /*
 typedef unsigned char uint8_t;
@@ -32,16 +37,19 @@ typedef struct _mtk_element_t mtk_element_t;
 typedef struct _mtk_element_t *mtk_element_p;
 typedef struct _mtk_select_t *mtk_select_p;
 typedef struct _mtk_select_t mtk_select_t;
+typedef struct _mtk_graph_t mtk_graph_t;
 
 //Флаги свойств
-#define TYPE_NULL 0 	//Нередактируемый элемент
-#define TYPE_FUNC 1		//Редактирование параметра через вызов функции
-#define TYPE_NEEDOK 2	//Редактирование  параметра с подтверждением
-#define TYPE_LOCK 4		//Редактирование без возможности выхода
+#define TYPE_NULL 0			//Нередактируемый элемент
+#define TYPE_FUNC 1			//Редактирование параметра через вызов функции
+#define TYPE_NEEDOK 2		//Редактирование  параметра с подтверждением
+#define TYPE_LOCK 4			//Редактирование без возможности выхода
 #define TYPE_CMD_ACCEPT 8	//GFUNC сама обрабатывает команды
+#define TYPE_PRIVATE 16		//Защищено паролем
 //Флаги состояния
-#define EDITING_PROCESS 16 //Редактирование начато(Выделен редактируемый разряд или активирована графическая функция)
-#define EDITING_EDITED 32 //Требуется сохранение (число изменено) Выставляется только для TYPE_NEEDOK
+#define EDITING_UNLOCK 32	//Ввод пароля начат
+#define EDITING_PROCESS 64 //Редактирование начато(Выделен редактируемый разряд или активирована графическая функция)
+#define EDITING_EDITED 128 //Требуется сохранение (число изменено) Выставляется только для TYPE_NEEDOK
 
 //Тип элемента
 #define ELEMENT_NULL 0
@@ -71,9 +79,10 @@ struct _mtk_struct_t {
 	uint8_t select;			//Какой элемент(строка) по счету выбран
 	uint8_t indexHist;		//Указатель на позицию в истории переходов в глубь
 	mtk_element_p rootHist[10];	//Массив указателей для возврата по меню
-	uint8_t selectHist[10];	//Массив указателей на пункты меню с которых вошли
-	uint32_t tempNum; //Тут редактируем число до сохранения
-	tm_t tempTime;	//Тут редактируем время до сохранения
+	uint8_t selectHist[10];	//Массив указателей на номера пунктов меню с которых вошли
+	uint32_t tempNum;		//Тут редактируем число до сохранения
+	tm_t tempTime;			//Тут редактируем время до сохранения
+	uint8_t	flags;			//Глобальные флаги для меню
 };
 
 struct _mtk_element_t {
@@ -90,6 +99,14 @@ struct _mtk_select_t {
 	void * pointer;	//Указатель на номер селектора
 };
 
+struct _mtk_graph_t {
+	char * title;			//Коментарий к графику
+	uint8_t num;		//Число элементов
+	uint16_t * mas;		//Массив значений
+	uint32_t active;	//Помеченные элементы
+};
+
+
 void mtk_Init(u8g_t *);
 void mtk_Draw(void);
 uint8_t mtk_Command(uint8_t);
@@ -97,6 +114,7 @@ void mtk_Pos(uint8_t, uint8_t);
 void mtk_SetRootElement(mtk_element_p);
 void mtk_SelectElement(uint8_t);
 void mtk_SetupElement(mtk_element_p, uint8_t, char *, uint8_t, uint8_t, void *, mtk_element_p);
+void graphBar(mtk_t *, mtk_graph_t *);
 
 void mtk_drawLL(mtk_t *);
 void mtk_elementNum(mtk_t *);
@@ -114,6 +132,7 @@ void mtk_commamdGfunc(mtk_t *);
 void mtk_editDateTime(mtk_t *, uint8_t);
 void mtk_changeVal(uint8_t, void *, uint16_t, uint16_t, uint8_t);
 void mtk_findStartElement(mtk_t *);
+void unlock(mtk_t *);
 uint32_t power(uint8_t, uint8_t);
 
 #endif /* _MTK_H_ */

@@ -1,11 +1,19 @@
 #include "main.h"
 #include "mtk.h"
 #include "rtc.h"
+#include "bitmap.h"
 
 mtk_t mtk;
+mtk_element_t mtkUnlock;
+
 extern config_t config;
 
 void mtk_Init(u8g_t * u8g) {
+
+	mtk_SetupElement(&mtkUnlock, ELEMENT_NUM16, NULL, PASSWORD_LENGHT, EDITING_PROCESS, &mtk.tempNum, NULL);
+	mtkUnlock.label[0] = 0;
+	mtkUnlock.label[1] = 0;
+
 	mtk.pos_x = 0;
 	mtk.pos_y = 0;
 	mtk.size_x = 0;
@@ -66,7 +74,7 @@ void mtk_SetupElement(mtk_element_p element, uint8_t type, char * string, uint8_
 void mtk_drawLL(mtk_t *mtk) {
 	char arrow[2] = { 187, 0 };
 	volatile uint8_t maxSize = 0, temp = 0;	//Максимальный размер строки меню
-	mtk_element_p tempElement_p;
+	mtk_element_p tempElement_p, temp2Element;
 	mtk->step_x = u8g_GetStrWidth(mtk->u8g, "0");
 	mtk->step_y = u8g_GetFontAscent(mtk->u8g) - u8g_GetFontDescent(mtk->u8g);
 	mtk->count = 0;
@@ -89,16 +97,27 @@ void mtk_drawLL(mtk_t *mtk) {
 		if ((mtk->element->type == ELEMENT_GFUNC) && (mtk->element->flags & EDITING_PROCESS)) {
 			mtk_elementGfunc(mtk);
 			break; //Если графика активна, остальные пункты не рисуем
-			mtk->element = mtk->element->next;
 		} else {			//Иначе рисуем строку
 			//Рисуем указатель на выбраную строку если ее элемент не в процессе редактирования
 			if ((mtk->select == mtk->count + 1) && !(mtk->element->flags & EDITING_PROCESS))
 				u8g_DrawStr(mtk->u8g, 0, mtk->pos_y, arrow);
-
 			//Рисуем саму строку
 			u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, mtk->element->label[config.lang]);
 			temp = mtk->pos_x;
 			mtk->pos_x += maxSize;
+
+			if (mtk->element->flags & TYPE_PRIVATE) {
+				if (mtk->element->flags & EDITING_PROCESS) {
+					temp2Element = mtk->element;
+					mtk->element = &mtkUnlock;
+					mtk_elementNum(mtk);
+					mtk->element = temp2Element;
+				} else{
+					u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, "\x01");
+				}
+				mtk->pos_x += mtk->step_x;
+
+			} else
 			switch (mtk->element->type) {
 			case ELEMENT_NUM8:
 			case ELEMENT_NUM16:
@@ -317,11 +336,31 @@ void mtk_elementGfunc(mtk_t *mtk) {
  *Обработчик команд
  ******************************************************************************/
 void mtk_commandLL(mtk_t *mtk) {
+	mtk_element_t *temp;
 	uint8_t i;
 	mtk->element = mtk->rootHist[mtk->indexHist]; //Взяли первый элемент выбранного меню
 	i = mtk->select;
 	for (; i > 1; i--)	//Переходим на выбраную строку
 		mtk->element = mtk->element->next;
+//Разблокировщик залоченных пунктов меню
+	if ((mtk->element->flags & TYPE_PRIVATE)
+			&& (mtk->element->flags & EDITING_PROCESS)) //Если заблокированый элемент редактируется
+			{
+		temp = mtk->element;
+		mtk->element = &mtkUnlock;
+		if ((mtk->command == COMMAND_PREV) && (mtk->pos == 0))
+			temp->flags &= ~ EDITING_PROCESS;
+		else {
+			mtk_commandNum(mtk);
+			if (!(mtk->element->flags & EDITING_PROCESS))
+				temp->flags &= ~ EDITING_PROCESS;
+		}
+		mtk->command = 0;
+		mtk->element = temp;
+		if (config.password == mtk->tempNum)
+			mtk->element->flags &= ~(TYPE_PRIVATE | EDITING_PROCESS);
+	}
+///
 	if (!(mtk->element->flags & EDITING_PROCESS) || (mtk->element->type == ELEMENT_MENU)) //Если редактирование пераметра не запущено или текщий элемент MENU
 		mtk_commandMenu(mtk); //Обрабатываем команду для меню
 	else {
@@ -336,7 +375,7 @@ void mtk_commandLL(mtk_t *mtk) {
 			case ELEMENT_NUM16:
 			case ELEMENT_NUM32:
 			case ELEMENT_NUM64X1M: {
-				mtk_commandNum(mtk); //Обрабатываем команду для цисла
+				mtk_commandNum(mtk); //Обрабатываем команду для числа
 			}
 				break;
 			case ELEMENT_FLAG: {
@@ -368,19 +407,25 @@ void mtk_commandLL(mtk_t *mtk) {
 void mtk_commandMenu(mtk_t *mtk) {
 	switch (mtk->command) {
 	case COMMAND_NEXT: {
-		if (mtk->element->type == ELEMENT_MENU) {
-			mtk->indexHist++;
-			mtk->selectHist[mtk->indexHist] = mtk->select; //Запомнили с какой строки вход
-			mtk->rootHist[mtk->indexHist] = mtk->element->pointer; //Запомнили нынешний корень меню
-			mtk->select = 1;
-		} else {
+		if (mtk->element->flags & TYPE_PRIVATE)	//Если заблокированый элемент
+		{
 			mtk->element->flags |= EDITING_PROCESS;
-			if (mtk->element->type == ELEMENT_GFUNC) {
+			mtkUnlock.flags |= EDITING_PROCESS;
+		} else {
+			if (mtk->element->type == ELEMENT_MENU) {
 				mtk->indexHist++;
 				mtk->selectHist[mtk->indexHist] = mtk->select; //Запомнили с какой строки вход
-				mtk->rootHist[mtk->indexHist] = mtk->element; //Запомнили нынешний корень меню
-				mtk->pos = 2;
+				mtk->rootHist[mtk->indexHist] = mtk->element->pointer; //Запомнили нынешний корень меню
 				mtk->select = 1;
+			} else {
+				mtk->element->flags |= EDITING_PROCESS;
+				if (mtk->element->type == ELEMENT_GFUNC) {
+					mtk->indexHist++;
+					mtk->selectHist[mtk->indexHist] = mtk->select; //Запомнили с какой строки вход
+					mtk->rootHist[mtk->indexHist] = mtk->element; //Запомнили нынешний корень меню
+					mtk->pos = 2;
+					mtk->select = 1;
+				}
 			}
 		}
 	}
@@ -443,9 +488,12 @@ void mtk_commandNum(mtk_t *mtk) {
 		if (mtk->pos < mtk->element->length - 1)
 			mtk->pos++;
 		else {
-			mtk->pos = 0;
-			if (mtk->element->flags & TYPE_NEEDOK)
-				mtk->element->flags &= ~ EDITING_EDITED;
+			if (mtk->element->flags & TYPE_LOCK) {
+				mtk->pos = 0;
+			} else {
+				mtk->pos = 0;
+				mtk->element->flags &= ~(EDITING_EDITED | EDITING_PROCESS);
+			}
 		}
 	}
 		break;
@@ -534,6 +582,7 @@ void mtk_commandDateTime(mtk_t *mtk) {
 			mtk->pos++;
 		else {
 			mtk->pos = 0;
+			mtk->element->flags &= ~ EDITING_PROCESS;
 			if (mtk->element->flags & EDITING_EDITED) { //Изменено. Будем сохранять
 				if (mtk->element->flags & TYPE_FUNC) { //Если время устанавливается через функцию
 					fp = (tm_t* (*)(tm_t *)) mtk->element->pointer;
@@ -551,8 +600,8 @@ void mtk_commandDateTime(mtk_t *mtk) {
 				} else {
 					(*(tm_t *) mtk->element->pointer) = mtk->tempTime;
 				}
-				if (mtk->element->flags & TYPE_NEEDOK)
-					mtk->element->flags &= ~ EDITING_EDITED; //Значение сохранено, редактирование завершено
+//				if (mtk->element->flags & TYPE_NEEDOK)
+					mtk->element->flags &= ~ (EDITING_EDITED | EDITING_PROCESS); //Значение сохранено, редактирование завершено
 			}
 		}
 	}

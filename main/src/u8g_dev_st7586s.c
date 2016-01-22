@@ -77,77 +77,119 @@ static const uint8_t u8g_dev_st7586s_init_seq[] PROGMEM = {
 		//U8G_ESC_DLY(60),
 
 		//OK
-		U8G_ESC_ADR(0), 0x11, // Sleep Out
+		U8G_ESC_ADR(0),
+		0x11, // Sleep Out
 
+		/*
 		//OK
-		//U8G_ESC_ADR(0), 0x28, // Display OFF
-		//U8G_ESC_DLY(50),
+		U8G_ESC_ADR(0),
+		0x28, // Display OFF
+		U8G_ESC_DLY(50),
+		*/
 
 		//OK
 		U8G_ESC_ADR(0), 0xC0, // Vop Яркость дисплея
-		U8G_ESC_ADR(1), 0x40, U8G_ESC_ADR(1), 0x01,
+		U8G_ESC_ADR(1),
+		0x40,
+		0x01,
 
-		//U8G_ESC_ADR(0), 0xC7, //Vop Offset 
-		//U8G_ESC_ADR(1), 0x01,
+		/*
+		U8G_ESC_ADR(0),
+		0xC7, //Vop Offset
+		U8G_ESC_ADR(1),
+		0x01,
+		*/
 
 		//OK
-		U8G_ESC_ADR(0), 0xC3, // BIAS = 1/14
-		U8G_ESC_ADR(1), 0x00,
+		U8G_ESC_ADR(0),
+		0xC3, // BIAS = 1/14
+		U8G_ESC_ADR(1),
+		0x00,
 
+		/*
 		//OK By default
-		//U8G_ESC_ADR(0), 0xC4, // Booster = x8
-		//U8G_ESC_ADR(1), 0x07,
+		U8G_ESC_ADR(0),
+		0xC4, // Booster = x8
+		U8G_ESC_ADR(1),
+		0x07,
+		*/
 
 		//OK
-		U8G_ESC_ADR(0), 0xD0, // Enable Analog Circuit
-		U8G_ESC_ADR(1), 0x1D,
+		U8G_ESC_ADR(0),
+		0xD0, // Enable Analog Circuit
+		U8G_ESC_ADR(1),
+		0x1D,
 
-		//U8G_ESC_ADR(0), 0xB5, // N-Line = 0
-		//U8G_ESC_ADR(1), 0x00,
+		/*
+		U8G_ESC_ADR(0),
+		0xB5, // N-Line = 0
+		U8G_ESC_ADR(1),
+		0x00,
+		*/
 
 		//OK Select mode
-		U8G_ESC_ADR(0), 0x39, // Monochrome Mode FIXME
-		//U8G_ESC_ADR(0), 0x38, // Gray Mode
+		U8G_ESC_ADR(0), 0x39, // 0x39 Monochrome mode. 0x38 - gray Mode
 
 		//OK
-		U8G_ESC_ADR(0), 0x3A, // Enable DDRAM Interface
-		U8G_ESC_ADR(1), 0x02, //2 пикселя из байта
+		U8G_ESC_ADR(0),
+		0x3A, // Enable DDRAM Interface
+		U8G_ESC_ADR(1),
+		0x02, //2 пикселя из байта
 
 		//OK
-		U8G_ESC_ADR(0), 0x36, // Scan Direction Setting
-		U8G_ESC_ADR(1), 0xc0, //COM:C160--C1   SEG: SEG384-SEG1
-		//U8G_ESC_ADR(1), 0x40,   //COM:C1--C160   SEG: SEG384-SEG1
-		//U8G_ESC_ADR(1), 0x80,   //COM:C160--C1   SEG: SEG1-SEG384
+		U8G_ESC_ADR(0),
+		0x36, // Scan Direction Setting
+		U8G_ESC_ADR(1),
+		0xc0, //COM:C160--C1   SEG: SEG384-SEG1
+		//0x40,   //COM:C1--C160   SEG: SEG384-SEG1
+		//0x80,   //COM:C160--C1   SEG: SEG1-SEG384
 
+		/*
 		//OK By default
-		//U8G_ESC_ADR(0), 0xB0, // Duty Setting. Обрезка экрана
-		//U8G_ESC_ADR(1), 0x0F,//1/16
-		//U8G_ESC_ADR(1), 0x9F, //1/160
+		U8G_ESC_ADR(0),
+		0xB0, // Duty Setting. Обрезка экрана
+		U8G_ESC_ADR(1),
+		0x0F,//1/16
+		0x9F, //1/160
+		*/
 
+		/*
 		//OK By default
-		//U8G_ESC_ADR(0), 0x20, // Display Inversion OFF
+		U8G_ESC_ADR(0),
+		0x20, // Display Inversion OFF
+		*/
 
-		U8G_ESC_ADR(0), 0x2A, // Column Address Setting
-		U8G_ESC_ADR(1), 0x00, // SEG0 -> SEG240
-		U8G_ESC_ADR(1), 0x08, // SEG8*3=24
-		U8G_ESC_ADR(1), 0x00,	//
-		U8G_ESC_ADR(1), 0x7f, // SEG128*3=384  seg x(dont use)  seg n  seg n
+		U8G_ESC_ADR(0),
+		0x2A, // Column Address Setting
+		U8G_ESC_ADR(1),
+		0x00, // SEG0 -> SEG240
+		0x08, // SEG8*3=24
+		0x00,
+		0x7f, // SEG128*3=384  seg x(dont use)  seg n  seg n
 
-		U8G_ESC_ADR(0), 0x2B, // Row Address Setting
-		U8G_ESC_ADR(1), 0x00, // COM0 -> COM160
-		U8G_ESC_ADR(1), 0x00,	//
-		U8G_ESC_ADR(1), 0x00,	//
-		U8G_ESC_ADR(1), 0x9F,	//HEIGHT-1
+		0x2B, // Row Address Setting
+		0x00, // COM0 -> COM160
+		0x00, //
+		0x00, //
+		0x9F, //HEIGHT-1
 
+		/*
 		//OK By default
-		//U8G_ESC_ADR(0), 0xB1, //Термокомпенсация
-		//U8G_ESC_ADR(1), 0x15, //
-		//U8G_ESC_ADR(1), 0x15,	//
-		//U8G_ESC_ADR(1), 0x15,	//
-		//U8G_ESC_ADR(1), 0x15,	//
+		U8G_ESC_ADR(0),
+		0xB1, //Термокомпенсация
+		U8G_ESC_ADR(1),
+		0x15,
+		0x15,
+		0x15,
+		0x15,
+		*/
 
-		//U8G_ESC_ADR(0), 0xB1, //Линия старта сканирования
-		//U8G_ESC_ADR(1), 0x00, // Линия старта сканирования COM0
+		/*
+		U8G_ESC_ADR(0),
+		0xB1, //Линия старта сканирования
+		U8G_ESC_ADR(1),
+		0x00, // Линия старта сканирования COM0
+		*/
 
 		U8G_ESC_ADR(0), 0x29, // Display ON
 		U8G_ESC_END /* end of sequence */

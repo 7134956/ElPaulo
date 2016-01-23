@@ -15,6 +15,7 @@
 #include "timer.h"
 #include "rtc.h"
 #include "i2c.h"
+#include "wdg.h"
 #endif
 
 #ifdef SYSTEM_WIN
@@ -119,6 +120,7 @@ void initMCU(uint8_t state) {
 			drawInit();//Запуск дисплея
 			term_init();//Запуск внутреннего термометра
 			BMS_init();//Подготовка к работе с BMS
+			WWDG_Init();//Запустили сторожевой таймер
 		}break;
 		case STATE_MAIN : {
 			SysTickInit(100); //Запуск таймера. Вызов 100 раз в секунд

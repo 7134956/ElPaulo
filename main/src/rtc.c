@@ -7,7 +7,6 @@
 #include "power.h"
 #endif
 
-uint8_t isleapyear(uint16_t);
 #ifdef SYSTEM_STM32
 void Time_Adjust(tm_t*);
 void RTC_Configuration(void);
@@ -15,21 +14,18 @@ void NVIC_Configuration(void);
 uint32_t FtimeToCounter(tm_t *);
 void NVIC_GenerateSystemReset(void);
 #endif
+uint8_t isleapyear(uint16_t);
+
 extern count_t count;
 extern state_t state;
 extern config_t config;
-//extern uint8_t stateMain;
 extern uint32_t i2cTimeLimit;
-uint8_t isleapyear(uint16_t);
 
-tm_t * dateTimep_p; //Структура с живой датой и временем
-//time_t time_p = &dateTime;
-tm_t dateTime;
-
+tm_t dateTime; //Структура с актуальной датой и временем
 uint8_t lastdaysofmonths[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
 /*******************************************************************************
- *Сколько дней в месяце
+ * Сколько дней в месяце
  ******************************************************************************/
 uint8_t lastdayofmonth(uint16_t year, uint8_t month) {
 	if (month == 2 && isleapyear(year))
@@ -38,13 +34,13 @@ uint8_t lastdayofmonth(uint16_t year, uint8_t month) {
 }
 
 /*******************************************************************************
- *Какой день недели
+ * Какой день недели
  ******************************************************************************/
 uint8_t weekDay(uint8_t day, uint8_t month, uint16_t year) {
 	uint8_t a;
 	uint8_t m;
 	uint16_t y;
-	day += 5; //Первым будит понедельник
+	day += 5; //Первым будет понедельник
 	a = (14 - month) / 12;
 	y = year - a;
 	m = month + 12 * a - 2;
@@ -52,7 +48,7 @@ uint8_t weekDay(uint8_t day, uint8_t month, uint16_t year) {
 }
 
 /*******************************************************************************
- *Проверка на високосность
+ * Проверка на високосность
  ******************************************************************************/
 uint8_t isleapyear(uint16_t year) {
 	if (year % 400 == 0)
@@ -63,7 +59,7 @@ uint8_t isleapyear(uint16_t year) {
 }
 
 /*******************************************************************************
- *Установка или Взятие времени
+ * Установка или взятие времени
  ******************************************************************************/
 tm_t * timeGetSet(tm_t * t) {
 	if (!t) {
@@ -74,25 +70,21 @@ tm_t * timeGetSet(tm_t * t) {
 		return NULL;
 #endif
 #ifdef SYSTEM_STM32
-	return dateTimep_p;
+	return &dateTime;
 } else {
 	Time_Adjust(t);
-	state.taskList |= TASK_UPDATETIME;
 	return NULL;
 }
 #endif
 }
 
 /*******************************************************************************
- *Запуск часов
+ * Запуск часов
  ******************************************************************************/
 void RTC_init(void) {
 #ifdef SYSTEM_STM32
-	/* NVIC configuration */
-	NVIC_Configuration(); //Настрока прерываний для часов
 	if (BKP_ReadBackupRegister(BKP_DR1) != 0xA5A5) {
-		/* Backup data register value is not correct or not yet programmed (when
-		 the first time the program is executed) */
+		/* Если в бекап регистре не установлена верная метка, настроим часы */
 		printf("%s", "\r\n\n RTC not yet configured....");
 
 //		uint8_t	tm_sec;		/* Seconds: 0-59 (K&R says 0-61?) */
@@ -112,7 +104,7 @@ void RTC_init(void) {
 		dateTime.tm_min = 0;
 		dateTime.tm_sec = 0;
 
-		/* Adjust time by values entred by the user on the hyperterminal */
+		/* Настроим счетчик времени */
 		Time_Adjust(&dateTime);
 
 		state.taskList |= TASK_TIMESETUP;
@@ -126,38 +118,31 @@ void RTC_init(void) {
 			printf("%s", "\r\n\n External Reset occurred....");
 		}
 		printf("%s", "\r\n No need to configure RTC....");
-
-		/* Wait for RTC registers synchronization */
+		/* Ждем синхронизации */
 		RTC_WaitForSynchro();
-
-		/* Enable the RTC Second */
+		/* Включаем прерывание счета секунд */
 		RTC_ITConfig(RTC_IT_SEC, ENABLE);
-		/* Wait until last write operation on RTC registers has finished */
+		/* Ждем записи регистров */
 		RTC_WaitForLastTask();
-
-		/* Clear reset flags */
+		/* Обнуляем флаги сброса */
 		RCC_ClearFlag();
 	}
-
-	//Настроим указатель на структуру и обновим время в структуре
-	dateTimep_p = &dateTime;
+	/* Настрока прерываний для часов */
+	NVIC_Configuration();
+	//Обновим структуру со временем
 	CounterToFtime(RTC_GetCounter(), &dateTime);
 #endif
 }
 
 #ifdef SYSTEM_STM32
-/**
- * @brief  Configures the nested vectored interrupt controller.
- * @param  None
- * @retval None
- */
+/*******************************************************************************
+ * Настройка прерываний для часов
+ ******************************************************************************/
 void NVIC_Configuration(void) {
 	NVIC_InitTypeDef NVIC_InitStructure;
-
-	/* Configure one bit for preemption priority */
+	/* Настройка группы приоритета прерывания */
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
-
-	/* Enable the RTC Interrupt */
+	/* Включим прерывание от часов */
 	NVIC_InitStructure.NVIC_IRQChannel = RTC_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
@@ -181,12 +166,13 @@ void Time_Adjust(tm_t* time) {
 
 	/* Clear reset flags */
 	RCC_ClearFlag();
-
-	state.taskList |= TASK_UPDATETIME;
+	
+  /* Обновляем время в структуре */
+	CounterToFtime(RTC_GetCounter(), &dateTime);
 }
 
 /*******************************************************************************
-
+ * Настройка часов
  ******************************************************************************/
 void RTC_Configuration(void) {
 	/* Enable PWR and BKP clocks */
@@ -231,35 +217,32 @@ void RTC_Configuration(void) {
 
 //They probably just changed the name. It was in the library source file stm32f10x_nvic.c
 
-#define AIRCR_VECTKEY_MASK    ((u32)0x05FA0000)
+#define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
 
 /*******************************************************************************
- * Function Name  : NVIC_GenerateSystemReset
- * Description    : Generates a system reset.
- * Input          : None
- * Output         : None
- * Return         : None
+ * Сброс.
  ******************************************************************************/
 void NVIC_GenerateSystemReset(void) {
-	SCB->AIRCR = AIRCR_VECTKEY_MASK | (u32) 0x04;
+	SCB->AIRCR = AIRCR_VECTKEY_MASK | (uint32_t) 0x04;
 }
 
 /*******************************************************************************
- Ежесекундное прерывание от часов
+ Ежесекундное прерывание от часов.
  ******************************************************************************/
 void RTC_IRQHandler(void) {
 	if (RTC_GetITStatus(RTC_IT_SEC) != RESET) {
-		/* Clear the RTC Second interrupt */
+		/* Снимаем флаг прерывания секунд */
 		RTC_ClearITPendingBit(RTC_IT_SEC);
 
-		if(!(state.taskList & TASK_DRIVE) && config.SleepSec) { //Если не едим
-			if((count.toSleep > config.SleepSec) && (state.powerMode == POWERMODE_NORMAL)) { //Не пора ли спать?
-				setPowerMode(POWERMODE_SLEEP);//Спать готов
+		if(!(state.taskList & TASK_DRIVE)) { //Если не едем
+			if((state.powerMode == POWERMODE_NORMAL) && config.SleepSec) {
+				count.toSleep++; //Приблизиться ко сну
 			}
-			else count.toSleep++; //Приблизиться ко сну
+			if(count.toSleep > config.SleepSec) //Не пора ли спать?
+				setPowerMode(POWERMODE_SLEEP);//Спать готов
 		}
 
-		/*Обновим время, если не спящий режим*/
+		/*Обновим время на дисплее, если не спящий режим*/
 		if(state.powerMode != POWERMODE_SLEEP) {
 			if (state.taskList & TASK_UPDATETIME) {
 				CounterToFtime(RTC_GetCounter(), &dateTime);
@@ -291,7 +274,7 @@ void RTC_IRQHandler(void) {
 #endif
 
 /*******************************************************************************
- *Преобразование значение счетчика в григорианскую дату и время
+ * Преобразование значения счетчика в григорианскую дату и время
  ******************************************************************************/
 void CounterToFtime(uint32_t counter, tm_t * dateTime) {
 	uint32_t ace;
@@ -314,9 +297,8 @@ void CounterToFtime(uint32_t counter, tm_t * dateTime) {
 //	dateTime->tm_wday = weekDay(dateTime->tm_mday, dateTime->tm_mon, dateTime->tm_year + 1900);
 }
 
-
 /*******************************************************************************
- *Преобразование григорианской даты и времени в значение счетчика
+ * Преобразование григорианской даты и времени в значение счетчика
  ******************************************************************************/
 uint32_t FtimeToCounter(tm_t * dateTime) {
 	uint8_t a;

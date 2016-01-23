@@ -339,8 +339,7 @@ uint8_t u8g_com_hw_spi_9bit_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *a
 	case U8G_COM_MSG_INIT: {
 		delay_init();
 		SPIInit(SPI_16BIT); //Инициализация SPI1 (stm32f1)
-//				DMA1_SPI1_init(u8g->dev->dev_mem, u8g->width * u8g->height / 8); //Инициализация SPI1 (stm32f1)
-		DMA1_SPI1_init(u8g->dev->dev_mem); //Инициализация SPI1 (stm32f1)
+//		DMA1_SPI1_init(u8g->dev->dev_mem); //Инициализация SPI1 (stm32f1)
 
 	}
 		break;
@@ -379,25 +378,26 @@ uint8_t u8g_com_hw_spi_9bit_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *a
 	}
 		break;
 		case U8G_COM_MSG_WRITE_SEQ: {
-							SPI_DMA_Send(0x12C0);
-//		register uint8_t *ptr = arg_ptr;
-//		uint8_t byte, i;
-//		while (arg_val > 0) {
-//			for (i = 0; i < 4; i++) {
-//				byte = ((*ptr & 128) >> 3) | ((*ptr & 64) << 1); //Старший бит
-//				*ptr <<= 2;
-//				buf_in[num] |= byte >> (1 + num) | 1 << (7 - num);
-//				buf_in[num + 1] = byte << (7 - num);
-//				SPI1->DR = buf_in[num];
-//				buf_in[num++] = 0;
-//				if (num == 8) {
-//					SPI1->DR = buf_in[8];
-//					num = 0;
-//				}
-//			}
-//			ptr++;
-//			arg_val--;
-//		}
+//							SPI_DMA_Send(0x12C0);
+		register uint8_t *ptr = arg_ptr;
+		uint8_t byte, i;
+		while (arg_val > 0) {
+			for (i = 0; i < 4; i++) {
+				byte = ((*ptr & 128) >> 3) | ((*ptr & 64) << 1); //Старший бит
+				*ptr <<= 2;
+				buf_in[num] |= byte >> (1 + num) | 1 << (7 - num);
+				buf_in[num + 1] = byte << (7 - num);
+				SPI1->DR = buf_in[num];
+				buf_in[num++] = 0;
+				if (num == 8) {
+		//			while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {};//FIXME if need
+					SPI1->DR = buf_in[8];
+					num = 0;
+				}
+			}
+			ptr++;
+			arg_val--;
+		}
 	}
 		break;
 //		case U8G_COM_MSG_WRITE_SEQ: {

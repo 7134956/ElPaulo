@@ -6,6 +6,7 @@
 
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
+#include "wdg.h"
 #endif
 
 typedef struct slot_func_t {
@@ -84,6 +85,6 @@ void SysTick_Handler(void) {
 			}
 		}
 	}
-//	if(state.button)
+	WWDG_Renew();
 }
 #endif

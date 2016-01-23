@@ -11,6 +11,8 @@
 #include "menu.h"
 #include "power.h"
 #include "bms.h"
+#include "led.h"
+#include "wdg.h"
 
 #ifdef SYSTEM_STM32
 #include "timer.h"
@@ -260,13 +262,16 @@ void mainLoop() {
 			TIM_Cmd(TIM4, ENABLE); //Включаем таймер
 			TIM_SetCounter(TIM4, 0);//Обнуляем счетчик
 #endif
+			set_leds(LED_BLUE); //Потушили диод пошли спать
 			redrawDisplay();
+			reset_leds(LED_BLUE); //Потушили диод пошли спать
 #ifdef DEBUG_DISPLAY
 			track.circleTics=TIM_GetCounter(TIM4); //Считали значение счетчика. 32768 импульсов в секунду
 #endif
 			state.taskList &= ~TASK_REDRAW;
 		}
 		setPowerState(state.powerMode);
+//		WWDG_Renew();
 	}
 }
 

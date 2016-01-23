@@ -21,8 +21,8 @@
 /* Display driver */
 	//u8g_InitComFn(&u8g, &u8g_dev_st7586s_hw_spi, u8g_com_hw_spi_fn); //Minimal RAM mode
 	//u8g_InitComFn(&u8g, &u8g_dev_st7586s_4x_hw_spi, u8g_com_hw_spi_fn); //Speed mode
-	//8g_InitComFn(&u8g, &u8g_dev_st7586s_20x_hw_spi, u8g_com_hw_spi_fn); //Max speed mode
-#define U8G_INIT			u8g_InitComFn(&u8g, &u8g_dev_st7586s_20x_hw_spi, u8g_com_hw_spi_9bit_fn); //Max speed mode. 3-wire SPI
+#define U8G_INIT			u8g_InitComFn(&u8g, &u8g_dev_st7586s_20x_hw_spi, u8g_com_hw_spi_fn); //Max speed mode
+//u8g_InitComFn(&u8g, &u8g_dev_st7586s_20x_hw_spi, u8g_com_hw_spi_9bit_fn); //Max speed mode. 3-wire SPI
 	//u8g_InitComFn(&u8g, &u8g_dev_st7669a_4x_hw_spi, u8g_com_hw_spi_fn); //Speed mode
 	//u8g_InitComFn(&u8g, &u8g_dev_sh1106_128x64_i2c, u8g_com_hw_i2c_fn); //
 

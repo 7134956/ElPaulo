@@ -1,5 +1,6 @@
 #include "dma.h"
 #include "stm32f10x.h"
+#include "led.h"
 
 /*******************************************************************************
  *Настройка блока DMA
@@ -54,7 +55,7 @@ void DMA1_Channel3_IRQHandler(void) {
 		/* Disable DMA1_Channel3 */
 		DMA1_Channel3->CCR &= (uint16_t) (~DMA_CCR3_EN);
 		/* Disable clock DMA1 */
-		RCC->AHBENR &= ~RCC_AHBENR_DMA1EN;
+//		RCC->AHBENR &= ~RCC_AHBENR_DMA1EN;
 	}
 }
 
@@ -66,7 +67,7 @@ void SPI_DMA_Send(uint16_t count) {
 		// Wait transmit complete
 		;
 	/* Enable clock DMA1 */
-	RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+//	RCC->AHBENR |= RCC_AHBENR_DMA1EN;
 	/* Set data counter for DMA1 Channel3 */
 	DMA1_Channel3->CNDTR = count;
 	/* Enable DMA1 Channel3 */

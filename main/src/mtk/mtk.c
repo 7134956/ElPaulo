@@ -253,7 +253,6 @@ void mtk_elementDateTime(mtk_t *mtk) {
 		} else
 			u8g_SetDefaultForegroundColor(mtk->u8g);
 		if (mtk->element->type == ELEMENT_DATE) {
-
 			switch (i) {
 			case 0:
 				sprintf(sTemp, "%02d", tm->tm_mday);

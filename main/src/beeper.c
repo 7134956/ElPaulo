@@ -19,7 +19,7 @@ typedef struct beep_t {
 beep_t beepTask;
 
 #ifdef SYSTEM_STM32
-uint8_t beep_systick_calback(void);
+void beep_systick_calback(void);
 #endif
 
 /*******************************************************************************
@@ -35,7 +35,8 @@ void beep_init() {
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 
 	//Включаем тактирование таймера порта и альтернативной функции
-	RCC_APB2PeriphClockCmd(BEEP_RCC, ENABLE);
+	RCC_APB2PeriphClockCmd(BEEP_RCC_PORT, ENABLE);
+	RCC_APB1PeriphClockCmd(BEEP_RCC_TIM, ENABLE);
 
 	//Настрока порта B0 = TIM3 на выход ШИМ
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
@@ -76,7 +77,6 @@ void beep(uint16_t f, uint16_t t) {
 		{
 			SysTick_task_add(&beep_timer_callback, t);
 			BEEP_TIM->BEEP_ARR = 1000000 / f;
-			RCC_APB1PeriphClockCmd(BEEP_RCC, ENABLE);
 			BEEP_TIM->BEEP_CCR = 100000 / f; //Устанавливаем скважность половина
 		} else //Если зянята откладываем звук
 		{
@@ -90,12 +90,11 @@ void beep(uint16_t f, uint16_t t) {
 /*******************************************************************************
  *Вызывается по таймеру после отработки писка
  ******************************************************************************/
-uint8_t beep_timer_callback(void){
+void beep_timer_callback(void){
 #ifdef SYSTEM_STM32
 	if (beepTask.idxIN == beepTask.idxOUT) {//Если звук отработал
 		BEEP_TIM->BEEP_CCR = 0; //Устанавливаем скважность 0
-		//RCC_APB1PeriphClockCmd(BEEP_RCC, DISABLE); //FIXME Вырубает таймер шим
-		return 0;
+		SysTick_task_del(&beep_timer_callback); //Удаляемся из планировщика
 	} else //Запускаем отложенный звук
 	{
 		BEEP_TIM->BEEP_ARR = 1000000 / beepTask.buf[beepTask.idxOUT].freq;
@@ -104,5 +103,4 @@ uint8_t beep_timer_callback(void){
 		beepTask.idxOUT &= BEEP_BUF_MASK;
 	}
 #endif
-	return 1;
 }

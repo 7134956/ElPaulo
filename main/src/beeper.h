@@ -6,6 +6,6 @@
 
 void beep_init(void); //Настройка пищалки
 void beep(uint16_t, uint16_t); //Вызов пищалки
-uint8_t beep_timer_callback(void); //
+void beep_timer_callback(void); //
 
 #endif /* _BEEPER_H_ */

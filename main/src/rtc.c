@@ -124,13 +124,15 @@ void RTC_init(void) {
 		RTC_ITConfig(RTC_IT_SEC, ENABLE);
 		/* Ждем записи регистров */
 		RTC_WaitForLastTask();
-		/* Обнуляем флаги сброса */
-		RCC_ClearFlag();
 	}
 	/* Настрока прерываний для часов */
 	NVIC_Configuration();
 	//Обновим структуру со временем
 	CounterToFtime(RTC_GetCounter(), &dateTime);
+	/* Копировали флаги сброса */
+	state.reset = ((RCC->CSR) >> 24) ;		
+	/* Обнуляем флаги сброса */
+	RCC_ClearFlag();
 #endif
 }
 

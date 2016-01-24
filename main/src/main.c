@@ -196,9 +196,6 @@ int main() {
 
 	setStrings(1);
 
-	beep(500, 100);
-	beep(600, 100);
-	beep(700, 100);
 	state.taskList |= TASK_UPDATETIME; //Ставим задачу взять время со счетчика
 	state.taskList |= TASK_REDRAW; //Запросим первую перерисовку экрана
 	state.powerMode = POWERMODE_NORMAL;
@@ -308,8 +305,22 @@ void newState() {
 	}
 		break;
 	case STATE_START: {
-		if ((stateMainPrev == STATE_NULL) || (stateMainPrev == STATE_MAIN))
+		if (stateMainPrev == STATE_NULL)	{
 			initMCU(stateMain);
+			beep(500, 100);
+			beep(600, 100);
+			beep(700, 100);
+			if(state.reset){
+				if(state.reset & RESET_FLAG_LPWRRST) popup.body = "Low-power";
+				if(state.reset & RESET_FLAG_WWDGRST) popup.body = "Win watchDog";
+				if(state.reset & RESET_FLAG_IWDGRST) popup.body = "Ind watchDog";
+				if(state.reset & RESET_FLAG_SFTRST)	popup.body = "Software reset";
+				if(state.reset & RESET_FLAG_PORRST) popup.body = "Power on";
+				if(state.reset & RESET_FLAG_PINRST)	popup.body = "Hard reset";
+				popup.head = "Reset reason";
+				popup.type = POPUP_NULL;
+			}
+		}
 	}
 		break;
 	case STATE_BAT: {

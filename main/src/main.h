@@ -47,6 +47,15 @@
 #define EDIT_CANSEL 2
 #define EDIT_PROCESS 3
 
+
+//state.reset флаги
+#define RESET_FLAG_LPWRRST	0x80	//Не хватило питания
+#define RESET_FLAG_WWDGRST	0x40	//Сторожевой оконный таймер
+#define RESET_FLAG_IWDGRST	0x20  //Сторожевой независимый таймер
+#define RESET_FLAG_SFTRST		0x10	//Программный сброс
+#define RESET_FLAG_PORRST 	0x08	//Подача питания
+#define RESET_FLAG_PINRST		0x04	//Аппаратный сброс
+
 typedef unsigned char uint8_t;
 typedef signed char int8_t;
 typedef unsigned short uint16_t;
@@ -119,6 +128,7 @@ typedef struct state_t { //Глобальная структура для упр
 	uint8_t powerMode; //Глобальный флаг энергостостояния
 	uint8_t taskList; //Флаги невыполненых задач
 	uint8_t button;	//Считанное необработанное нажатие кнопки
+	uint8_t reset;	//Причина сброса
 } state_t;
 
 typedef struct track_t {

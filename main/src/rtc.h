@@ -34,6 +34,7 @@ typedef struct tm {
 #include <time.h>
 #endif
 
+void NVIC_GenerateSystemReset(void);
 void CounterToFtime(uint32_t, tm_t *);
 tm_t * timeGetSet(tm_t *);
 void RTC_init(void);

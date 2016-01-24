@@ -60,11 +60,23 @@ void SysTick_task_del(TIMER_CALLBACK fp) {
 	uint8_t i;
 	for (i = 0; i < systick.taskCount; i++) {
 		if (systick.slots[i].func == fp) {
-			systick.taskCount--; //Ументшаем число задач
+			systick.taskCount--; //Уменьшаем число задач
 			systick.slots[i] = systick.slots[systick.taskCount];//В освободившееся место ставим последнюю
 			systick.slots[systick.taskCount].func = NULL;//Стираем указатель на функцию
 		}
 	}
+}
+
+/*******************************************************************************
+ *Осталось времени до запуска задачи
+ ******************************************************************************/
+uint32_t SysTick_task_check(TIMER_CALLBACK fp) {
+	uint8_t i;
+	for (i = 0; i < systick.taskCount; i++) {
+		if (systick.slots[i].func == fp) 
+			return systick.slots[i].period - systick.slots[i].counter;
+	}
+	return 0;
 }
 
 /*******************************************************************************
@@ -77,12 +89,7 @@ void SysTick_Handler(void) {
 		systick.slots[i].counter += 10;
 		if (systick.slots[i].counter >= systick.slots[i].period) {
 			systick.slots[i].counter = 0;
-			if (!systick.slots[i].func()) //Если задача не хочет продолжения
-			{
-				systick.taskCount--; //Уменьшаем число задач
-				systick.slots[i] = systick.slots[systick.taskCount];//В освободившееся место ставим последнюю
-				systick.slots[systick.taskCount].func = NULL;//Стираем указатель на функцию
-			}
+			systick.slots[i].func();
 		}
 	}
 	WWDG_Renew();

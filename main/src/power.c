@@ -49,9 +49,9 @@ void setPowerMode(uint8_t mode) {
  ******************************************************************************/
 void setPowerState(uint8_t mode) {
 #ifdef SYSTEM_STM32
-	state.taskList |= 128; //FIXME delite for work
+//	state.taskList |= 128; //FIXME delite for work
 	if(!state.taskList) {
-		set_leds(LED_BLUE); //Потушили диод пошли спать
+		reset_leds(LED_BLUE); //Потушили диод пошли спать
 		switch(mode) {
 			case POWERMODE_NORMAL : {
 				__WFI();
@@ -80,7 +80,7 @@ void setPowerState(uint8_t mode) {
 				PWR_EnterSTANDBYMode();
 			}break;
 		}
-		reset_leds(LED_BLUE); //Зажгли диод пошли работать
+		set_leds(LED_BLUE); //Зажгли диод пошли работать
 	}
 #endif
 }
@@ -92,6 +92,7 @@ void initMCU(uint8_t state) {
 #ifdef SYSTEM_STM32
 	switch(state) {
 		case STATE_NULL : {
+			SetSysClock(CLK_24M);
 			init_printf(NULL, putcUSART); //Для использования функций printf, sprintf
 			ButtonsInit(MODE_ADC);//Настройка портов кнопок
 			/* Разрешим прерывания отказов */
@@ -120,7 +121,7 @@ void initMCU(uint8_t state) {
 			drawInit();//Запуск дисплея
 			term_init();//Запуск внутреннего термометра
 			BMS_init();//Подготовка к работе с BMS
-			WWDG_Init();//Запустили сторожевой таймер
+//			WWDG_Init();//Запустили сторожевой таймер
 		}break;
 		case STATE_MAIN : {
 			SysTickInit(100); //Запуск таймера. Вызов 100 раз в секунд
@@ -134,118 +135,118 @@ void initMCU(uint8_t state) {
 #endif
 }
 
+
+/*******************************************************************************
+ *Настройка тактовой частоты
+ ******************************************************************************/
 void SetSysClock(uint8_t clockMode) {
 #ifdef SYSTEM_STM32
-	__IO uint32_t StartUpCounter = 0, HSEStatus = 0;
+	__IO uint32_t HSEStatus = RESET;
+	uint16_t StartUpCounter = 0;
+	//	Сбрасываем все перед настройкой
+	/* Set HSION bit */
+	RCC->CR |= (uint32_t)0x00000001;
 
-//	  /* Set HSION bit */
-//  RCC->CR |= (uint32_t)0x00000001;
-//	
-//	  /* Reset SW, HPRE, PPRE1, PPRE2, ADCPRE and MCO bits */
-//	RCC->CFGR &= (uint32_t)0xF8FF0000;
-//	
-//	  /* Reset HSEON, CSSON and PLLON bits */
-//  RCC->CR &= (uint32_t)0xFEF6FFFF;
-//	
-//	  /* Reset HSEBYP bit */
-//  RCC->CR &= (uint32_t)0xFFFBFFFF;
-//	
-//	  /* Reset PLLSRC, PLLXTPRE, PLLMUL and USBPRE/OTGFSPRE bits */
-//  RCC->CFGR &= (uint32_t)0xFF80FFFF;
-//	
-//	  /* Disable all interrupts and clear pending bits  */
-//  RCC->CIR = 0x009F0000;
+	/* Reset SW, HPRE, PPRE1, PPRE2, ADCPRE and MCO bits */
+	RCC->CFGR &= (uint32_t)0xF8FF0000;
+
+	/* Reset HSEON, CSSON and PLLON bits */
+	RCC->CR &= (uint32_t)0xFEF6FFFF;
+
+	/* Reset HSEBYP bit */
+	RCC->CR &= (uint32_t)0xFFFBFFFF;
+
+	/* Reset PLLSRC, PLLXTPRE, PLLMUL and USBPRE/OTGFSPRE bits */
+	RCC->CFGR &= (uint32_t)0xFF80FFFF;
+
+	/* Disable all interrupts and clear pending bits  */
+	RCC->CIR = 0x009F0000;
 
 //---------------------------------------------------------------------------	
-//	/* Конфигурацяи  SYSCLK, HCLK, PCLK2 и PCLK1 */
-//	/* Включаем HSE */
-//	RCC->CR |= ((uint32_t)RCC_CR_HSEON);
-//	/* Ждем пока HSE не выставит бит готовности либо не выйдет таймаут*/
-//	do
-//	{
-//		HSEStatus = RCC->CR & RCC_CR_HSERDY;
-//		StartUpCounter++;
-//	}while((HSEStatus == 0) && (StartUpCounter != HSE_STARTUP_TIMEOUT));
-//	if ((RCC->CR & RCC_CR_HSERDY) != RESET)
-//	{
-//		HSEStatus = (uint32_t)0x01;
-//	}
-//	else
-//	{
-//		HSEStatus = (uint32_t)0x00;
-//	}
-//	/* Если HSE запустился нормально */
-//	if (HSEStatus == (uint32_t)0x01)
-//	{
-//		/* Включаем буфер предвыборки FLASH */
-//		FLASH->ACR |= FLASH_ACR_PRFTBE;
-//		/* Конфигурируем Flash на 2 цикла ожидания */
-//		/* Это нужно потому, что Flash не может работать на высокой частоте */
-//		FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
-//		FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_2;
+	/* Конфигурацяи  SYSCLK, HCLK, PCLK2 и PCLK1 */
+	/* Включаем HSE */
+	RCC->CR |= ((uint32_t)RCC_CR_HSEON);
+	/* Ждем пока HSE не выставит бит готовности либо не выйдет таймаут*/
+	do
+	{
+		HSEStatus = RCC->CR & RCC_CR_HSERDY;
+		StartUpCounter++;
+	}while((HSEStatus == 0) && (StartUpCounter != HSE_STARTUP_TIMEOUT));
 
-//		/* HCLK = SYSCLK */
+	/* Если HSE запустился нормально */
+	if ((RCC->CR & RCC_CR_HSERDY))
+	{
+		/* Включаем буфер предвыборки FLASH */
+		FLASH->ACR |= FLASH_ACR_PRFTBE;
+		/* Конфигурируем цикл ожидания Flash */
+		/* Это нужно потому, что Flash не может работать на высокой частоте */
+		FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
+		if(clockMode == CLK_8M)
+		FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_0;
+		else if(clockMode == CLK_24M)
+		FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_1;
+		else if(clockMode == CLK_72M)
+		FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_2;
+
+		/* HCLK = SYSCLK */
 //		RCC->CFGR |= (uint32_t)RCC_CFGR_HPRE_DIV1;
-
-//		/* PCLK2 = HCLK */
+		/* PCLK2 = HCLK */
 //		RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE2_DIV1;
+		if(clockMode == CLK_72M) {
+			/* PCLK1 = HCLK / 2 */
+			RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV2;
+		} else {
+			/* PCLK1 = HCLK */
+//		   RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV1;
+		}
+		if(clockMode == CLK_8M) {
+			/* Select HSE as system clock source */
+			RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
+			RCC->CFGR |= (uint32_t)RCC_CFGR_SW_HSE;
 
-////if(clockMode == CLK_72M){
-//		/* PCLK1 = HCLK / 2 */
-//		RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV2;
-////} else {
-//		/* PCLK1 = HCLK */
-//		//   RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV1;
-////}
-//		/* Конфигурируем множитель PLL configuration: PLLCLK = HSE * 9 = 72 MHz */
-//		/* При условии, что кварц на 8МГц! */
-//		switch(clockMode) {
-//			case CLK_72M : {
-//				/*  PLL configuration: PLLCLK = HSE * 9 = 72 MHz */
-//				RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
-//				RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLMULL9);
-//			}break;
-//			case CLK_24M : {
-//				/*  PLL configuration:  = (HSE / 2) * 6 = 24 MHz */
-//				RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
-//				RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLXTPRE_HSE_Div2 | RCC_CFGR_PLLMULL6);
-//			}break;
-//			case CLK_8M : {
-////	
-////	    /* Select HSE as system clock source */
-////    RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
-////    RCC->CFGR |= (uint32_t)RCC_CFGR_SW_HSE;    
-
-////    /* Wait till HSE is used as system clock source */
-////    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)0x04)
-////    {
-////    }
+			/* Wait till HSE is used as system clock source */
+			while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)0x04)
+			{
+			}
 //				/*  PLL configuration:  = (HSE / 2) * 2 = 8 MHz */
 //				RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
 //				RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLXTPRE_HSE_Div2 | RCC_CFGR_PLLMULL2);
-//			}break;
-//		}
-//		/* Включаем PLL */
-//		RCC->CR |= RCC_CR_PLLON;
+		} else {
+			/* Конфигурируем множитель PLL. При условии, что кварц на 8МГц!*/
+			switch(clockMode) {
+				case CLK_72M : {
+					/*  PLL configuration: PLLCLK = HSE * 9 = 72 MHz */
+					RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
+					RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLMULL9);
+				}break;
+				case CLK_24M : {
+					/*  PLL configuration:  = (HSE / 2) * 6 = 24 MHz */
+					RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
+					RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLXTPRE_HSE_Div2 | RCC_CFGR_PLLMULL6);
 
-//		/* Ожидаем, пока PLL выставит бит готовности */
-//		while((RCC->CR & RCC_CR_PLLRDY) == 0)
-//		{
-//		}
-//		/* Выбираем PLL как источник системной частоты */
-//		RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
-//		RCC->CFGR |= (uint32_t)RCC_CFGR_SW_PLL;
-
-//		/* Ожидаем, пока PLL выберется как источник системной частоты */
-//		while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)0x08)
-//		{
-//		}
-//	}
-//	else
-//	{
-//		/* Все плохо... HSE не завелся... Чего-то с кварцем или еще что...
-//		 Надо бы както обработать эту ошибку... Если мы здесь, то мы работаем
-//		 от HSI! */
-//	}
+				}break;
+			}
+			/* Включаем PLL */
+			RCC->CR |= RCC_CR_PLLON;
+			/* Ожидаем, пока PLL выставит бит готовности */
+			while((RCC->CR & RCC_CR_PLLRDY) == 0)
+			{
+			}
+			/* Выбираем PLL как источник системной частоты */
+			RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
+			RCC->CFGR |= (uint32_t)RCC_CFGR_SW_PLL;
+			/* Ожидаем, пока PLL выберется как источник системной частоты */
+			while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)0x08)
+			{
+			}
+		}
+		//Отключим лишнее
+		RCC->CR &= (uint32_t)((uint32_t)~(RCC_CR_HSION | RCC_CR_HSEBYP));
+	}
+	else
+	{
+		ERR("HSE not started");
+	}
+	SystemCoreClockUpdate();
 #endif
 }

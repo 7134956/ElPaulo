@@ -70,7 +70,6 @@ void drawOff(void);
  *Запуск дисплея и настройка графики
  ******************************************************************************/
 void drawInit(void) {
-	popup.type = POPUP_ALERT;
 	#ifdef SYSTEM_WIN
 	u8g_Init(&u8g, &u8g_dev_sdl_2bit);
 #endif
@@ -195,7 +194,8 @@ void draw(void) {
 	}
 		break;
 	}
-	if(popup.type)message();
+	if (stateMain != STATE_START)
+		if(popup.type)message();
 }
 
 /*******************************************************************************
@@ -208,13 +208,19 @@ void drawStart(void) {
 	u8g_DrawRFrame(&u8g, 5, 5, 230, 150, 5);
 	u8g_DrawStr(&u8g, 54, 43, "El   Paulo");
 	u8g_DrawXBM(&u8g, 86, 4, 24, 63, u8g_logo_bits);
-	u8g_DrawStr(&u8g, 36, 105, "PIN:");
-	u8g_DrawRFrame(&u8g, 10, 130, 220, 20, 5);
+	u8g_DrawStr(&u8g, 36, 95, "PIN:");
+	u8g_DrawFrame(&u8g, 10, 110, 220, 40);
 	u8g_SetFont(&u8g, u8g_font_ncenR10);
-	u8g_DrawStr(&u8g, 95, 145, "v.0.1.4");
+//	w = 10 + u8g_GetStrWidth(&u8g, popup.body);
+//	h = 66;
+//	x = (DISPLAY_WIDTH - w) / 2;
+	//u8g_DrawStr(&u8g, 15, 125, "Normal start. No errors.");
+	//u8g_DrawStr(&u8g, 15, 145, "Please enter PIN code");
+	u8g_DrawStr(&u8g, 15, 125, popup.head);
+	u8g_DrawStr(&u8g, 15, 145, popup.body);
 	u8g_SetFont(&u8g, u8g_font_elpaulo32n);
 	mtk_SetRootElement(&mtkPin);
-	mtk_Pos(108, 107);
+	mtk_Pos(108, 97);
 	mtk_Draw();
 }
 

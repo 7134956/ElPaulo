@@ -32,7 +32,7 @@ extern mtk_element_t
 		mtkPin,			//Пароль стартового экрана
 		mtkLang,
 		mtkDateTime, mtkDate, mtkTime,
-		mtkPower, mtkSecInTime, mtkSleepDisplayOff, mtkSleepSec, mtkMenuBMS, mtk_BMS_config, mtk_BMS_voltage, mtk_BMS_cap, mtk_BMS_resist,
+		mtkPower, mtkSecInTime, mtkMaxFPS, mtkSleepDisplayOff, mtkSleepSec, mtkMenuBMS, mtk_BMS_config, mtk_BMS_voltage, mtk_BMS_cap, mtk_BMS_resist,
 		mtk_BMS_charge,
 		mtk_BMS_discharge,
 		mtk_BMS_Vmin,
@@ -78,6 +78,8 @@ void setStrings(uint8_t lang) {
 		mtkSecInTime.label[1] = "Показ секунд";
 		mtkSleepSec.label[0] = "Autosleep sec";
 		mtkSleepSec.label[1] = "Aвтосон(сек)";
+		mtkMaxFPS.label[0] = "Maximum FPS";
+		mtkMaxFPS.label[1] = "Макс. кадров/Сек";
 		mtkSleepDisplayOff.label[0] = "Display off";
 		mtkSleepDisplayOff.label[1] = "Выкл. экран";
 

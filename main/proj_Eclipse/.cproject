@@ -68,16 +68,20 @@
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.114424718" name="u8g_arm.h" rcbsApplicability="disable" resourcePath="src/u8g_arm.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.238426366" name="timer.h" rcbsApplicability="disable" resourcePath="src/timer.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.589006392" name="string.h" rcbsApplicability="disable" resourcePath="src/string.h" toolsToInvoke=""/>
+					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.1017459992" name="wdg.c" rcbsApplicability="disable" resourcePath="src/wdg.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.debug.1860127386.1523803895">
+						<tool id="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.debug.1860127386.1523803895" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.debug.1860127386"/>
+					</fileInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.1070055688" name="u8g_dev_st75256.h" rcbsApplicability="disable" resourcePath="src/u8g_dev_st75256.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.1066014519" name="flash.h" rcbsApplicability="disable" resourcePath="src/flash.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.2100462607" name="termo.h" rcbsApplicability="disable" resourcePath="src/termo.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.356807329" name="can.h" rcbsApplicability="disable" resourcePath="src/can.h" toolsToInvoke=""/>
+					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.1358209179" name="wdg.h" rcbsApplicability="disable" resourcePath="src/wdg.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.945307934" name="u8g_dev_st7586s.h" rcbsApplicability="disable" resourcePath="src/u8g_dev_st7586s.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.491910088" name="dma.h" rcbsApplicability="disable" resourcePath="src/dma.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.499656854" name="spi.h" rcbsApplicability="disable" resourcePath="src/spi.h" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.730949390.1626375862" name="usart.h" rcbsApplicability="disable" resourcePath="src/usart.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="u8g_dev_st75256.h|u8g_dev_st75256.c|onewire|ds18b20|can.h|can.c|termo.c|termo.h|dma.h|dma.c|u8g_arm.h|u8g_arm.c|usart.h|u8g_dev_st7586s.h|u8g_dev_st7669a.h|u8g_dev_st7669a.c|u8g_dev_st7586s.c|usart.c|printf.h|printf.c|flash.h|flash.c|led.h|i2c.h|i2c.c|spi.h|spi.c|led.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry excluding="wdg.c|wdg.h|u8g_dev_st75256.h|u8g_dev_st75256.c|onewire|ds18b20|can.h|can.c|termo.c|termo.h|dma.h|dma.c|u8g_arm.h|u8g_arm.c|usart.h|u8g_dev_st7586s.h|u8g_dev_st7669a.h|u8g_dev_st7669a.c|u8g_dev_st7586s.c|usart.c|printf.h|printf.c|flash.h|flash.c|led.h|i2c.h|i2c.c|spi.h|spi.c|led.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

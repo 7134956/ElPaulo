@@ -87,19 +87,15 @@ U8G_INIT
  ******************************************************************************/
 uint8_t drawDelay = 0;
 
-void drawTask(void)	{
-	if(!drawDelay){
-		if(state.taskList & TASK_LIM_REDRAW)
-			{
-				state.taskList &=~ TASK_LIM_REDRAW;
-				state.taskList |= TASK_REDRAW;
-				drawDelay = 100/config.maxFPS;
-			}
+void drawTask(void) {
+	if (drawDelay) {
+		drawDelay -= 1;
+	} else if (state.taskList & TASK_LIM_REDRAW) {
+		state.taskList &= ~ TASK_LIM_REDRAW;
+		state.taskList |= TASK_REDRAW;
 	}
-	else
-		drawDelay -=1;
 }
-	
+
 /*******************************************************************************
  *Включить дисплей
  ******************************************************************************/
@@ -130,6 +126,7 @@ uint32_t contrastGetSet(uint32_t *contrast) {
  *Запуск цыкла отрисовки дисплея
  ******************************************************************************/
 void redrawDisplay(void) {
+	drawDelay = (100 / config.maxFPS);
 	u8g_FirstPage(&u8g);
 	do {
 		draw();

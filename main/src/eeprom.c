@@ -5,6 +5,8 @@
 #include "pwm.h"
 #include "rtc.h"
 #include "i2c.h"
+#include "timer.h"
+#include "rtc.h"
 
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
@@ -83,6 +85,7 @@ void I2C_EE_ByteWrite(uint8_t* pBuffer, uint16_t WriteAddr) {
  * @return     None
  ******************************************************************************/
 void I2C_EE_BufferRead(uint8_t* pBuffer, uint16_t ReadAddr, uint16_t NumByteToRead) {
+	SysTick_task_add(NVIC_GenerateSystemReset, 1000);
 	/* While the bus is busy */
 	while (I2C_GetFlagStatus(I2C_UNIT, I2C_FLAG_BUSY))
 		;
@@ -154,6 +157,7 @@ void I2C_EE_BufferRead(uint8_t* pBuffer, uint16_t ReadAddr, uint16_t NumByteToRe
 
 	/* Enable Acknowledgement to be ready for another reception */
 	I2C_AcknowledgeConfig(I2C_UNIT, ENABLE);
+	SysTick_task_del(NVIC_GenerateSystemReset);
 }
 
 /*******************************************************************************
@@ -173,6 +177,8 @@ void I2C_EE_BufferWrite(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteTo
 	NumOfPage = NumByteToWrite / I2C_FLASH_PAGESIZE;
 	NumOfSingle = NumByteToWrite % I2C_FLASH_PAGESIZE;
 
+	SysTick_task_add(NVIC_GenerateSystemReset, 1000);
+	
 	/* If WriteAddr is I2C_FLASH_PAGESIZE aligned  */
 	if (Addr == 0) {
 		/* If NumByteToWrite < I2C_FLASH_PAGESIZE */
@@ -239,6 +245,7 @@ void I2C_EE_BufferWrite(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteTo
 			}
 		}
 	}
+	SysTick_task_del(NVIC_GenerateSystemReset);
 }
 /*******************************************************************************
  * @brief      Writes more than one byte to the EEPROM with a single WRITE cycle.
@@ -396,11 +403,12 @@ void saveParams(void) {
 	memcpy(&Buffer[25], &track.endCapacity, 2);
 	memcpy(&Buffer[27], &track.startTime, 4);
 	memcpy(&Buffer[31], &config.lang, 1);
-	memcpy(&Buffer[32], &config.SecInTime, 1);
-	memcpy(&Buffer[33], &config.SleepSec, 2);
-	memcpy(&Buffer[35], &config.SleepDisplayOff, 1);
-	memcpy(&Buffer[36], &config.password, 2);
-	memcpy(&Buffer[38], &config.contrast, 1);
+	memcpy(&Buffer[32], &config.maxFPS, 1);
+	memcpy(&Buffer[33], &config.SecInTime, 1);
+	memcpy(&Buffer[34], &config.SleepSec, 2);
+	memcpy(&Buffer[36], &config.SleepDisplayOff, 1);
+	memcpy(&Buffer[37], &config.password, 2);
+	memcpy(&Buffer[39], &config.contrast, 1);
 
 	config.crc = crc32_calc(Buffer, CONFIG_UNINT_SIZE - 4);
 	memcpy(&Buffer[60], &config.crc, 4);
@@ -423,11 +431,12 @@ void loadParams(void) {
 		memcpy(&track.endCapacity, &Buffer[25], 2);
 		memcpy(&track.startTime, &Buffer[27], 4);
 		memcpy(&config.lang, &Buffer[31], 1);
-		memcpy(&config.SecInTime, &Buffer[32], 1);
-		memcpy(&config.SleepSec, &Buffer[33], 2);
+		memcpy(&config.maxFPS, &Buffer[32], 1);
+		memcpy(&config.SecInTime, &Buffer[33], 1);
+		memcpy(&config.SleepSec, &Buffer[34], 2);
 		memcpy(&config.SleepDisplayOff, &Buffer[35], 1);
-		memcpy(&config.password, &Buffer[36], 2);
-		memcpy(&config.contrast, &Buffer[38], 1);
+		memcpy(&config.password, &Buffer[37], 2);
+		memcpy(&config.contrast, &Buffer[39], 1);
 
 		memcpy(&config.crc, &Buffer[60], 4);
 	} else {
@@ -441,6 +450,7 @@ void loadParams(void) {
 		track.endCapacity = 0;
 		track.startTime = 0;
 		config.lang = 0;
+		config.maxFPS = 2;
 		config.SecInTime = 1;
 		config.SleepSec = 60;
 		config.SleepDisplayOff = 0;

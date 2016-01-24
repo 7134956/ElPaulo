@@ -25,6 +25,7 @@ typedef struct popup_t {
 } popup_t;
 
 void drawInit(void);
+void drawTask(void);//Запросить перерисовку экрана
 void redrawDisplay(void);
 void displayOff(void);
 void displayOn(void);

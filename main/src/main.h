@@ -81,12 +81,13 @@ typedef signed long long int64_t;
 //void drawClockEditor(void);
 //void buttonsParse(void);
 void circleStep(uint16_t);
-uint8_t addTermItem(void);
+void addTermItem(void);
 //void drawMain(void);
 
 typedef struct config_t { //Глобальная структура с настройками сохраняется в EEPROM
 	uint8_t lang;		//Выбор языка интерфейса
 	uint8_t SecInTime;	//Отрисовывать секунды
+	uint8_t maxFPS;	//Спящий режим через
 	uint16_t SleepSec;	//Спящий режим через
 	uint8_t SleepDisplayOff;	//Выключение экрана после автозасыпания
 	uint16_t password; //Пароль устройства
@@ -98,9 +99,10 @@ typedef struct config_t { //Глобальная структура с наст�
 //Глобальный флаг текущих задач
 #define TASK_DRIVE 1 //Признак движения
 #define TASK_REDRAW 2 //Флаг запроса перерисовки экрана
-#define TASK_UPDATETIME 4
-#define TASK_TIMESETUP 8
-#define TASK_SAVEPARAMS 16
+#define TASK_LIM_REDRAW 4 //Флаг запроса перерисовки с ограничением скорости
+#define TASK_UPDATETIME 8
+#define TASK_TIMESETUP 16
+#define TASK_SAVEPARAMS 32
 
 typedef struct calendar_t {
 	uint16_t year; //Год

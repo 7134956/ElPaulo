@@ -78,7 +78,7 @@ mtk_element_t
 		mtkPin, //Пароль стартового экрана
 		mtkLang, //Выбор языка интерфейса
 		mtkDateTime, mtkDate, mtkTime, mtkPower, mtkSecInTime,
-		mtkSleepDisplayOff, mtkSleepSec, mtkMenuBMS, mtkAbout;
+		mtkMaxFPS, mtkSleepDisplayOff, mtkSleepSec, mtkMenuBMS, mtkAbout;
 
 mtk_select_t mtkLangList;
 
@@ -183,7 +183,8 @@ int main() {
 	mtk_SetupElement(&mtkLang, ELEMENT_SEL, NULL, 2, 0, &mtkLangList, &mtkPower);
 	mtkLangList.pointer = &config.lang;
 //------------------------------------------
-	mtk_SetupElement(&mtkPower, ELEMENT_MENU, NULL, 0, 0, &mtkSecInTime, &mtkMenuBMS);
+	mtk_SetupElement(&mtkPower, ELEMENT_MENU, NULL, 0, 0, &mtkMaxFPS, &mtkMenuBMS);
+	mtk_SetupElement(&mtkMaxFPS, ELEMENT_NUM8, NULL, 1, 0, &config.maxFPS, &mtkSecInTime);
 	mtk_SetupElement(&mtkSecInTime, ELEMENT_FLAG, NULL, 0, 0, &config.SecInTime, &mtkSleepSec);
 	mtk_SetupElement(&mtkSleepSec, ELEMENT_NUM16, NULL, 4, 0, &config.SleepSec, &mtkSleepDisplayOff);
 	mtk_SetupElement(&mtkSleepDisplayOff, ELEMENT_FLAG, NULL, 0, TYPE_NEEDOK, &config.SleepDisplayOff, NULL);
@@ -268,7 +269,7 @@ void mainLoop() {
 #ifdef DEBUG_DISPLAY
 			track.circleTics=TIM_GetCounter(TIM4); //Считали значение счетчика. 32768 импульсов в секунду
 #endif
-			state.taskList &= ~TASK_REDRAW;
+			state.taskList &= ~(TASK_REDRAW | TASK_LIM_REDRAW);
 		}
 		setPowerState(state.powerMode);
 //		WWDG_Renew();
@@ -819,7 +820,7 @@ void calculateStat(track_t *tr) {
 /*******************************************************************************
  *Добавить значение температуры в буфер граффика
  ******************************************************************************/
-uint8_t addTermItem(void){
+void addTermItem(void){
 	uint8_t i;
 #ifdef SYSTEM_WIN
 			termo.buff[termo.in] = 10 * (sin((double) (termo.in / 15.0) + (double) 50) * 40 + 100);
@@ -840,5 +841,5 @@ uint8_t addTermItem(void){
 				if (termo.buff[i] > termo.max)
 					termo.max = termo.buff[i];
 			}
-			return 1;
+
 		}

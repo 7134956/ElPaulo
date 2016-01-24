@@ -10,12 +10,14 @@
 #endif
 
 #include "main.h"
+#include "draw.h"
 #include "power.h"
 #include "timer.h"
 
 //extern uint8_t stateMain;
 extern track_t track;
 extern state_t state;
+extern config_t config;
 
 uint8_t button_count; //Счетчик цыклов чтения
 uint8_t buttonPushed; //В данный момент нажато
@@ -107,11 +109,9 @@ void ButtonsInit(uint8_t mode) {
 /*******************************************************************************
  *Функция чтения состояния кнопок
  ******************************************************************************/
-uint8_t readButtons(void) {
+void readButtons(void) {
 #ifdef SYSTEM_STM32
 	uint16_t adc_res;
-	if (state.button != BUTTON_NULL) //Тут считанное подтвержденное необработанное нажатие
-		return 1;
 	adc_res = ADC_GetConversionValue(ADC2); //Считываем значение АЦП
 	ADC_SoftwareStartConvCmd(ADC2, ENABLE);// Запускаем преобразование. Пускай готовится новое значение
 #ifdef DEBUG	
@@ -162,7 +162,6 @@ uint8_t readButtons(void) {
 		}
 	}
 #endif
-	return 1;
 }
 
 /*******************************************************************************
@@ -211,13 +210,19 @@ void EXTI15_10_IRQHandler(void) {
 			if (!(state.taskList & TASK_DRIVE)) { //Если не стоял флаг движения,
 				TIM_Cmd(TIM4, ENABLE);//Включаем таймер
 				TIM_SetCounter(TIM4, 0);//Обнуляем счетчик
-				state.taskList |= TASK_DRIVE;//запускаем движение
+				circleStep(0);//Обнулили показания скорости
+				state.taskList |= TASK_DRIVE;// Pапускаем движение
+				if(config.maxFPS) //Установлено ограничение
+					SysTick_task_add(drawTask, 10); //Запускаем перерисовку экрана с ограничителем,
 			} else {
 				track.circleTics = TIM_GetCounter(TIM4); //Считали значение счетчика
 				TIM_SetCounter(TIM4, 0);//Обнуляем счетчик
 				track.tics += track.circleTics;
 				circleStep(track.circleTics);//Вызвали функцию рассчета скорости
-				state.taskList |= TASK_REDRAW;//Запросили перерисовку экрана
+				if(!config.maxFPS) //Ограничения нету
+					state.taskList |= TASK_REDRAW;						
+				else
+					state.taskList |= TASK_LIM_REDRAW;
 			}
 		}
 		setPowerMode(POWERMODE_NORMAL);
@@ -263,6 +268,8 @@ void TIM4_IRQHandler(void) {
 		TIM_ClearITPendingBit(TIM4, TIM_IT_Update); //Сбрасываем бит переполнения
 		state.taskList &=~ TASK_DRIVE; //Снимаем признак движения
 		TIM_Cmd(TIM4, DISABLE); //Выключаем таймер
+		SysTick_task_del(drawTask); //Снимаем запросы перерисовки
+		state.taskList |= TASK_REDRAW;	//Перерисовка
 	}
 }
 #endif

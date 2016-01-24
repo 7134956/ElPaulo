@@ -81,6 +81,25 @@ U8G_INIT
 	time_p = timeGetSet(NULL);//Взяли указатель на время
 	u8g_SetContrast(&u8g, config.contrast);
 }
+
+/*******************************************************************************
+ *Запросить перерисовку
+ ******************************************************************************/
+uint8_t drawDelay = 0;
+
+void drawTask(void)	{
+	if(!drawDelay){
+		if(state.taskList & TASK_LIM_REDRAW)
+			{
+				state.taskList &=~ TASK_LIM_REDRAW;
+				state.taskList |= TASK_REDRAW;
+				drawDelay = 100/config.maxFPS;
+			}
+	}
+	else
+		drawDelay -=1;
+}
+	
 /*******************************************************************************
  *Включить дисплей
  ******************************************************************************/

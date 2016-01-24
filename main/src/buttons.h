@@ -19,7 +19,7 @@
 #define MODE_ADC 2
 
 void ButtonsInit(uint8_t );
-uint8_t readButtons(void);
+void readButtons(void);
 void CircleSensorInit(void);
 void CircleTimerInit(void);
 void WakeupInit(void);

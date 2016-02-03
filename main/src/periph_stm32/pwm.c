@@ -1,6 +1,6 @@
-#include "main.h"
+#include "config.h"
 #include "pwm.h"
-#include "u8g.h"
+
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
 #endif
@@ -49,6 +49,12 @@ void PWM_init(void) {
 	TIM_OC4Init(TIM2, &TIM_OC_InitStructure);
 
 	TIM_Cmd(TIM2, ENABLE);
+	
+	TIM2->CCR2 = 0;
+	TIM2->CCR3 = 0;
+	TIM2->CCR4 = 0;
+	
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, DISABLE);
 #endif
 }
 
@@ -57,6 +63,8 @@ void PWM_init(void) {
  ******************************************************************************/
 void PWMSet(uint8_t num, uint8_t value) {
 #ifdef SYSTEM_STM32
+	if(value)
+		RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
 	config.PWM[num] = value;
 	switch (num) {
 	case 0:
@@ -69,6 +77,8 @@ void PWMSet(uint8_t num, uint8_t value) {
 		TIM_SetCompare4(TIM2, value);
 		break;
 	}
+	if(!TIM2->CCR2 & !TIM2->CCR3 & !TIM2->CCR4)
+		RCC->APB1ENR &=~ RCC_APB1ENR_TIM2EN;
 #endif
 }
 

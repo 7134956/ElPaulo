@@ -1,22 +1,16 @@
-#include "mtk.h"
+#include "config.h"
 #include "draw.h"
-#include "pwm.h"
-#include "rtc.h"
 #include "bitmap.h"
-#include "main.h"
-#include "power.h"
-#include "termo.h"
-#include "bms.h"
+#include "rtc.h"
+#include "utils.h"
 
 #ifdef SYSTEM_STM32
-#include "u8g_arm.h"
-#include "termo.h"
-#include "config.h"
+#include "stm32f10x.h"
+//#include "u8g_com_stm32.h"
 #endif
 
 uint8_t hStart, vStart, hStep, vStep, j, k;
 popup_t popup;
-char sTemp[30]; //Общая временная переменная для строки
 extern char *month[2][12];
 extern char *days[2][7];
 
@@ -31,6 +25,7 @@ extern BMS_t BMS;
 extern track_t histItem;
 extern uint8_t navigate[5];
 extern uint8_t stateMain;
+extern stopwatch_t sWatch;
 
 extern mtk_element_t mtkPin;	//Пароль стартового экрана
 /*		mtkPassword,	//Пароль
@@ -58,7 +53,7 @@ void drawStat(void);
 void drawBar(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t);
 void drawStart(void);
 void drawTemp(void);
-void drawSetup(void);
+//void drawSetup(void);
 void drawTempChart(void);
 void drawMainQuickMenu(void);
 void drawStatQuickMenu(void);
@@ -70,29 +65,24 @@ void drawOff(void);
  *Запуск дисплея и настройка графики
  ******************************************************************************/
 void drawInit(void) {
-	#ifdef SYSTEM_WIN
+#ifdef DISPLAY_SDL
 	u8g_Init(&u8g, &u8g_dev_sdl_2bit);
-#endif
-#ifdef SYSTEM_STM32
-U8G_INIT
-#endif
+#elif defined DISPLAY_ST7586S_SPI
+	u8g_InitComFn(&u8g, &u8g_dev_st7586s_jlx240160g666_hw_spi, u8g_com_stm32_st7586s_hw_spi_fn); //Minimal RAM mode
+#elif defined DISPLAY_ST7586S_4X_SPI
+	u8g_InitComFn(&u8g, &u8g_dev_st7586s_jlx240160g666_4x_hw_spi, u8g_com_stm32_st7586s_hw_spi_fn); //Speed mode
+#elif defined DISPLAY_ST7586S_20X_SPI
+	u8g_InitComFn(&u8g, &u8g_dev_st7586s_jlx240160g666_20x_hw_spi, u8g_com_stm32_st7586s_hw_spi_fn); //Max speed mode
+#elif defined DISPLAY_ST7586S_20X_SPI_9B
+u8g_InitComFn(&u8g, &u8g_dev_st7586s_20x_hw_spi, u8g_com_hw_spi_9bit_fn); //Max speed mode. 3-wire SPI
+#elif defined DISPLAY_ST7669_4X_SPI
+	u8g_InitComFn(&u8g, &u8g_dev_st7669a_4x_hw_spi, u8g_com_hw_spi_fn); //Speed mode
+#elif defined DISPLAY_SH1106_SPI_IIC
+	u8g_InitComFn(&u8g, &u8g_dev_sh1106_128x64_i2c, u8g_com_hw_i2c_fn); //
+#endif	
 	mtk_Init(&u8g);
 	time_p = timeGetSet(NULL);//Взяли указатель на время
 	u8g_SetContrast(&u8g, config.contrast);
-}
-
-/*******************************************************************************
- *Запросить перерисовку
- ******************************************************************************/
-uint8_t drawDelay = 0;
-
-void drawTask(void) {
-	if (drawDelay) {
-		drawDelay -= 1;
-	} else if (state.taskList & TASK_LIM_REDRAW) {
-		state.taskList &= ~ TASK_LIM_REDRAW;
-		state.taskList |= TASK_REDRAW;
-	}
 }
 
 /*******************************************************************************
@@ -125,7 +115,6 @@ uint32_t contrastGetSet(uint32_t *contrast) {
  *Запуск цыкла отрисовки дисплея
  ******************************************************************************/
 void redrawDisplay(void) {
-	drawDelay = (100 / config.maxFPS);
 	u8g_FirstPage(&u8g);
 	do {
 		draw();
@@ -136,7 +125,11 @@ void redrawDisplay(void) {
  *Рисует экран в зависимости от текущего состояния
  ******************************************************************************/
 void draw(void) {
-	u8g_SetFontPosBottom(&u8g);
+//	u8g_SetFontPosBaseline( &u8g );
+//	u8g_SetFontPosBottom( &u8g);
+//	u8g_SetFontPosCenter( &u8g );
+//	u8g_SetFontPosTop( &u8g );
+	u8g_SetFontPosBaseline(&u8g);
 	if ((stateMain != STATE_START) && (stateMain != STATE_OFF))
 		drawTabs();
 	u8g_SetDefaultForegroundColor(&u8g);
@@ -156,8 +149,10 @@ void draw(void) {
 		drawLight();
 	}
 		break;
-	case STATE_SETUP: {
-		drawSetup();
+	case STATE_SETUP:
+	case STATE_UTIL: {
+		mtk_Pos(12, 35);
+		mtk_Draw();
 	}
 		break;
 	case STATE_TERMO: {
@@ -222,12 +217,61 @@ void drawStart(void) {
 	mtk_SetRootElement(&mtkPin);
 	mtk_Pos(108, 97);
 	mtk_Draw();
+
+}
+
+/*******************************************************************************
+ *Рисует панель вкладок с часами
+ ******************************************************************************/
+void drawTabs(void) {
+	char sTemp[16];
+	uint8_t widthClock = 95;
+	vStep = 18;
+	hStep = 18;
+	sTemp[0] = STATE_LIGHT;
+	sTemp[1] = STATE_CALENDAR;
+	sTemp[2] = 3;
+	sTemp[3] = STATE_SETUP;
+	sTemp[4] = 5;
+	sTemp[5] = STATE_TERMO;
+	sTemp[6] = STATE_BAT;
+	sTemp[7] = STATE_STAT;
+	sTemp[8] = 0;
+	u8g_SetFont(&u8g, u8g_font_elpaulo20);
+
+	u8g_SetDefaultForegroundColor(&u8g);
+	u8g_DrawBox(&u8g, 0, 0, 240, vStep);	//зачерняем верх
+	u8g_SetDefaultBackgroundColor(&u8g);	//инвертный цвет
+	u8g_DrawStr(&u8g, 1, 16, sTemp); //нарисуем строчку табиконок
+	u8g_SetDefaultBackgroundColor(&u8g);
+	if (stateMain == STATE_MAIN) {
+		u8g_DrawRBox(&u8g, 239 - widthClock, 0, widthClock + 1, vStep + 2, 3);
+		u8g_SetDefaultForegroundColor(&u8g);
+	} else {
+		u8g_DrawRBox(&u8g, (stateMain * hStep) - 18, 0, hStep, vStep + 2, 3);
+		u8g_SetDefaultForegroundColor(&u8g);
+		sTemp[0] = stateMain;
+		sTemp[1] = 0;
+		u8g_DrawStr(&u8g, (stateMain * hStep) - 17, 16, sTemp);
+		u8g_SetDefaultBackgroundColor(&u8g);
+	}
+	if (state.powerMode == POWERMODE_SLEEP)
+		sprintf(sTemp, " SLEEP!");
+	else if (config.SecInTime) {
+		sprintf(sTemp, "%02d:%02d:%02d", time_p->tm_hour, time_p->tm_min,
+				time_p->tm_sec);
+		u8g_DrawStr(&u8g, 156, 15, sTemp);
+	} else {
+		sprintf(sTemp, "%02d:%02d", time_p->tm_hour, time_p->tm_min);
+		u8g_DrawStr(&u8g, 171, 15, sTemp);
+	}
 }
 
 /*******************************************************************************
  *Рисует главную вкладку
  ******************************************************************************/
 void drawMain(void) {
+	char sTemp[15];
 	uint8_t i;
 	uint8_t barAH; //Емкость батареи в палочках
 	uint8_t amps; //Значение тока в палочках
@@ -246,8 +290,14 @@ void drawMain(void) {
 	else
 		sprintf(sTemp, "__.__"); //Отсутствует
 	u8g_DrawStr(&u8g, 46, 96, sTemp);
-	sprintf(sTemp, "%03u.%03u", track.distance / 1000000,
-			(track.distance % 1000000) / 1000); //Последний пробег
+	if (state.taskList & TASK_STOPWATCH)
+		sprintf(sTemp, "%01d:%02d:%02d:%01d", sWatch.dsH[sWatch.nums] / 36000,
+				(sWatch.dsH[sWatch.nums] / 600) % 60,
+				(sWatch.dsH[sWatch.nums] / 10) % 60,
+				sWatch.dsH[sWatch.nums] % 10);
+	else
+		sprintf(sTemp, "%03u.%03u", track.distance / 1000000,
+				(track.distance % 1000000) / 1000); //Последний пробег
 	u8g_DrawStr(&u8g, 22, 137, sTemp);
 	u8g_SetFont(&u8g, u8g_font_elpaulo20);
 	u8g_DrawStr(&u8g, 155, 37, "km");
@@ -256,7 +306,8 @@ void drawMain(void) {
 	u8g_DrawStr(&u8g, 155, 78, "A\xb7h");
 	u8g_DrawLine(&u8g, 155, 80, 186, 80);
 	u8g_DrawStr(&u8g, 161, 95, "km");
-	u8g_DrawStr(&u8g, 176, 136, "km");
+	if (!(state.taskList & TASK_STOPWATCH))
+		u8g_DrawStr(&u8g, 176, 136, "km");
 	hStep = 50;
 	if (BMSinfo.maxCap)
 		barAH = 15 - (155 * BMS.capacity) / (BMSinfo.maxCap * 10);
@@ -311,36 +362,33 @@ void drawMain(void) {
  *Рисует вкладку с фарами
  ******************************************************************************/
 void drawLight(void) {
-	uint8_t i;
+	char sTemp[6];
+	uint8_t i, x, y;
 	hStart = 40;
 	vStart = 40;
 	hStep = 120;
 	vStep = 45;
+	x = hStart + 60;
 	for (i = 0; i < PWM_COUNT; i++) {
 		sprintf(sTemp, "%d", (100 * PWMGet(i)) / PWM_MAX);
 
 		if (PWMGet(i))
-			u8g_DrawStr(&u8g, hStart + 60, vStart - 2 + vStep * i, sTemp);
+			u8g_DrawStr(&u8g, x, vStart - 2 + vStep * i, sTemp);
 		else
-			u8g_DrawStr(&u8g, hStart + 60, vStart - 2 + vStep * i, "Off");
+			u8g_DrawStr(&u8g, x, vStart - 2 + vStep * i, "Off");
 
 		drawBar(hStart + 20, vStart + vStep * i, 100, 16, PWM_MAX, PWMGet(i), 0);
 	}
-	u8g_DrawXBM(&u8g, hStart + hStep + 10, vStart - 8 + vStep * 0, 32, 32,
-			u8g_neighbor_bits);
-
-	u8g_DrawXBM(&u8g, hStart + hStep + 10, vStart - 8 + vStep * 1, 32, 32,
-			u8g_farthest_bits);
-
-	u8g_DrawXBM(&u8g, hStart + hStep + 10, vStart - 8 + vStep * 2, 32, 32,
-			u8g_lightdisplay_bits);
-
+	x = hStart + hStep + 10;
+	y = vStart - 8;
+	u8g_DrawXBM(&u8g, x, y + vStep * 0, 32, 32, u8g_neighbor_bits);
+	u8g_DrawXBM(&u8g, x, y + vStep * 1, 32, 32, u8g_farthest_bits);
+	u8g_DrawXBM(&u8g, x, y + vStep * 2, 32, 32, u8g_lightdisplay_bits);
 	if (navigate[0]) {
-		u8g_SetFont(&u8g, u8g_font_elpauloIco); //мои иконки
 		sTemp[0] = ARROW_RIGHT;
 		sTemp[1] = 0;
-		u8g_DrawStr(&u8g, hStart, vStart + 16 + vStep * (navigate[0] - 1),
-				sTemp);
+		y = vStart + 16 + vStep * (navigate[0] - 1);
+		u8g_DrawStr(&u8g, hStart, y, sTemp);
 	}
 }
 
@@ -348,6 +396,7 @@ void drawLight(void) {
  *Рисует вкладку с календарем
  ******************************************************************************/
 void drawCalendar(void) {
+	char sTemp[6];
 	uint8_t i;
 	uint8_t lastDay, weekday;
 	hStep = 29;
@@ -401,20 +450,17 @@ void drawCalendar(void) {
 			k++;
 		}
 	}
-	u8g_SetFont(&u8g, u8g_font_elpauloIco); //мои иконки
-
 	if (navigate[0] && !navigate[1]) {
+		u8g_SetFont(&u8g, u8g_font_elpaulo20);
+		sTemp[1] = 0;
 		if (navigate[0] == 3) {
 			sTemp[0] = ARROW_LEFT;
-			sTemp[1] = 0;
 			u8g_DrawStr(&u8g, hStart - 15, vStart + 1 * vStep, sTemp);
 		} else if (navigate[0] == 2) {
 			sTemp[0] = ARROW_LEFT;
-			sTemp[1] = 0;
 			u8g_DrawStr(&u8g, hStart - 15, (vStart + 4) + 4 * vStep, sTemp);
 		} else {
 			sTemp[0] = ARROW_RIGHT;
-			sTemp[1] = 0;
 			u8g_DrawStr(&u8g, hStart - 15, vStart + 3 * vStep, sTemp);
 		}
 	}
@@ -424,6 +470,7 @@ void drawCalendar(void) {
  *Рисует список заездов
  ******************************************************************************/
 void drawRacelist(void) {
+	char sTemp[10];
 	uint8_t i;
 	char str[2] = { ARROW_RIGHT, 0 };
 	uint8_t vStart = 55, hStart = 40, vStep = 20, hStep = 68;
@@ -450,53 +497,9 @@ void drawRacelist(void) {
 				racelist.averSpeed[i] % 100);
 		u8g_DrawStr(&u8g, hStart + hStep * 2, vStart + i * vStep, sTemp);
 	}
-	u8g_SetFont(&u8g, u8g_font_elpauloIco); //Мои иконки
 	u8g_DrawStr(&u8g, hStart - 35, vStart - 19 + navigate[2] * vStep, str);
 }
 
-/*******************************************************************************
- *Рисует панель вкладок с часами
- ******************************************************************************/
-void drawTabs(void) {
-	uint8_t widthClock = 95;
-	vStep = 18;
-	hStep = 18;
-	sTemp[0] = STATE_LIGHT;
-	sTemp[1] = STATE_CALENDAR;
-	sTemp[2] = 3;
-	sTemp[3] = STATE_SETUP;
-	sTemp[4] = 5;
-	sTemp[5] = STATE_TERMO;
-	sTemp[6] = STATE_BAT;
-	sTemp[7] = STATE_STAT;
-	sTemp[8] = 0;
-	u8g_SetDefaultForegroundColor(&u8g);
-	u8g_DrawBox(&u8g, 0, 0, 240, vStep);	//зачерняем верх
-	u8g_SetDefaultBackgroundColor(&u8g);	//инвертный цвет
-	u8g_SetFont(&u8g, u8g_font_elpauloIco);	//иконский шрифт
-	u8g_DrawStr(&u8g, 1, 17, sTemp); //нарисуем строчку табиконок
-	u8g_SetDefaultBackgroundColor(&u8g);
-	if (stateMain == STATE_MAIN) {
-		u8g_DrawRBox(&u8g, 239 - widthClock, 0, widthClock + 1, vStep + 2, 3);
-		u8g_SetDefaultForegroundColor(&u8g);
-	} else {
-		u8g_DrawRBox(&u8g, (stateMain * hStep) - 18, 0, hStep, vStep + 2, 3);
-		u8g_SetDefaultForegroundColor(&u8g);
-		sTemp[0] = stateMain;
-		sTemp[1] = 0;
-		u8g_DrawStr(&u8g, (stateMain * hStep) - 17, 17, sTemp);
-		u8g_SetDefaultBackgroundColor(&u8g);
-	}
-	u8g_SetFont(&u8g, u8g_font_elpaulo20);
-	if (state.powerMode == POWERMODE_SLEEP)
-		sprintf(sTemp, " SLEEP!");
-	else if (config.SecInTime)
-		sprintf(sTemp, "%02d:%02d:%02d", time_p->tm_hour, time_p->tm_min,
-				time_p->tm_sec);
-	else
-		sprintf(sTemp, " %02d:%02d", time_p->tm_hour, time_p->tm_min);
-	u8g_DrawStr(&u8g, 154, 15, sTemp);
-}
 
 /*******************************************************************************
  *Рисуем прогрессбар
@@ -512,6 +515,7 @@ void drawBar(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t max,
  ******************************************************************************/
 char *termoS[6] = { "Motor", "Control", "BMS", "Bat", "Air", "Addon" };
 void drawTemp() {
+	char sTemp[10];
 	uint8_t i;
 	vStart = 43;
 	hStart = 30;
@@ -530,20 +534,18 @@ void drawTemp() {
 	if (navigate[0]) {
 		sTemp[0] = ARROW_RIGHT;
 		sTemp[1] = 0;
-		u8g_SetFont(&u8g, u8g_font_elpauloIco); //Мои иконки
 		u8g_DrawStr(&u8g, hStart - 18, vStart + 2 + vStep * (navigate[0] - 1),
 				sTemp);
 	}
 }
 
-
 /*******************************************************************************
  *Рисуем экран граффика температуры
  ******************************************************************************/
 termo_t termo;
-
 uint8_t termoVertPos = 0; //Позиция текущей температуры на шкале
 void drawTempChart(void) {
+	char sTemp[10];
 	uint8_t i;
 	uint8_t termoVertPos,
 	graPerDot; //Сотые доли градуса на пиксел
@@ -562,7 +564,6 @@ void drawTempChart(void) {
 	u8g_DrawStr(&u8g, 80, 12, sTemp);
 	u8g_DrawStr(&u8g, 103, 12, "Sec");
 	u8g_UndoRotation(&u8g);
-	u8g_SetFont(&u8g, u8g_font_elpauloIco); //мои иконки
 	sTemp[0] = ARROW_DOWN;
 	u8g_DrawStr(&u8g, hStart - 20, vStart + 16 + navigate[2] * vStep, sTemp);
 	sTemp[0] = ARROW_UP;
@@ -595,23 +596,15 @@ void drawTempChart(void) {
 }
 
 /*******************************************************************************
- *Меню настроек
- ******************************************************************************/
-void drawSetup(void) {
-	mtk_Pos(12, 35);
-	mtk_Draw();
-}
-
-/*******************************************************************************
  *Быстрое меню
  ******************************************************************************/
 void drawMainQuickMenu(void) {
+	char sTemp[2];
 	sTemp[1] = 0;
 	u8g_DrawStr(&u8g, 100, 50, "Back");
 	u8g_DrawStr(&u8g, 50, 90, "Lock");
 	u8g_DrawStr(&u8g, 155, 90, "Off");
 	u8g_DrawStr(&u8g, 95, 130, "Sleep");
-	u8g_SetFont(&u8g, u8g_font_elpauloIco); //мои иконки
 	sTemp[0] = ARROW_UP;
 	u8g_DrawStr(&u8g, 112, 71, sTemp);
 	sTemp[0] = ARROW_LEFT;
@@ -626,12 +619,12 @@ void drawMainQuickMenu(void) {
  *Быстрое меню
  ******************************************************************************/
 void drawStatQuickMenu(void) {
+	char sTemp[2];
 	sTemp[1] = 0;
 	u8g_DrawStr(&u8g, 70, 50, "Statistics");
 	u8g_DrawStr(&u8g, 50, 90, "Back");
 	u8g_DrawStr(&u8g, 155, 90, "Reset");
 	u8g_DrawStr(&u8g, 54, 130, "Save and reset");
-	u8g_SetFont(&u8g, u8g_font_elpauloIco); //мои иконки
 	//str[0]=ARROW_UP;
 	//u8g_DrawStr(&u8g,112,71, str);
 	sTemp[0] = ARROW_LEFT;
@@ -662,7 +655,7 @@ void drawBat(void) {
 	drawCell(x, 111, 6);
 	x = 115;
 	u8g_DrawStr(&u8g, x, y, "60%");
-	u8g_DrawStr(&u8g, x, y += v, "9000mA·h");
+	u8g_DrawStr(&u8g, x, y += v, "9000mA\xB7h");
 	u8g_DrawStr(&u8g, x, y += v, "Discharge");
 }
 
@@ -673,10 +666,13 @@ void drawCell(uint8_t x, uint8_t y, uint8_t val) {
 	uint8_t i;
 	u8g_DrawFrame(&u8g, x + 72, y + 10, 6, 20);
 	u8g_DrawFrame(&u8g, x, y, 73, 40);
+	x -= 12;
+	y += 2;
 	for (i = 0; i < val; i++) {
-		u8g_DrawBox(&u8g, x + 2 + i * 7, y + 2, 6, 36);
+		u8g_DrawBox(&u8g, x += 7, y, 6, 36);
 	}
 }
+
 /*******************************************************************************
  *Отрисовка прощания
  ******************************************************************************/
@@ -692,6 +688,7 @@ void drawOff(void) {
 void drawStat(void) {
 	uint8_t i;
 	uint32_t timeSec;
+	char sTemp[15];
 	extern char *raceParams[2][7];
 	hStart = 0;
 	vStart = 36;
@@ -732,6 +729,7 @@ void drawStat(void) {
  *Выводит статистику сохраненного заезда
  ******************************************************************************/
 void drawHistItem(void) {
+	char sTemp[15];
 	uint8_t i;
 	extern char *raceParams[2][7];
 	uint32_t timeSec;
@@ -765,6 +763,7 @@ void drawHistItem(void) {
  *Выводит всплывающее окно
  ******************************************************************************/
 void message(void) {
+	char sTemp[2];
 	uint8_t x, y, x2, y2, w, h, i, j;
 	char *str1[4] = {"", "Alert", "!!! Error !!!", "??? Query ???"};
 	if(!popup.head)
@@ -791,7 +790,6 @@ void message(void) {
 	y2 = y+h-7;
 	u8g_DrawStr(&u8g, x+15, y2, "Cancel");
 	u8g_DrawStr(&u8g, x+w-35, y2, "Ok");
-	u8g_SetFont(&u8g, u8g_font_elpauloIco); //мои иконки
 	y2 +=2;
 	sTemp[0] = ARROW_LEFT;
 	u8g_DrawStr(&u8g, x, y2, sTemp);

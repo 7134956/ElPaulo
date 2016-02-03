@@ -117,6 +117,7 @@ static uint8_t u8g_font_GetFontGlyphStructureSize(const u8g_fntpgm_uint8_t *font
 {
   switch(u8g_font_GetFormat(font))
   {
+    case 3:
     case 0: return 6;
     case 1: return 3;
     case 2: return 6;
@@ -280,6 +281,7 @@ static void u8g_CopyGlyphDataToCache(u8g_t *u8g, u8g_glyph_t g)
   uint8_t tmp;
   switch( u8g_font_GetFormat(u8g->font) )
   {
+    case 3:
     case 0:
     case 2:
   /*
@@ -357,9 +359,10 @@ u8g_glyph_t u8g_GetGlyph(u8g_t *u8g, uint8_t requested_encoding)
   uint8_t i;
   uint8_t mask = 255;
 
+
   if ( font_format == 1 )
     mask = 15;
-  
+
   start = u8g_font_GetFontStartEncoding(u8g->font);
   end = u8g_font_GetFontEndEncoding(u8g->font);
 
@@ -567,6 +570,7 @@ int8_t u8g_draw_glyph(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encoding)
   uint8_t w, h;
   uint8_t i, j;
   u8g_uint_t ix, iy;
+  uint8_t *bitmask_p;
 
   {
     u8g_glyph_t g = u8g_GetGlyph(u8g, encoding);
@@ -574,7 +578,7 @@ int8_t u8g_draw_glyph(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encoding)
       return 0;
     data = u8g_font_GetGlyphDataStart(u8g->font, g);
   }
-  
+
   w = u8g->glyph_width;
   h = u8g->glyph_height;
   
@@ -593,6 +597,21 @@ int8_t u8g_draw_glyph(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encoding)
   iy -= h;
   iy++;
 
+  if (u8g_font_GetFormat(u8g->font) == 3) {
+    bitmask_p = (uint8_t *)data;
+    data += (u8g->glyph_height+6)/8;
+    for (j = 0; j < h; j++) {
+      ix = x;
+      for (i = 0; i < w; i++) {
+        u8g_Draw8Pixel(u8g, ix, iy, 0, u8g_pgm_read(data));
+        data++;
+        ix += 8;
+      }
+      if (*(bitmask_p + j/8) & (128 >> (j % 8)))
+        data -= w;
+      iy++;
+    }
+  } else {
   for( j = 0; j < h; j++ )
   {
     ix = x;
@@ -603,6 +622,7 @@ int8_t u8g_draw_glyph(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encoding)
       ix+=8;
     }
     iy++;
+  }
   }
   return u8g->glyph_dx;
 }
@@ -619,6 +639,7 @@ int8_t u8g_draw_glyph90(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encoding
   uint8_t w, h;
   uint8_t i, j;
   u8g_uint_t ix, iy;
+  uint8_t *bitmask_p;
 
   {
     u8g_glyph_t g = u8g_GetGlyph(u8g, encoding);
@@ -644,6 +665,21 @@ int8_t u8g_draw_glyph90(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encoding
   ix = x;
   ix += h;
   ix--;
+  if (u8g_font_GetFormat(u8g->font) == 3) {
+    bitmask_p = (uint8_t *)data;
+    data += (u8g->glyph_height+6)/8;
+    for (j = 0; j < h; j++) {
+      iy = y;
+      for (i = 0; i < w; i++) {
+        u8g_Draw8Pixel(u8g, ix, iy, 1, u8g_pgm_read(data));
+        data++;
+        ix += 8;
+      }
+      if (*(bitmask_p + j/8) & (128 >> (j % 8)))
+        data -= w;
+      ix--;
+    }
+  } else {
   for( j = 0; j < h; j++ )
   {
     iy = y;
@@ -654,6 +690,7 @@ int8_t u8g_draw_glyph90(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encoding
       iy+=8;
     }
     ix--;
+  }
   }
   return u8g->glyph_dx;
 }
@@ -671,6 +708,7 @@ int8_t u8g_draw_glyph180(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encodin
   uint8_t w, h;
   uint8_t i, j;
   u8g_uint_t ix, iy;
+  uint8_t *bitmask_p;
 
   {
     u8g_glyph_t g = u8g_GetGlyph(u8g, encoding);
@@ -696,6 +734,21 @@ int8_t u8g_draw_glyph180(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encodin
   iy = y;
   iy += h;
   iy--;
+  if (u8g_font_GetFormat(u8g->font) == 3) {
+    bitmask_p = (uint8_t *)data;
+    data += (u8g->glyph_height+6)/8;
+    for (j = 0; j < h; j++) {
+      ix = x;
+      for (i = 0; i < w; i++) {
+        u8g_Draw8Pixel(u8g, ix, iy, 2, u8g_pgm_read(data));
+        data++;
+        ix += 8;
+      }
+      if (*(bitmask_p + j/8) & (128 >> (j % 8)))
+        data -= w;
+      iy--;
+    }
+  } else {
   for( j = 0; j < h; j++ )
   {
     ix = x;
@@ -706,6 +759,7 @@ int8_t u8g_draw_glyph180(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encodin
       ix-=8;
     }
     iy--;
+  }
   }
   return u8g->glyph_dx;
 }
@@ -723,6 +777,7 @@ int8_t u8g_draw_glyph270(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encodin
   uint8_t w, h;
   uint8_t i, j;
   u8g_uint_t ix, iy;
+  uint8_t *bitmask_p;
 
   {
     u8g_glyph_t g = u8g_GetGlyph(u8g, encoding);
@@ -749,7 +804,22 @@ int8_t u8g_draw_glyph270(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encodin
   ix = x;
   ix -= h;
   ix++;
-  
+
+  if (u8g_font_GetFormat(u8g->font) == 3) {
+    bitmask_p = (uint8_t *)data;
+    data += (u8g->glyph_height+6)/8;
+    for (j = 0; j < h; j++) {
+      iy = y;
+      for (i = 0; i < w; i++) {
+        u8g_Draw8Pixel(u8g, ix, iy, 0, u8g_pgm_read(data));
+        data++;
+        iy -= 8;
+      }
+      if (*(bitmask_p + j/8) & (128 >> (j % 8)))
+        data -= w;
+      ix++;
+    }
+  } else {
   for( j = 0; j < h; j++ )
   {
     iy = y;
@@ -760,6 +830,7 @@ int8_t u8g_draw_glyph270(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, uint8_t encodin
       iy-=8;
     }
     ix++;
+  }
   }
   return u8g->glyph_dx;
 }

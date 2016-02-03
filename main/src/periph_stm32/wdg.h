@@ -4,6 +4,9 @@
 #include "config.h"
 
 //void IWDG_Init(uint8_t, uint16_t);
+void IWDG_Init(uint8_t, uint16_t);
+void IWDG_Renew(void);
+
 void WWDG_Init(void);
 void WWDG_Renew(void);
 	 

@@ -204,7 +204,7 @@ void u8g_sdl_init_R3G3B2(void)
 
 void u8g_sdl_start(void)
 {
-  Uint32 color = SDL_MapRGB( u8g_sdl_screen->format, 0, 0, 0 );
+  Uint32 color = SDL_MapRGB( u8g_sdl_screen->format, 255, 255, 255 );
   /* http://www.libsdl.org/cgi/docwiki.cgi/SDL_FillRect */
   SDL_FillRect(u8g_sdl_screen, NULL, color);
   
@@ -288,7 +288,7 @@ uint8_t u8g_dev_sdl_1bit_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg)
     case U8G_DEV_MSG_STOP:
       break;
     case U8G_DEV_MSG_PAGE_FIRST:
-      u8g_sdl_start();
+//      u8g_sdl_start();
       break;
     case U8G_DEV_MSG_PAGE_NEXT:
       {
@@ -326,7 +326,7 @@ uint8_t u8g_dev_sdl_1bit_h_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg
     case U8G_DEV_MSG_STOP:
       break;
     case U8G_DEV_MSG_PAGE_FIRST:
-      u8g_sdl_start();
+     // u8g_sdl_start();
       break;
     case U8G_DEV_MSG_PAGE_NEXT:
       {
@@ -366,6 +366,10 @@ uint8_t u8g_dev_sdl_2bit_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg)
     case U8G_DEV_MSG_PAGE_FIRST:
      // u8g_sdl_start();
       break;
+    case U8G_DEV_MSG_CONTRAST:
+    	 u8g_sdl_color[0] = SDL_MapRGB( u8g_sdl_screen->format, 10 + 2**(uint8_t *)arg, 40 + 2**(uint8_t *)arg, 30 + 2**(uint8_t *)arg);
+      break;
+
     case U8G_DEV_MSG_PAGE_NEXT:
       {
         u8g_pb_t *pb = (u8g_pb_t *)(dev->dev_mem);

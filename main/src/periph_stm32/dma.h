@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-void DMA1_SPI1_init(void * source);
-void SPI_DMA_Send(uint16_t count);
+void DMA1_SPI1_init(void *);
+void SPI_DMA_Send(uint16_t);
 
 #endif /* DMA_H_ */

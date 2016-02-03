@@ -1,23 +1,13 @@
+#include "config.h"
 #include "buttons.h"
+
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
-#include "printf.h"
-#endif
 
-#ifdef SYSTEM_WIN
-#include <stdio.h>
-#include "u8g.h"
-#endif
-
-#include "main.h"
-#include "draw.h"
-#include "power.h"
-#include "timer.h"
-
-//extern uint8_t stateMain;
 extern track_t track;
 extern state_t state;
 extern config_t config;
+#endif
 
 uint8_t button_count; //Счетчик цыклов чтения
 uint8_t buttonPushed; //В данный момент нажато
@@ -114,7 +104,7 @@ void readButtons(void) {
 	uint16_t adc_res;
 	adc_res = ADC_GetConversionValue(ADC2); //Считываем значение АЦП
 	ADC_SoftwareStartConvCmd(ADC2, ENABLE);// Запускаем преобразование. Пускай готовится новое значение
-#ifdef DEBUG	
+#ifdef DEBUG_KEYBOARD	
 	printf("\r\n%d", adc_res);//Печатаем значение
 #endif
 	if (buttonStatePrev == BUTTON_LOCK)//Если клавиатура заблокирована (После включения устройства)
@@ -126,13 +116,13 @@ void readButtons(void) {
 	{
 		if (adc_res < 500) {
 			buttonPushed = BUTTON_NULL;
-		} else if ((adc_res > 1550) && (adc_res < 2575)) {
+		} else if ((adc_res > 1500) && (adc_res < 2500)) {
 			buttonPushed = BUTTON_UP;
-		} else if ((adc_res > 500) && (adc_res < 1550)) {
+		} else if ((adc_res > 500) && (adc_res < 1500)) {
 			buttonPushed = BUTTON_DOWN;
-		} else if ((adc_res > 2575) && (adc_res < 3567)) {
+		} else if ((adc_res > 2500) && (adc_res < 3500)) {
 			buttonPushed = BUTTON_LEFT;
-		} else if (adc_res > 3567) {
+		} else if (adc_res > 3500) {
 			buttonPushed = BUTTON_RIGHT;
 		}
 
@@ -161,14 +151,12 @@ void readButtons(void) {
 			}
 		}
 	}
-#endif
 }
 
 /*******************************************************************************
  *Инициализация входа от датчика оборотов
  ******************************************************************************/
 void CircleSensorInit() {
-#ifdef SYSTEM_STM32
 	GPIO_InitTypeDef GPIO_InitStructure; //Структура настройки GPIO
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
@@ -187,8 +175,7 @@ void CircleSensorInit() {
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	//Настройка приоритетов прерываний 
-	//FIXME Спланировать и расставить приоритеты
+	//Настройка приоритетов прерываний
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI15_10_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0F;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;
@@ -206,26 +193,22 @@ void CircleSensorInit() {
 void EXTI15_10_IRQHandler(void) {
 	if (EXTI_GetITStatus(EXTI_Line12) != RESET) { //Если прерывание пришло от линии 12
 		EXTI_ClearITPendingBit(EXTI_Line12);//Сбросим флаг прерывания
-		if(state.powerMode != POWERMODE_SLEEP) { // Если работаем не в спящем режиме
+		if(state.powerMode != POWERMODE_SLEEP) { // Если находимся не в спящем режиме
 			if (!(state.taskList & TASK_DRIVE)) { //Если не стоял флаг движения,
-				TIM_Cmd(TIM4, ENABLE);//Включаем таймер
-				TIM_SetCounter(TIM4, 0);//Обнуляем счетчик
+				RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;//Включаем тактирование таймера
+				TIM4->CNT = 0;//Обнуляем счетчик
 				circleStep(0);//Обнулили показания скорости
-				state.taskList |= TASK_DRIVE;// Pапускаем движение
-				if(config.maxFPS) //Установлено ограничение
-					SysTick_task_add(drawTask, 10); //Запускаем перерисовку экрана с ограничителем,
+				state.taskList |= TASK_DRIVE;// Запускаем движение
+				state.taskList |= TASK_REDRAW;// Перерисуем экран
 			} else {
 				track.circleTics = TIM_GetCounter(TIM4); //Считали значение счетчика
-				TIM_SetCounter(TIM4, 0);//Обнуляем счетчик
+				TIM4->CNT = 0;//Обнуляем счетчик
 				track.tics += track.circleTics;
 				circleStep(track.circleTics);//Вызвали функцию рассчета скорости
-				if(!config.maxFPS) //Ограничения нету
-					state.taskList |= TASK_REDRAW;						
-				else
-					state.taskList |= TASK_LIM_REDRAW;
+				state.taskList |= TASK_LIM_REDRAW;
 			}
 		}
-		setPowerMode(POWERMODE_NORMAL);
+		setPowerMode(POWERMODE_NORMAL); //Просыпаемся
 		track.odometr += track.circle; //Прибавляем к общему счетчику длину колеса
 		track.distance += track.circle;//Прибавляем к счетчику пути длину колеса
 	}
@@ -254,10 +237,16 @@ void CircleTimerInit() {
 	TIM_TimeBaseStructure.TIM_Period = 65536 - 1; //Максимальное значение счетчика переполнится за 2 секунды
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
+	
+	TIM_ARRPreloadConfig(TIM4, ENABLE); //Включаем автоматический перезапуск таймера
+	
+	TIM_SetAutoreload(TIM4, 0); //Задаем значение автоперезапуска таймера
 
 	TIM_ITConfig(TIM4, TIM_IT_Update, ENABLE); //Включаем TIM IT
+	
+	TIM_Cmd(TIM4, ENABLE); //Включаем таймер
 
-//	TIM_Cmd(TIM4, ENABLE); //Включаем таймер
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, DISABLE); //Выключаем тактирование таймера 4
 }
 
 /*******************************************************************************
@@ -266,18 +255,16 @@ void CircleTimerInit() {
 void TIM4_IRQHandler(void) {
 	if (TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM4, TIM_IT_Update); //Сбрасываем бит переполнения
-		state.taskList &=~ TASK_DRIVE; //Снимаем признак движения
-		TIM_Cmd(TIM4, DISABLE); //Выключаем таймер
-		SysTick_task_del(drawTask); //Снимаем запросы перерисовки
+		state.taskList &= ~ TASK_DRIVE; //Снимаем признак движения
+		TIM4->CR1 |= TIM_CR1_CEN; //Включаем таймер
+		RCC->APB1ENR &= ~ RCC_APB1ENR_TIM4EN; //Выключаем тактирование таймера
 		state.taskList |= TASK_REDRAW;	//Перерисовка
 	}
 }
-#endif
 
 /*******************************************************************************
  *Прерывания от кнопки при выходе из спящего режима
  ******************************************************************************/
-#ifdef SYSTEM_STM32
 void EXTI0_IRQHandler(void) {
 	extern uint8_t stateMain;
 	if (EXTI_GetITStatus(EXTI_Line0) != RESET) { //Если прерывание пришло от линии 12

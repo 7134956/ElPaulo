@@ -37,10 +37,10 @@
 #define _U8G_H
 
 /* uncomment the following line to support displays larger than 240x240 */
-#define U8G_16BIT 1
+//#define U8G_16BIT 1
 
 /* comment the following line to generate more compact but interrupt unsafe code */
-//#define U8G_INTERRUPT_SAFE 1
+#define U8G_INTERRUPT_SAFE 1
 
 
 #include <stddef.h>
@@ -80,9 +80,13 @@ extern "C" {
 #  if defined(__MSPGCC__)
 /* mspgcc does not have .progmem sections. Use -fdata-sections. */
 #    define U8G_FONT_SECTION(name)
-#  endif
+# endif
 #  if defined(__AVR__)
 #    define U8G_FONT_SECTION(name) U8G_SECTION(".progmem." name)
+#  endif
+#  if defined(__XTENSA__)
+//#    define U8G_FONT_SECTION(name) U8G_SECTION(".irom.text." name)
+#    define U8G_FONT_SECTION(name) U8G_SECTION(".irom0.text" )
 #  endif
 #else
 #  define U8G_NOINLINE
@@ -120,16 +124,26 @@ typedef uint8_t PROGMEM u8g_pgm_uint8_t;
 typedef uint8_t u8g_fntpgm_uint8_t;
 #define u8g_pgm_read(adr) pgm_read_byte_near(adr)
 #define U8G_PSTR(s) ((u8g_pgm_uint8_t *)PSTR(s))
+#endif
 
-#else
-
-#define U8G_PROGMEM
-#define PROGMEM
+#if defined(__XTENSA__)
+#  ifndef PROGMEM
+#    define PROGMEM __attribute__ ((section (".irom0.text")))
+#  endif
+#  define U8G_PROGMEM PROGMEM
 typedef uint8_t u8g_pgm_uint8_t;
 typedef uint8_t u8g_fntpgm_uint8_t;
-#define u8g_pgm_read(adr) (*(const u8g_pgm_uint8_t *)(adr)) 
-#define U8G_PSTR(s) ((u8g_pgm_uint8_t *)(s))
+#  define u8g_pgm_read(adr) (*(const u8g_pgm_uint8_t *)(adr)) 
+#  define U8G_PSTR(s) ((u8g_pgm_uint8_t *)(s))
+#endif
 
+#ifndef U8G_PROGMEM
+#  define U8G_PROGMEM
+#  define PROGMEM
+typedef uint8_t u8g_pgm_uint8_t;
+typedef uint8_t u8g_fntpgm_uint8_t;
+#  define u8g_pgm_read(adr) (*(const u8g_pgm_uint8_t *)(adr)) 
+#  define U8G_PSTR(s) ((u8g_pgm_uint8_t *)(s))
 #endif
   
 /*===============================================================*/
@@ -262,6 +276,11 @@ extern u8g_dev_t u8g_dev_st7565_dogm128_parallel;
 extern u8g_dev_t u8g_dev_st7565_dogm128_2x_sw_spi;
 extern u8g_dev_t u8g_dev_st7565_dogm128_2x_hw_spi;
 extern u8g_dev_t u8g_dev_st7565_dogm128_2x_parallel;
+
+/* Display: JLX240160G-666-PC, Size: 240x160 monochrome or 4 gray levels */	 
+extern u8g_dev_t u8g_dev_st7586s_jlx240160g666_hw_spi;
+extern u8g_dev_t u8g_dev_st7586s_jlx240160g666_4x_hw_spi;
+extern u8g_dev_t u8g_dev_st7586s_jlx240160g666_20x_hw_spi;
 
 /* EA DOGM 240-6 */
 extern u8g_dev_t u8g_dev_uc1611_dogm240_i2c;
@@ -401,6 +420,7 @@ extern u8g_dev_t u8g_dev_ssd1325_nhd27oled_bw_hw_spi;
 extern u8g_dev_t u8g_dev_ssd1325_nhd27oled_bw_parallel;
 extern u8g_dev_t u8g_dev_ssd1325_nhd27oled_gr_sw_spi;
 extern u8g_dev_t u8g_dev_ssd1325_nhd27oled_gr_hw_spi;
+extern u8g_dev_t u8g_dev_ssd1325_nhd27oled_gr_parallel;
 
 extern u8g_dev_t u8g_dev_ssd1325_nhd27oled_2x_bw_sw_spi;
 extern u8g_dev_t u8g_dev_ssd1325_nhd27oled_2x_bw_hw_spi;
@@ -465,6 +485,15 @@ extern u8g_dev_t u8g_dev_ssd1306_128x32_i2c;
 extern u8g_dev_t u8g_dev_ssd1306_128x32_2x_sw_spi;
 extern u8g_dev_t u8g_dev_ssd1306_128x32_2x_hw_spi;
 extern u8g_dev_t u8g_dev_ssd1306_128x32_2x_i2c;
+
+/* OLED 64x48 Display with SSD1306 Controller */
+extern u8g_dev_t u8g_dev_ssd1306_64x48_sw_spi;
+extern u8g_dev_t u8g_dev_ssd1306_64x48_hw_spi;
+extern u8g_dev_t u8g_dev_ssd1306_64x48_i2c;
+
+extern u8g_dev_t u8g_dev_ssd1306_64x48_2x_sw_spi;
+extern u8g_dev_t u8g_dev_ssd1306_64x48_2x_hw_spi;
+extern u8g_dev_t u8g_dev_ssd1306_64x48_2x_i2c;
 
 /* OLED 60x32 Display with LD7032 Controller */
 extern u8g_dev_t u8g_dev_ld7032_60x32_sw_spi;
@@ -675,11 +704,20 @@ uint8_t u8g_com_atmega_st7920_sw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val
 uint8_t u8g_com_atmega_st7920_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);
 uint8_t u8g_com_atmega_parallel_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);    /* u8g_com_atmega_parallel.c */
 
+uint8_t u8g_com_atxmega_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);      /* u8g_com_atxmega_hw_spi.c */
+uint8_t u8g_com_atxmega_st7920_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr); /* u8g_com_atxmega_st7920_spi.c */
+
 uint8_t u8g_com_msp430_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);      /* u8g_com_msp430_hw_spi.c */
+
+uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);	/* u8g_com_stm32.c */
 
 uint8_t u8g_com_raspberrypi_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);                /* u8g_com_rasperrypi_hw_spi.c */
 uint8_t u8g_com_raspberrypi_ssd_i2c_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);		/* u8g_com_raspberrypi_ssd_i2c.c */
 
+uint8_t u8g_com_linux_ssd_i2c_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);             /* u8g_com_linux_ssd_i2c.c */
+
+uint8_t u8g_com_psoc5_ssd_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);   /* u8g_com_psoc5_ssd_hw_spi.c */
+uint8_t u8g_com_psoc5_ssd_hw_parallel_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);   /* u8g_com_psoc5_ssd_hw_parallel.c */
 
 /* 
   Translation of system specific com drives to generic com names
@@ -738,7 +776,10 @@ defined(__18CXX) || defined(__PIC32MX)
 #endif
 /* ==== HW SPI, not Arduino ====*/
 #ifndef U8G_COM_HW_SPI
-#if defined(__AVR__)
+#if defined(__AVR_XMEGA__)
+#define U8G_COM_HW_SPI u8g_com_atxmega_hw_spi_fn
+#define U8G_COM_ST7920_HW_SPI u8g_com_atxmega_st7920_hw_spi_fn
+#elif defined(__AVR__)
 #define U8G_COM_HW_SPI u8g_com_atmega_hw_spi_fn
 #define U8G_COM_ST7920_HW_SPI u8g_com_atmega_st7920_hw_spi_fn
 #endif
@@ -832,6 +873,15 @@ defined(__18CXX) || defined(__PIC32MX)
 #if defined(U8G_RASPBERRY_PI)
 #define U8G_COM_SSD_I2C u8g_com_raspberrypi_ssd_i2c_fn
 #endif
+#endif
+#ifndef U8G_COM_SSD_I2C
+#if defined(U8G_LINUX)
+#define U8G_COM_SSD_I2C u8g_com_linux_ssd_i2c_fn
+#endif
+#endif
+#if defined(U8G_CYPRESS_PSOC5)
+#define U8G_COM_HW_SPI u8g_com_psoc5_ssd_hw_spi_fn
+#define U8G_COM_FAST_PARALLEL u8g_com_psoc5_ssd_hw_parallel_fn
 #endif
 
 #ifndef U8G_COM_SSD_I2C
@@ -1150,6 +1200,8 @@ void u8g_UpdateDimension(u8g_t *u8g);
 uint8_t u8g_Begin(u8g_t *u8g);				/* reset device, put it into default state and call u8g_UpdateDimension() */
 uint8_t u8g_Init(u8g_t *u8g, u8g_dev_t *dev);   /* only usefull if the device only as hardcoded ports */
 uint8_t u8g_InitComFn(u8g_t *u8g, u8g_dev_t *dev, u8g_com_fnptr com_fn);	/* Init procedure for anything which is not Arduino or AVR (e.g. ARM, but not Due, which is Arduino) */
+
+#if defined(U8G_WITH_PINLIST)
 uint8_t u8g_InitSPI(u8g_t *u8g, u8g_dev_t *dev, uint8_t sck, uint8_t mosi, uint8_t cs, uint8_t a0, uint8_t reset);
 uint8_t u8g_InitHWSPI(u8g_t *u8g, u8g_dev_t *dev, uint8_t cs, uint8_t a0, uint8_t reset);
 uint8_t u8g_InitI2C(u8g_t *u8g, u8g_dev_t *dev, uint8_t options);	/* use U8G_I2C_OPT_NONE as options */
@@ -1158,6 +1210,8 @@ uint8_t u8g_Init8Bit(u8g_t *u8g, u8g_dev_t *dev, uint8_t d0, uint8_t d1, uint8_t
   uint8_t en, uint8_t cs1, uint8_t cs2, uint8_t di, uint8_t rw, uint8_t reset);
 uint8_t u8g_InitRW8Bit(u8g_t *u8g, u8g_dev_t *dev, uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3, uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7, 
   uint8_t cs, uint8_t a0, uint8_t wr, uint8_t rd, uint8_t reset);
+#endif
+
 void u8g_FirstPage(u8g_t *u8g);
 uint8_t u8g_NextPage(u8g_t *u8g);
 uint8_t u8g_SetContrast(u8g_t *u8g, uint8_t contrast);

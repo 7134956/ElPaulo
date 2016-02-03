@@ -6,11 +6,11 @@
  * заданного окна.
  */
  
-#include "wdg.h"
 #include "stm32f10x.h"
+#include "wdg.h"
 
 #define CONFIG_WDG_COUNTER	0x7F
-#define CONFIG_WDG_WINDOW		0x7F
+#define CONFIG_WDG_WINDOW	0x7F
 
 /* Битовые маски регистра CFR */
 #define CFR_WDGTB_MASK    ((uint32_t)0xFFFFFE7F)
@@ -29,12 +29,12 @@ void WWDG_Init(void){
   tmpreg = WWDG->CFR & CFR_WDGTB_MASK;
   /* Настроим биты предделителя WDGTB[1:0] */
 	//24000000/4096/8 = 732,421875 Гц
-	//При максимальном значении у нас всего 100мСек до сброса
+	//При максимальном значении у нас всего 130мСек до сброса
   tmpreg |= WWDG_Prescaler_8;
   /* Записшем значение в регистр */
   WWDG->CFR = tmpreg;
 	
-  //Установим значение окна 
+  //Установим значение окна
   /* Очистим W[6:0] биты */
   tmpreg = WWDG->CFR & CFR_W_MASK;
   /* Установим для битов W[6:0] заначение(CONFIG_WDG_WINDOW) начала окна  */
@@ -56,7 +56,7 @@ void WWDG_Renew(void){
 //  * @note   Once enabled this interrupt cannot be disabled except by a system reset. 
 //  * @param  None
 //  * @retval None
-//  */
+////  */
 //void WWDG_EnableIT(void)
 //{
 //  WWDG->CFR |= WWDG_CFR_EWI;
@@ -70,12 +70,12 @@ void WWDG_Renew(void){
 //  WWDG->SR = (uint32_t)RESET;
 //}
 
-////Настройка независимого сторожевого таймера
-////Tout=((4*2^prer)*rlr)/40 (ms).
-//void IWDG_Init(uint8_t prer, uint16_t rlr){
-//	IWDG->KR=0X5555;//Ключ для доступа к таймеру
-//	IWDG->PR=prer;//Обновление предделителя
-//	IWDG->RLR=rlr;//Загружаем регистр перезагрузки, счет идет вниз от этого значения
-//	IWDG->KR=0XAAAA;//перезагрузка
-//	IWDG->KR=0XCCCC;//Запуск в работы
-//}
+//Настройка независимого сторожевого таймера
+//Tout=((4*2^prer)*rlr)/40 (ms).
+void IWDG_Init(uint8_t prer, uint16_t rlr){
+	IWDG->KR=0X5555;	//Ключ для доступа к таймеру
+	IWDG->PR=prer;		//Обновление предделителя
+	IWDG->RLR=rlr;		//Загружаем регистр перезагрузки, счет идет вниз от этого значения
+	IWDG->KR=0XAAAA;	//перезагрузка
+	IWDG->KR=0XCCCC;	//Запуск в работу
+}

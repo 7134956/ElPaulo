@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>EBikeMain</name>
+	<name>ElPaulo_main</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -27,7 +27,7 @@
 		<link>
 			<name>src</name>
 			<type>2</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/src</locationURI>
+			<location>D:/Dropbox/Projects/ElPaulo/main/src</location>
 		</link>
 	</linkedResources>
 </projectDescription>

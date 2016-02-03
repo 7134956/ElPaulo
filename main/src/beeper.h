@@ -1,7 +1,6 @@
 #ifndef _BEEPER_H_
 #define _BEEPER_H_
 
-#include "main.h"
 #include "config.h"
 
 void beep_init(void); //Настройка пищалки

@@ -1,10 +1,10 @@
 #ifndef _DRAW_H_
 #define _DRAW_H_
 
+#include "config.h"
+
 #define DISPLAY_WIDTH 240
 #define DISPLAY_HEIGHT 160
-
-#include "u8g.h"
 
 #define ARROW_RIGHT 10
 #define ARROW_LEFT 11

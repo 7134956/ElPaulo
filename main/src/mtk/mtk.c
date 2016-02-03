@@ -1,3 +1,4 @@
+#include "config.h"
 #include "main.h"
 #include "mtk.h"
 #include "rtc.h"
@@ -76,7 +77,9 @@ void mtk_drawLL(mtk_t *mtk) {
 	volatile uint8_t maxSize = 0, temp = 0;	//Максимальный размер строки меню
 	mtk_element_p tempElement_p, temp2Element;
 	mtk->step_x = u8g_GetStrWidth(mtk->u8g, "0");
-	mtk->step_y = u8g_GetFontAscent(mtk->u8g) - u8g_GetFontDescent(mtk->u8g);
+	mtk->step_y = 1 + u8g_GetFontAscent(mtk->u8g);
+	mtk->glyph_y = u8g_GetFontAscent(mtk->u8g) - u8g_GetFontDescent(mtk->u8g);
+	mtk->ascent = u8g_GetFontAscent(mtk->u8g);
 	mtk->count = 0;
 	mtk->element = mtk->rootHist[mtk->indexHist];
 	tempElement_p = mtk->element;
@@ -113,7 +116,7 @@ void mtk_drawLL(mtk_t *mtk) {
 					mtk_elementNum(mtk);
 					mtk->element = temp2Element;
 				} else{
-					u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, "\x01");
+					u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, "\x0E");
 				}
 				mtk->pos_x += mtk->step_x;
 
@@ -165,11 +168,11 @@ void mtk_elementNum(mtk_t *mtk) {
 	uint32_t x;
 	uint8_t i;
 	uint32_t (*fp)(uint32_t *);
-	char sTemp[11];
+	char sTemp[10];
 	char sTemp1[8];
 	uint8_t type = mtk->element->type; //Тип элемента
 	void * pointer = mtk->element->pointer; //Указатель на элемент
-
+	mtk->step_x = u8g_GetStrWidth(mtk->u8g, "0");
 	if (mtk->element->flags & EDITING_EDITED) {
 		x = mtk->tempNum;
 	} else if (mtk->element->flags & TYPE_FUNC) {
@@ -190,7 +193,7 @@ void mtk_elementNum(mtk_t *mtk) {
 
 	for (i = 0; mtk->element->length > i; i++) {
 		if ((i == mtk->pos) && (mtk->element->flags & EDITING_PROCESS)) {
-			u8g_DrawBox(mtk->u8g, mtk->pos_x, mtk->pos_y - mtk->step_y, mtk->step_x, mtk->step_y + 2); // draw cursor bar
+			u8g_DrawBox(mtk->u8g, mtk->pos_x, mtk->pos_y - mtk->ascent, mtk->step_x, mtk->glyph_y); // draw cursor bar
 			u8g_SetDefaultBackgroundColor(mtk->u8g);
 		} else
 			u8g_SetDefaultForegroundColor(mtk->u8g);
@@ -206,19 +209,19 @@ void mtk_elementNum(mtk_t *mtk) {
  *Отрисовка элемента типа FLAG
  ******************************************************************************/
 void mtk_elementFlag(mtk_t *mtk) {
-	uint8_t whide = 3;
-	char *sTemp = "No!";
+	uint8_t whide = 2;
+	char *sTemp = "\x0F";
 	uint8_t flag;
 	if (mtk->element->flags & EDITING_EDITED)
 		flag = mtk->tempNum;
 	else
 		flag = *(uint8_t*) mtk->element->pointer;
 	if (flag) {
-		sTemp = "Yes";
-		whide = 3;
+		sTemp = "\x10";
 	}
+	mtk->step_x = u8g_GetStrWidth(mtk->u8g, sTemp);
 	if (mtk->element->flags & EDITING_PROCESS) {
-		u8g_DrawBox(mtk->u8g, mtk->pos_x, mtk->pos_y - mtk->step_y, mtk->step_x * whide, mtk->step_y + 2); // draw cursor bar
+		u8g_DrawBox(mtk->u8g, mtk->pos_x, mtk->pos_y - mtk->ascent, mtk->step_x, mtk->glyph_y); // draw cursor bar
 		u8g_SetDefaultBackgroundColor(mtk->u8g);
 	} else
 		u8g_SetDefaultForegroundColor(mtk->u8g);
@@ -246,9 +249,10 @@ void mtk_elementDateTime(mtk_t *mtk) {
 		tm = (*p)(NULL);
 	} else
 		tm = mtk->element->pointer;
+	mtk->step_x = u8g_GetStrWidth(mtk->u8g, "00");
 	for (i = 0; i < 3; i++) {
 		if ((mtk->pos == i) && (mtk->element->flags & EDITING_PROCESS)) {
-			u8g_DrawBox(mtk->u8g, mtk->pos_x, mtk->pos_y - mtk->step_y, mtk->step_x * 2, mtk->step_y + 2); // draw cursor bar
+			u8g_DrawBox(mtk->u8g, mtk->pos_x, mtk->pos_y - mtk->ascent, mtk->step_x, mtk->glyph_y); // draw cursor bar
 			u8g_SetDefaultBackgroundColor(mtk->u8g);
 		} else
 			u8g_SetDefaultForegroundColor(mtk->u8g);
@@ -285,9 +289,9 @@ void mtk_elementDateTime(mtk_t *mtk) {
 				sprintf(sTemp, "%s", ":");
 			if (mtk->element->type == ELEMENT_DATE)
 				sprintf(sTemp, "%s", "/");
-			u8g_DrawStr(mtk->u8g, mtk->pos_x + mtk->step_x * 2, mtk->pos_y, sTemp);
+			u8g_DrawStr(mtk->u8g, mtk->pos_x + mtk->step_x, mtk->pos_y, sTemp);
 		}
-		mtk->pos_x += mtk->step_x * 3;
+		mtk->pos_x += (mtk->step_x*20)/13;
 	}
 }
 
@@ -295,7 +299,6 @@ void mtk_elementDateTime(mtk_t *mtk) {
  *Отрисовка элемента типа SELECT
  ******************************************************************************/
 void mtk_elementSelect(mtk_t *mtk) {
-	uint8_t whide;
 	uint8_t (*fp)(uint8_t *);
 	char *sTemp;
 	uint8_t selectNum;
@@ -309,9 +312,9 @@ void mtk_elementSelect(mtk_t *mtk) {
 		selectNum = *(uint8_t *)(pointer->pointer);
 	}
 	sTemp = pointer->string[selectNum];
-	whide = u8g_GetStrWidth(mtk->u8g, sTemp);
+	mtk->step_x = u8g_GetStrWidth(mtk->u8g, sTemp);
 	if (mtk->element->flags & EDITING_PROCESS) {
-		u8g_DrawBox(mtk->u8g, mtk->pos_x, mtk->pos_y - mtk->step_y, whide, mtk->step_y + 2); // draw cursor bar
+		u8g_DrawBox(mtk->u8g, mtk->pos_x, mtk->pos_y - mtk->ascent, mtk->step_x, mtk->glyph_y); // draw cursor bar
 		u8g_SetDefaultBackgroundColor(mtk->u8g);
 	} else
 		u8g_SetDefaultForegroundColor(mtk->u8g);
@@ -570,57 +573,6 @@ void mtk_commandFlag(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Обработчик команд редактирования даты и времени
- ******************************************************************************/
-void mtk_commandDateTime(mtk_t *mtk) {
-	tm_t* (*fp)(tm_t *);
-	tm_t * tm;
-	switch (mtk->command) {
-	case COMMAND_NEXT: {
-		if (mtk->pos < mtk->element->length - 1)
-			mtk->pos++;
-		else {
-			mtk->pos = 0;
-			mtk->element->flags &= ~ EDITING_PROCESS;
-			if (mtk->element->flags & EDITING_EDITED) { //Изменено. Будем сохранять
-				if (mtk->element->flags & TYPE_FUNC) { //Если время устанавливается через функцию
-					fp = (tm_t* (*)(tm_t *)) mtk->element->pointer;
-					tm = fp(NULL); //Взяли актуальное время
-				} else {
-					tm = mtk->element->pointer;
-				}
-				if (mtk->element->type == ELEMENT_DATE) { //Если меняли дату актуализируем время в структуре
-					mtk->tempTime.tm_hour = tm->tm_hour;
-					mtk->tempTime.tm_min = tm->tm_min;
-					mtk->tempTime.tm_sec = tm->tm_sec;
-				}
-				if (mtk->element->flags & TYPE_FUNC) {
-					fp(&mtk->tempTime); //Установили часы
-				} else {
-					(*(tm_t *) mtk->element->pointer) = mtk->tempTime;
-				}
-//				if (mtk->element->flags & TYPE_NEEDOK)
-					mtk->element->flags &= ~ (EDITING_EDITED | EDITING_PROCESS); //Значение сохранено, редактирование завершено
-			}
-		}
-	}
-		break;
-	case COMMAND_PREV: {
-		mtk->pos--;
-	}
-		break;
-	case COMMAND_UP: {
-		mtk_editDateTime(mtk, MTK_ACTION_INC);
-	}
-		break;
-	case COMMAND_DOWN: {
-		mtk_editDateTime(mtk, MTK_ACTION_DEC);
-	}
-		break;
-	}
-}
-
-/*******************************************************************************
  *Обработчик команд редактирования селектора
  ******************************************************************************/
 void mtk_commandSelect(mtk_t *mtk) {
@@ -675,12 +627,62 @@ void mtk_commandSelect(mtk_t *mtk) {
 }
 
 /*******************************************************************************
+ *Обработчик команд редактирования даты и времени
+ ******************************************************************************/
+void mtk_commandDateTime(mtk_t *mtk) {
+	tm_t* (*fp)(tm_t *);
+	tm_t * tm;
+	switch (mtk->command) {
+	case COMMAND_NEXT: {
+		if (mtk->pos < mtk->element->length - 1)
+			mtk->pos++;
+		else {
+			mtk->pos = 0;
+			mtk->element->flags &= ~ EDITING_PROCESS;
+			if (mtk->element->flags & EDITING_EDITED) { //Изменено. Будем сохранять
+				if (mtk->element->flags & TYPE_FUNC) { //Если время устанавливается через функцию
+					fp = (tm_t* (*)(tm_t *)) mtk->element->pointer;
+					tm = fp(NULL); //Взяли актуальное время
+				} else {
+					tm = mtk->element->pointer;
+				}
+				if (mtk->element->type == ELEMENT_DATE) { //Если меняли дату актуализируем время в структуре
+					mtk->tempTime.tm_hour = tm->tm_hour;
+					mtk->tempTime.tm_min = tm->tm_min;
+					mtk->tempTime.tm_sec = tm->tm_sec;
+				}
+				if (mtk->element->flags & TYPE_FUNC) {
+					fp(&mtk->tempTime); //Установили часы
+				} else {
+					(*(tm_t *) mtk->element->pointer) = mtk->tempTime;
+				}
+//				if (mtk->element->flags & TYPE_NEEDOK)
+					mtk->element->flags &= ~ (EDITING_EDITED | EDITING_PROCESS); //Значение сохранено, редактирование завершено
+			}
+		}
+	}
+		break;
+	case COMMAND_PREV: {
+		mtk->pos--;
+	}
+		break;
+	case COMMAND_UP: {
+		mtk_editDateTime(mtk, MTK_ACTION_INC);
+	}
+		break;
+	case COMMAND_DOWN: {
+		mtk_editDateTime(mtk, MTK_ACTION_DEC);
+	}
+		break;
+	}
+}
+
+/*******************************************************************************
  *Обработчик редактора времени
  ******************************************************************************/
 void mtk_editDateTime(mtk_t * mtk, uint8_t action) {
 	uint16_t min = 0, max = 59;
-	void *p = NULL;
-	uint8_t size = 8;
+	uint8_t *p = NULL;
 	tm_t * tm;
 	tm_t* (*fp)(tm_t *);
 
@@ -702,19 +704,18 @@ void mtk_editDateTime(mtk_t * mtk, uint8_t action) {
 		case 0: {
 			min = 1;
 			max = 31;
-			p = &tm->tm_mday;
+			p = (uint8_t *)&tm->tm_mday;
 		}
 			break;
 		case 1: {
 			max = 11;
-			p = &tm->tm_mon;
+			p =(uint8_t *) &tm->tm_mon;
 		}
 			break;
 		case 2: {
-			min = 115;
+			min = 116;
 			max = 199;
-			p = &tm->tm_year;
-			size = 16;
+			p = (uint8_t *)&tm->tm_year;
 		}
 			break;
 		}
@@ -723,20 +724,35 @@ void mtk_editDateTime(mtk_t * mtk, uint8_t action) {
 		switch (mtk->pos) {
 		case 0: {
 			max = 23;
-			p = &tm->tm_hour;
+			p = (uint8_t *)&tm->tm_hour;
 		}
 			break;
 		case 1: {
-			p = &tm->tm_min;
+			p = (uint8_t *)&tm->tm_min;
 		}
 			break;
 		case 2: {
-			p = &tm->tm_sec;
+			p = (uint8_t *)&tm->tm_sec;
 		}
 			break;
 		}
 	}
-	mtk_changeVal(size, p, min, max, action);
+		switch (action) {
+	case MTK_ACTION_INC: {
+		if (*p >= max) {
+			*p = min;
+		} else
+			*p = *p + 1;
+	}
+		break;
+	case MTK_ACTION_DEC: {
+		if (*p <= min) {
+			*p = max;
+		} else
+			*p = *p - 1;
+	}
+		break;
+	}
 }
 
 /*******************************************************************************
@@ -768,41 +784,6 @@ void mtk_commamdGfunc(mtk_t *mtk) {
 			break;
 		}
 	}
-}
-
-/*******************************************************************************
- *Изменение значения числа в заданных пределах
- ******************************************************************************/
-void mtk_changeVal(uint8_t size, void *n, uint16_t min, uint16_t max, uint8_t action) {
-	uint16_t x = 0;
-	if (size == 8)
-		x = *((uint8_t*) n);
-	else if (size == 16)
-		x = *((uint16_t*) n);
-	switch (action) {
-	case MTK_ACTION_INC: {
-		if (x >= max) {
-			x = min;
-		} else
-			x = x + 1;
-	}
-		break;
-	case MTK_ACTION_DEC: {
-		if (x <= min) {
-			x = max;
-		} else
-			x = x - 1;
-	}
-		break;
-	case MTK_ACTION_IS: {
-		x = max;
-	}
-		break;
-	}
-	if (size == 8)
-		*((uint8_t*) n) = x;
-	else if (size == 16)
-		*((uint16_t*) n) = x;
 }
 
 /*******************************************************************************

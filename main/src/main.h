@@ -1,33 +1,16 @@
-//#define SYSTEM_WIN
-//#define DEBUG_DISPLAY
-#define DEBUG
-
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
-#ifndef SYSTEM_WIN
-#define SYSTEM_STM32
-#endif
-
-#ifdef SYSTEM_WIN
-#include <stdio.h>
-#include <math.h>
-#endif
-
-#ifdef SYSTEM_STM32
-#define NULL 0
-#include "printf.h"
-#endif
-
-#define PASSWORD_LENGHT 4
+#include "config.h"
 
 #define ACTION_INC 0
 #define ACTION_DEC 1
 #define ACTION_IS 2
 
 #define STATE_NULL 0
-#define STATE_CALENDAR 2
 #define STATE_LIGHT 1
+#define STATE_CALENDAR 2
+#define STATE_UTIL 3
 #define STATE_SETUP 4
 #define STATE_BAT 7
 #define STATE_STAT 8
@@ -56,27 +39,14 @@
 #define RESET_FLAG_PORRST 	0x08	//Подача питания
 #define RESET_FLAG_PINRST		0x04	//Аппаратный сброс
 
-typedef unsigned char uint8_t;
-typedef signed char int8_t;
-typedef unsigned short uint16_t;
-typedef signed short int16_t;
-typedef unsigned int uint32_t;
-typedef signed int int32_t;
-typedef unsigned long long uint64_t;
-typedef signed long long int64_t;
-
-// shorthand for prnt
-//#define P(arg)    do{prnt((uint8_t*)arg);}while(0)
-// debug message - over USB
-#ifdef DEBUG
-	#define DBG(arg)    printf("%s", (uint8_t*)arg)
-#else
-	#define DBG(arg)
-#endif
-
-#define ERR(arg) printf("%s", (uint8_t*)arg)
-
-#define INT(arg)
+//typedef unsigned char uint8_t;
+//typedef signed char int8_t;
+//typedef unsigned short uint16_t;
+//typedef signed short int16_t;
+//typedef unsigned int uint32_t;
+//typedef signed int int32_t;
+//typedef unsigned long long uint64_t;
+//typedef signed long long int64_t;
 
 //Операции с битами
 #define B(bit_no)         (1 << (bit_no))
@@ -112,6 +82,8 @@ typedef struct config_t { //Глобальная структура с наст�
 #define TASK_UPDATETIME 8
 #define TASK_TIMESETUP 16
 #define TASK_SAVEPARAMS 32
+#define TASK_TIMER 64
+#define TASK_STOPWATCH 128
 
 typedef struct calendar_t {
 	uint16_t year; //Год
@@ -126,7 +98,7 @@ typedef struct count_t { //Глобальная структура для упр
 
 typedef struct state_t { //Глобальная структура для управления состояниями, задачами
 	uint8_t powerMode; //Глобальный флаг энергостостояния
-	uint8_t taskList; //Флаги невыполненых задач
+	uint16_t taskList; //Флаги задач
 	uint8_t button;	//Считанное необработанное нажатие кнопки
 	uint8_t reset;	//Причина сброса
 } state_t;

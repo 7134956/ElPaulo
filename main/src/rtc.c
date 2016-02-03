@@ -1,19 +1,22 @@
-#include "main.h"
-#include "rtc.h"
-#ifdef SYSTEM_STM32
-#include "stm32f10x.h"
-#include "i2c.h"
-#include "printf.h"
+#include "config.h"
 #include "power.h"
-#endif
+#include "rtc.h"
 
 #ifdef SYSTEM_STM32
+#include "stm32f10x.h"
+#endif
+
+#define JD0 2451911 // Число дней до 01 января 2001 года
+
+#ifdef SYSTEM_WIN
+uint32_t RTC_Counter;
+#endif
+
 void Time_Adjust(tm_t*);
 void RTC_Configuration(void);
 void NVIC_Configuration(void);
-uint32_t FtimeToCounter(tm_t *);
 void NVIC_GenerateSystemReset(void);
-#endif
+uint32_t FtimeToCounter(tm_t *);
 uint8_t isleapyear(uint16_t);
 
 extern count_t count;
@@ -63,25 +66,34 @@ uint8_t isleapyear(uint16_t year) {
  ******************************************************************************/
 tm_t * timeGetSet(tm_t * t) {
 	if (!t) {
-#ifdef SYSTEM_WIN
-		time_t t = time(NULL);
-		return localtime(&t);
-	} else
-		return NULL;
-#endif
+		return &dateTime;
+	} else {
 #ifdef SYSTEM_STM32
-	return &dateTime;
-} else {
-	Time_Adjust(t);
-	return NULL;
-}
+		Time_Adjust(t);
 #endif
+#ifdef SYSTEM_WIN
+		RTC_Counter = FtimeToCounter(t);
+		state.taskList |= TASK_UPDATETIME;
+#endif
+		return NULL;
+	}
 }
 
 /*******************************************************************************
  * Запуск часов
  ******************************************************************************/
 void RTC_init(void) {
+#ifdef SYSTEM_WIN
+	dateTime.tm_year = 116;
+	dateTime.tm_mon = 1;
+	dateTime.tm_mday = 1;
+	dateTime.tm_hour = 12;
+	dateTime.tm_min = 0;
+	dateTime.tm_sec = 0;
+	RTC_Counter = FtimeToCounter(&dateTime);
+#endif
+
+
 #ifdef SYSTEM_STM32
 	if (BKP_ReadBackupRegister(BKP_DR1) != 0xA5A5) {
 		/* Если в бекап регистре не установлена верная метка, настроим часы */
@@ -227,15 +239,17 @@ void RTC_Configuration(void) {
 void NVIC_GenerateSystemReset(void) {
 	SCB->AIRCR = AIRCR_VECTKEY_MASK | (uint32_t) 0x04;
 }
+#endif
 
 /*******************************************************************************
  Ежесекундное прерывание от часов.
  ******************************************************************************/
 void RTC_IRQHandler(void) {
+#ifdef SYSTEM_STM32
+	DBG("Tic....\r\n");
 	if (RTC_GetITStatus(RTC_IT_SEC) != RESET) {
 		/* Снимаем флаг прерывания секунд */
 		RTC_ClearITPendingBit(RTC_IT_SEC);
-
 		if(!(state.taskList & TASK_DRIVE)) { //Если не едем
 			if((state.powerMode == POWERMODE_NORMAL) && config.SleepSec) {
 				count.toSleep++; //Приблизиться ко сну
@@ -269,9 +283,44 @@ void RTC_IRQHandler(void) {
 			}
 		}
 
-		if (i2cTimeLimit > 1000000) //Если i2c висит
-		NVIC_GenerateSystemReset();//Ребут
+	//	if (i2cTimeLimit > 1000000) //Если i2c висит
+	//	NVIC_GenerateSystemReset();//Ребут
 	}
+#endif
+#ifdef SYSTEM_WIN
+	/*Обновим время на дисплее, если не спящий режим*/
+	if(state.powerMode != POWERMODE_SLEEP) {
+		if (state.taskList & TASK_UPDATETIME) {
+			CounterToFtime(RTC_GetCounter(), &dateTime);
+			state.taskList &=~ TASK_UPDATETIME;
+			state.taskList |= TASK_REDRAW;
+		}
+		else {
+			dateTime.tm_sec++;
+			if (dateTime.tm_sec == 60) {
+				dateTime.tm_sec = 0;
+				dateTime.tm_min++;
+				if (dateTime.tm_min == 60) {
+					dateTime.tm_min = 0;
+					dateTime.tm_hour++;
+					if (dateTime.tm_hour == 24) {
+						CounterToFtime(RTC_GetCounter(), &dateTime);
+					}
+				}
+				state.taskList |= TASK_REDRAW; //Перерисовка каждую минуту
+			}
+			if(config.SecInTime)state.taskList |= TASK_REDRAW; //Перерисовка если показываем секунды
+		}
+	}
+#endif
+}
+
+/*******************************************************************************
+ * Затычка для ПК версии
+ ******************************************************************************/
+#ifdef SYSTEM_WIN
+uint32_t RTC_GetCounter(void){
+	return RTC_Counter;
 }
 #endif
 
@@ -308,7 +357,7 @@ uint32_t FtimeToCounter(tm_t * dateTime) {
 	uint8_t m;
 	uint32_t JDN;
 // Вычисление необходимых коэффициентов
-	a = (15 - dateTime->tm_mon) / 12;
+	a = (13 - dateTime->tm_mon) / 12;
 	y = dateTime->tm_year + 1900 + 4800 - a;
 	m = dateTime->tm_mon + (12 * a) - 2;
 // Вычисляем значение текущего Юлианского дня
@@ -327,3 +376,4 @@ uint32_t FtimeToCounter(tm_t * dateTime) {
 // итого имеем количество секунд с 00-00 01 янв 2001
 	return JDN;
 }
+

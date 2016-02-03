@@ -351,7 +351,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>2</Optim>
+            <Optim>4</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -373,7 +373,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\src;..\src\mtk;..\src\u8g;..\src\onewire</IncludePath>
+              <IncludePath>..\src;..\src\mtk;..\src\onewire;..\src\periph_stm32;..\..\..\u8glib\csrc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -417,6 +417,21 @@
           <GroupName>user</GroupName>
           <Files>
             <File>
+              <FileName>config.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\src\config.h</FilePath>
+            </File>
+            <File>
+              <FileName>menu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\menu.c</FilePath>
+            </File>
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\main.c</FilePath>
+            </File>
+            <File>
               <FileName>beeper.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\src\beeper.c</FilePath>
@@ -430,21 +445,6 @@
               <FileName>buttons.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\src\buttons.c</FilePath>
-            </File>
-            <File>
-              <FileName>can.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\can.c</FilePath>
-            </File>
-            <File>
-              <FileName>crc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\crc.c</FilePath>
-            </File>
-            <File>
-              <FileName>dma.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\dma.c</FilePath>
             </File>
             <File>
               <FileName>draw.c</FileName>
@@ -504,31 +504,6 @@
               </FileOption>
             </File>
             <File>
-              <FileName>flash.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\flash.c</FilePath>
-            </File>
-            <File>
-              <FileName>i2c.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\i2c.c</FilePath>
-            </File>
-            <File>
-              <FileName>led.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\led.c</FilePath>
-            </File>
-            <File>
-              <FileName>main.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\main.c</FilePath>
-            </File>
-            <File>
-              <FileName>menu.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\menu.c</FilePath>
-            </File>
-            <File>
               <FileName>power.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\src\power.c</FilePath>
@@ -539,19 +514,9 @@
               <FilePath>..\src\printf.c</FilePath>
             </File>
             <File>
-              <FileName>pwm.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\pwm.c</FilePath>
-            </File>
-            <File>
               <FileName>rtc.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\src\rtc.c</FilePath>
-            </File>
-            <File>
-              <FileName>spi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\spi.c</FilePath>
             </File>
             <File>
               <FileName>string.c</FileName>
@@ -564,174 +529,19 @@
               <FilePath>..\src\termo.c</FilePath>
             </File>
             <File>
-              <FileName>timer.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\timer.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_arm.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g_arm.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_dev_st7586s.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g_dev_st7586s.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_dev_st7669a.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g_dev_st7669a.c</FilePath>
-            </File>
-            <File>
-              <FileName>usart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\usart.c</FilePath>
-            </File>
-            <File>
-              <FileName>config.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\src\config.h</FilePath>
-            </File>
-            <File>
               <FileName>bms.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\src\bms.c</FilePath>
             </File>
             <File>
-              <FileName>u8g_dev_st75256.c</FileName>
+              <FileName>memory.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\src\u8g_dev_st75256.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>u8g</GroupName>
-          <Files>
-            <File>
-              <FileName>u8g_bitmap.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_bitmap.c</FilePath>
+              <FilePath>..\src\memory.c</FilePath>
             </File>
             <File>
-              <FileName>u8g_circle.c</FileName>
+              <FileName>utils.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_circle.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_clip.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_clip.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_com_api.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_com_api.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_com_null.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_com_null.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_delay.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_delay.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_font.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_font.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_line.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_line.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_ll_api.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_ll_api.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_page.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_page.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_pb.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_pb.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_pb8h1.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_pb8h1.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_pb8h8.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_pb8h8.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_pb8v1.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_pb8v1.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_pb8v2.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_pb8v2.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_pb32h1.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_pb32h1.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_pbxh16.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_pbxh16.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_pbxh24.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_pbxh24.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_polygon.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_polygon.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_rect.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_rect.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_rot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_rot.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_scale.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_scale.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_state.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_state.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_dev_ssd1306_128x64.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_dev_ssd1306_128x64.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_pb16v1.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_pb16v1.c</FilePath>
+              <FilePath>..\src\utils.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -752,6 +562,266 @@
         </Group>
         <Group>
           <GroupName>onewire</GroupName>
+        </Group>
+        <Group>
+          <GroupName>periph_stm32</GroupName>
+          <Files>
+            <File>
+              <FileName>can.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\can.c</FilePath>
+            </File>
+            <File>
+              <FileName>crc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\crc.c</FilePath>
+            </File>
+            <File>
+              <FileName>dbg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\dbg.c</FilePath>
+            </File>
+            <File>
+              <FileName>dma.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\dma.c</FilePath>
+            </File>
+            <File>
+              <FileName>flash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\i2c.c</FilePath>
+            </File>
+            <File>
+              <FileName>led.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\led.c</FilePath>
+            </File>
+            <File>
+              <FileName>pwm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\pwm.c</FilePath>
+            </File>
+            <File>
+              <FileName>spi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\spi.c</FilePath>
+            </File>
+            <File>
+              <FileName>timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>usart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\usart.c</FilePath>
+            </File>
+            <File>
+              <FileName>wdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\wdg.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>u8g</GroupName>
+          <Files>
+            <File>
+              <FileName>u8g_bitmap.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_bitmap.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_circle.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_circle.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_clip.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_clip.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_com_api.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_com_api.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_com_null.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_com_null.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_com_stm32.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_com_stm32.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_cursor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_cursor.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_delay.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_delay.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_dev_null.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_dev_null.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_dev_st7586s_jlx240160g666.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_dev_st7586s_jlx240160g666.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_ellipse.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_ellipse.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_font.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_font.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_line.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_line.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_ll_api.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_ll_api.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_page.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_page.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb8h1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb8h1.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb8h1f.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb8h1f.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb8h2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb8h2.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb8h8.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb8h8.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb8v1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb8v1.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb8v2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb8v2.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb14v1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb14v1.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb16h1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb16h1.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb16h2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb16h2.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb16v1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb16v1.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb16v2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb16v2.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb32h1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pb32h1.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pbxh16.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pbxh16.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pbxh24.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_pbxh24.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_polygon.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_polygon.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_rect.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_rect.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_rot.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_rot.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_scale.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_scale.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_state.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_state.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_u8toa.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_u8toa.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_u16toa.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_u16toa.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_virtual_screen.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\u8glib\csrc\u8g_virtual_screen.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>::CMSIS</GroupName>
@@ -838,6 +908,12 @@
           <targetInfo name="Main"/>
         </targetInfos>
       </component>
+      <component Cclass="Device" Cgroup="StdPeriph Drivers" Csub="IWDG" Cvendor="Keil" Cversion="3.5.0" condition="STM32F1xx STDPERIPH">
+        <package name="STM32F1xx_DFP" schemaVersion="1.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.0.0"/>
+        <targetInfos>
+          <targetInfo name="Main"/>
+        </targetInfos>
+      </component>
       <component Cclass="Device" Cgroup="StdPeriph Drivers" Csub="PWR" Cvendor="Keil" Cversion="3.5.0" condition="STM32F1xx STDPERIPH RCC">
         <package name="STM32F1xx_DFP" schemaVersion="1.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.0.0"/>
         <targetInfos>
@@ -869,6 +945,12 @@
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="StdPeriph Drivers" Csub="USART" Cvendor="Keil" Cversion="3.5.0" condition="STM32F1xx STDPERIPH RCC">
+        <package name="STM32F1xx_DFP" schemaVersion="1.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.0.0"/>
+        <targetInfos>
+          <targetInfo name="Main"/>
+        </targetInfos>
+      </component>
+      <component Cclass="Device" Cgroup="StdPeriph Drivers" Csub="WWDG" Cvendor="Keil" Cversion="3.5.0" condition="STM32F1xx STDPERIPH RCC">
         <package name="STM32F1xx_DFP" schemaVersion="1.2" url="http://www.keil.com/pack/" vendor="Keil" version="2.0.0"/>
         <targetInfos>
           <targetInfo name="Main"/>

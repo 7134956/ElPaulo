@@ -1,29 +1,23 @@
+#include "config.h"
 #include "main.h"
-#include "buttons.h"
-#include "eeprom.h"
-#include "termo.h"
-#include "beeper.h"
-#include "rtc.h"
-#include "pwm.h"
-#include "draw.h"
 #include "mtk.h"
-#include "string.h"
 #include "menu.h"
-#include "power.h"
-#include "bms.h"
-#include "wdg.h"
+#include "buttons.h"
+#include "string.h"
+#include "utils.h"
+
 
 #ifdef SYSTEM_STM32
 #include "led.h"
 #include "timer.h"
-#include "printf.h"
+
 #include "stm32f10x.h"
 #include "usart.h"
 #endif
 
 #ifdef SYSTEM_WIN
-#include <stdio.h>
-#include <stdlib.h>
+//#include <stdio.h>
+//#include <stdlib.h>
 #endif
 
 #define CONTRAST_MAX 96
@@ -66,7 +60,11 @@ uint16_t keyPass = 0;
 uint8_t contrast;
 uint8_t testFlag = 0;
 
-extern mtk_element_t mtk_BMS_info; //Информация по батарее
+uint8_t drawDelay = 0;
+uint8_t drawTaskLimTime = 0;
+
+extern mtk_element_t mtkUtil,
+	mtk_BMS_info; //Информация по батарее
 mtk_element_t
 		mtkPassword, //Пароль
 		mtkDisplay, //Меню настройки дисплея
@@ -103,32 +101,17 @@ int main() {
 	track.odometr = 1000000000; //Общий путь в мм (0 ... 18446744073709551615)
 	config.lang = 0;
 	stateMain = STATE_START;
+	SysTick_task_add(RTC_IRQHandler, 1000);
+	init_printf(NULL, putc); //Для использования функций printf, sprintf
 	RTC_init();
 	drawInit();
 	BMS_init();//Подготовка к работе с BMS
 	loadParams();//Загрузили параметры из EEPROM
+	SysTickInit(100);//Запуск таймера. Вызов 100 раз в секунд
+	contrastGetSet(&config.contrast);
 #endif
 #ifdef SYSTEM_STM32
-//	uint8_t onCounter = 0;
-	initMCU(stateMain);
-//	while (1) {
-//		ADC_SoftwareStartConvCmd(ADC1, ENABLE);
-//		while (1) {
-//			i++;
-//			if (i > 400000)
-//			break;
-//		}
-//		if (ADC_GetConversionValue(ADC1) > 500) {
-//			if (onCounter < 8)
-//			onCounter++;
-//			else {
-//				stateMain = STATE_START;
-//				break;
-//			}
-//		} else
-//		setPowerState(POWERMODE_OFF);//FIXME //Если нет условий для включения, вырубаем
-//	}
-	stateMain = STATE_START;//FIXME
+//	powerService();
 #endif
 
 	mtkPin.type = ELEMENT_NUM16;
@@ -198,7 +181,7 @@ int main() {
 
 	state.taskList |= TASK_UPDATETIME; //Ставим задачу взять время со счетчика
 	state.taskList |= TASK_REDRAW; //Запросим первую перерисовку экрана
-	state.powerMode = POWERMODE_NORMAL;
+	state.powerMode = POWERMODE_NULL; //Начальный режим
 	//Перед входом в главный цыкл...
 	mainLoop();
 	return 0;
@@ -209,11 +192,12 @@ int main() {
  ******************************************************************************/
 void mainLoop() {
 	while (1) {
+#ifdef SYSTEM_STM32
+		powerService(); //Управление энергопотреблением
+		parseUSART();
+#endif
 #ifdef SYSTEM_WIN
 		state.button = getButton(); //Проверяем нажатия
-#endif
-#ifdef SYSTEM_STM32
-		parseUSART();
 #endif
 		if (state.button != BUTTON_NULL) {
 			beep(2000, 50);
@@ -240,7 +224,7 @@ void mainLoop() {
 		}
 			break;
 		case STATE_OFF: {
-			setPowerMode(POWERMODE_OFF);
+
 		}
 			break;
 		case STATE_CALENDAR: {
@@ -254,22 +238,33 @@ void mainLoop() {
 			setPowerMode(POWERMODE_SLEEP);
 		}
 			break;
+		case STATE_NULL: {
+			stateMain = STATE_START;
 		}
+			break;
+		}
+		/* Обработка запроса ограниченной отрисовки */
+		if (state.taskList & TASK_LIM_REDRAW) { //Если стоит задача отложенной перерисовки
+			if (!config.maxFPS) //Ограничения нету
+				state.taskList |= TASK_REDRAW;
+			else if (!SysTick_task_check(drawTask))	//Не запущен планировщик перерисовки
+				SysTick_task_add(drawTask, 10); //Запускаем планировщик перерисовки
+		}
+		/* Запуск обновления экрана, если нужно */
 		if ((state.taskList & TASK_REDRAW) && (stateMain != STATE_SLEEP)) {
 #ifdef DEBUG_DISPLAY
-			TIM_Cmd(TIM4, ENABLE); //Включаем таймер
-			TIM_SetCounter(TIM4, 0);//Обнуляем счетчик
-			set_leds(LED_BLUE); //Потушили диод пошли спать
+			RCC->APB1ENR |= RCC_APB1ENR_TIM4EN; //Включаем тактирование таймера
+			TIM4->CNT = 0;//Обнуляем счетчик
 #endif
-			redrawDisplay();
+			if (config.maxFPS)
+				drawDelay = (100 / config.maxFPS);
+			redrawDisplay(); //Рисуем кадр
 #ifdef DEBUG_DISPLAY
-			reset_leds(LED_BLUE); //Потушили диод пошли спать
-			track.circleTics=TIM_GetCounter(TIM4); //Считали значение счетчика. 32768 импульсов в секунду
+			track.circleTics = TIM4->CNT; //Считали значение счетчика. 32768 импульсов в секунду
+			RCC->APB1ENR &= ~ RCC_APB1ENR_TIM4EN;//Включаем тактирование таймера
 #endif
-			state.taskList &= ~(TASK_REDRAW | TASK_LIM_REDRAW);
+			state.taskList &= ~(TASK_REDRAW | TASK_LIM_REDRAW); //Снимаем запросы перерисовки
 		}
-		setPowerState(state.powerMode);
-//		WWDG_Renew();
 	}
 }
 
@@ -288,9 +283,8 @@ void newState() {
 	}
 	switch (stateMain) {
 	case STATE_MAIN: {
-		if (stateMainPrev == STATE_SLEEP)
-			initMCU(stateMain);
-		dateTime_p = timeGetSet(NULL); //Настроим указатель на дату, время.
+		if ((stateMainPrev == STATE_SLEEP) || (stateMainPrev == STATE_START))
+			dateTime_p = timeGetSet(NULL); //Настроим указатель на дату, время.
 		if (state.taskList & TASK_TIMESETUP) {
 			stateMain = STATE_SETUP;
 			changePos(0, 1, 1, ACTION_IS);
@@ -304,21 +298,33 @@ void newState() {
 		mtk_SetRootElement(&mtkDisplay);
 	}
 		break;
+	case STATE_UTIL: {
+		utilInit();
+	}
+		break;
 	case STATE_START: {
-		if (stateMainPrev == STATE_NULL)	{
-			initMCU(stateMain);
+		if (stateMainPrev == STATE_NULL) {
 			beep(500, 100);
 			beep(600, 100);
 			beep(700, 100);
-			if(state.reset){
-				if(state.reset & RESET_FLAG_LPWRRST) popup.body = "Low-power";
-				if(state.reset & RESET_FLAG_WWDGRST) popup.body = "Win watchDog";
-				if(state.reset & RESET_FLAG_IWDGRST) popup.body = "Ind watchDog";
-				if(state.reset & RESET_FLAG_SFTRST)	popup.body = "Software reset";
-				if(state.reset & RESET_FLAG_PORRST) popup.body = "Power on";
-				if(state.reset & RESET_FLAG_PINRST)	popup.body = "Hard reset";
+			if (state.reset) {
+				if (state.reset & RESET_FLAG_LPWRRST)
+					popup.body = "Low-power";
+				if (state.reset & RESET_FLAG_WWDGRST)
+					popup.body = "Win watchDog";
+				if (state.reset & RESET_FLAG_IWDGRST)
+					popup.body = "Ind watchDog";
+				if (state.reset & RESET_FLAG_SFTRST)
+					popup.body = "Software reset";
+				if (state.reset & RESET_FLAG_PORRST)
+					popup.body = "Power on";
+				if (state.reset & RESET_FLAG_PINRST)
+					popup.body = "Hard reset";
 				popup.head = "Reset reason";
 				popup.type = POPUP_NULL;
+			} else {
+				popup.head = "Hi Barada!";
+				popup.body = "Enter PIN";
 			}
 		}
 	}
@@ -335,14 +341,11 @@ void newState() {
 		beep(700, 100);
 		beep(600, 100);
 		beep(500, 100);
-		TIM_Cmd(TIM4, ENABLE); //Включаем таймер
-		TIM_SetCounter(TIM4, 0);
-		while (1) {
-			if (65535 == TIM_GetCounter(TIM4))
-			break;
-		}
-		TIM_Cmd(TIM4, DISABLE); //Выключаем таймер
-		initMCU(stateMain);
+		RCC->APB1ENR |= RCC_APB1ENR_TIM4EN; //Включаем тактирование таймера
+		TIM4->CNT = 0;//Обнуляем счетчик
+		while (TIM_GetCounter(TIM4) < 65535);
+		displayOff();
+		setPowerMode(POWERMODE_OFF);
 #endif
 #ifdef SYSTEM_WIN
 		exit(1);
@@ -537,7 +540,24 @@ void buttonsParse() {
 		}
 	}
 		break;
-/*----------------------------------SETUP-------------------------------------*/
+		/*----------------------------------UTIL-------------------------------------*/
+	case STATE_UTIL: {
+		if (!navigate[0]) {
+			switch (state.button) {
+			case BUTTON_UP:
+			case BUTTON_DOWN: {
+				changePos(0, 1, 1, ACTION_IS);
+				mtk_Command(state.button);
+			}
+				break;
+			}
+		} else if (!mtk_Command(state.button)) {
+			changePos(0, 0, 0, ACTION_IS);
+			state.button = BUTTON_NULL;
+		}
+	}
+		break;
+		/*----------------------------------SETUP-------------------------------------*/
 	case STATE_SETUP: {
 		if (!navigate[0]) {
 			switch (state.button) {
@@ -549,34 +569,32 @@ void buttonsParse() {
 			}
 				break;
 			}
-		} else {
-			if (!mtk_Command(state.button)) {
-				changePos(0, 0, 0, ACTION_IS);
-				state.button = BUTTON_NULL;
-			}
+		} else if (!mtk_Command(state.button)) {
+			changePos(0, 0, 0, ACTION_IS);
+			state.button = BUTTON_NULL;
 		}
 	}
 		break;
-/*-----------------------------------BAT--------------------------------------*/
-	case STATE_BAT: {
-		if (!navigate[0]) {
-			switch (state.button) {
-			case BUTTON_UP:
-			case BUTTON_DOWN: {
-				changePos(0, 1, 1, ACTION_IS);
-				mtk_Command(state.button);
-				//	state.taskList |= TASK_SAVEPARAMS;
-			}
-				break;
-			}
-		} else {
-			if (!mtk_Command(state.button)) {
-				changePos(0, 0, 0, ACTION_IS);
-				state.button = BUTTON_NULL;
-			}
-		}
-	}
-		break;
+		/*-----------------------------------BAT--------------------------------------*/
+//	case STATE_BAT: {
+//		if (!navigate[0]) {
+//			switch (state.button) {
+//			case BUTTON_UP:
+//			case BUTTON_DOWN: {
+//				changePos(0, 1, 1, ACTION_IS);
+//				mtk_Command(state.button);
+//				//	state.taskList |= TASK_SAVEPARAMS;
+//			}
+//				break;
+//			}
+//		} else {
+//			if (!mtk_Command(state.button)) {
+//				changePos(0, 0, 0, ACTION_IS);
+//				state.button = BUTTON_NULL;
+//			}
+//		}
+//	}
+//		break;
 /*--------------------------------TERMO---------------------------------------*/
 	case STATE_TERMO: {
 		switch (state.button) {
@@ -585,9 +603,7 @@ void buttonsParse() {
 				changePos(0, 0, 6, ACTION_DEC);
 			} else
 				changeVal(8, &termo.speed, 1, 10, ACTION_INC);
-#ifdef SYSTEM_STM32
 			SysTick_task_add(&addTermItem, 1000/termo.speed);
-#endif
 		}
 			break;
 		case BUTTON_DOWN: {
@@ -595,16 +611,12 @@ void buttonsParse() {
 				changePos(0, 0, 6, ACTION_INC);
 			} else
 				changeVal(8, &termo.speed, 1, 10, ACTION_DEC);
-#ifdef SYSTEM_STM32
 			SysTick_task_add(&addTermItem, 1000/termo.speed);
-#endif
 		}
 			break;
 		case BUTTON_LEFT: {
 			if (navigate[1]) {
-#ifdef SYSTEM_STM32
 				SysTick_task_del(&addTermItem);
-#endif
 				termo.count = 0;
 				termo.min = 0xff;
 				termo.max = 0;
@@ -618,9 +630,7 @@ void buttonsParse() {
 		case BUTTON_RIGHT: {
 			if (navigate[0]) {
 				termo.speed = 1;
-#ifdef SYSTEM_STM32
 				SysTick_task_add(&addTermItem, 1000/termo.speed);
-#endif
 				changePos(1, 1, 1, ACTION_IS);
 			}
 		}
@@ -759,10 +769,8 @@ void circleStep(uint16_t count) {
 		if (track.speed > track.peakSpeed)
 			track.peakSpeed = track.speed;
 	}
-#ifdef SYSTEM_STM32
 	if (track.startTime == 0)
 	track.startTime = RTC_GetCounter();
-#endif
 }
 
 /*******************************************************************************
@@ -787,14 +795,14 @@ void changeVal(uint8_t size, void *n, uint16_t min, uint16_t max,
 		if (x >= max) {
 			x = min;
 		} else
-			x = x + 1;
+			x++;
 	}
 		break;
 	case ACTION_DEC: {
 		if (x <= min) {
 			x = max;
 		} else
-			x = x - 1;
+			x--;
 	}
 		break;
 	case ACTION_IS: {
@@ -831,26 +839,43 @@ void calculateStat(track_t *tr) {
 /*******************************************************************************
  *Добавить значение температуры в буфер граффика
  ******************************************************************************/
-void addTermItem(void){
+void addTermItem(void) {
 	uint8_t i;
 #ifdef SYSTEM_WIN
-			termo.buff[termo.in] = 10 * (sin((double) (termo.in / 15.0) + (double) 50) * 40 + 100);
+	termo.buff[termo.in] = 10
+			* (sin((double) (termo.in / 15.0) + (double) 50) * 40 + 100);
 #endif
 #ifdef SYSTEM_STM32
-			termo.buff[termo.in] = (double)100*(double)temp_s();
+	termo.buff[termo.in] = (double)100*(double)temp_s();
 #endif
-			termo.in++;
-			if (termo.in == BUF_TERMO_SIZE)
-				termo.in = 0;
+	termo.in++;
+	if (termo.in == BUF_TERMO_SIZE)
+		termo.in = 0;
+	if (termo.count < BUF_TERMO_SIZE)
+		termo.count++;
+	for (i = 0; i < termo.count; i++) {
+		if (termo.buff[i] < termo.min)
+			termo.min = termo.buff[i];
+		if (termo.buff[i] > termo.max)
+			termo.max = termo.buff[i];
+	}
+}
 
-			if (termo.count < BUF_TERMO_SIZE)
-				termo.count++;
+/*******************************************************************************
+ * Планировщик отрисовки с ограничением скорости кадров
+ * Вызываем 100 раз в секунду
+ * Сама себя выключит если в течении двух секунд не востребована
+ ******************************************************************************/
+void drawTask(void) {
+	if (drawDelay) {
+		drawDelay -= 1;
+	} else if (state.taskList & TASK_LIM_REDRAW) {
+		drawTaskLimTime = 200;
+		state.taskList &= ~ TASK_LIM_REDRAW;
+		state.taskList |= TASK_REDRAW;
+	} else if (drawTaskLimTime)
+		drawTaskLimTime--;
+	else
+		SysTick_task_del(drawTask); //Вырубаем планировщик отрисовки
+}
 
-			for (i = 0; i < termo.count; i++) {
-				if (termo.buff[i] < termo.min)
-					termo.min = termo.buff[i];
-				if (termo.buff[i] > termo.max)
-					termo.max = termo.buff[i];
-			}
-
-		}

@@ -1,5 +1,6 @@
-#include "i2c.h"
+#include "config.h"
 #include "stm32f10x.h"
+#include "i2c.h"
 
 void i2c_init(void) {
 	GPIO_InitTypeDef GPIO_InitStructure;

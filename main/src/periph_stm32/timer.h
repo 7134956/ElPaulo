@@ -1,7 +1,7 @@
 #ifndef _TIMER_H_
 #define _TIMER_H_
 
-#include "main.h"
+#include "config.h"
 
 typedef void(*TIMER_CALLBACK)(void);
 	

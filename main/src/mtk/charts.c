@@ -28,7 +28,7 @@ void graphBar(mtk_t * mtk, mtk_graph_t * graph){
 		if (graph->mas[i] > vMax)
 			vMax = graph->mas[i];
 	}
-	sprintf(sTemp, "%d.%d\x09%d.%d %s", vMax / 1000, vMax % 1000, vMin / 1000,
+	sprintf(sTemp, "%d.%d\x11%d.%d %s", vMax / 1000, vMax % 1000, vMin / 1000,
 			vMin % 1000, graph->title);
 	u8g_DrawStr(u8g, hStart, vStart - 2, sTemp);
 	for (i = 0; i < graph->num; i++) {

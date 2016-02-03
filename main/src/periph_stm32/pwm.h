@@ -1,7 +1,7 @@
 #ifndef _PWM_H_
 #define _PWM_H_
 
-#include "u8g.h"
+#include "config.h"
 
 #define PWM_MAX 255
 #define PWM_COUNT 3

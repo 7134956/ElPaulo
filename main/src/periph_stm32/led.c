@@ -1,5 +1,6 @@
-#include "stm32f10x.h"
+#include "config.h"
 #include "led.h"
+#include "stm32f10x.h"
 
 //-----------------------------------------------------------------------------
 //Настроука портов светодиодов
@@ -39,7 +40,7 @@ void set_leds(uint8_t led) {
 //		GPIOB->ODR |= PIN_LED_RED;
 //	}
 	if (led & LED_BLUE) {
-		GPIOC->ODR |= PIN_LED_BLUE;
+		GPIOC->ODR &= ~PIN_LED_BLUE;
 	}
 }
 
@@ -52,6 +53,6 @@ void reset_leds(uint8_t led) {
 //		GPIOB->ODR &=~ PIN_LED_RED;
 //	}
 	if (led & LED_BLUE) {
-		GPIOC->ODR &= ~PIN_LED_BLUE;
+		GPIOC->ODR |= PIN_LED_BLUE;
 	}
 }

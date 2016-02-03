@@ -1,5 +1,6 @@
-#include "flash.h"
+#include "config.h"
 #include "stm32f10x.h"
+#include "flash.h"
 
 uint32_t readFlash(uint32_t dataAdr) {
 	return *(uint32_t*) dataAdr;

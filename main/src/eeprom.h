@@ -1,6 +1,6 @@
+#ifndef _EEPROM_H_
+#define _EEPROM_H_
 #include "config.h"
-#include "u8g.h"
-#include "main.h"
 
 //*****************************************************************************
 // Declare function prototypes
@@ -13,10 +13,10 @@ void I2C_EE_PageWrite(uint8_t* pBuffer, uint16_t WriteAddr,	uint8_t NumByteToWri
 void I2C_EE_WaitEepromStandbyState(void);
 #endif
 
-void *memcpy(void *, const void *, size_t);
-
 void saveTrack(void);
 void loadRacelist(void);
 void saveParams(void);
 void loadParams(void);
 void loadHistItem(void);
+
+#endif /* _EEPROM_H_ */

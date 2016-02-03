@@ -1,146 +1,170 @@
-#include "main.h"
+#include "config.h"
 #include "power.h"
-#include "bms.h"
+#include "main.h"
+
+//Выбор режима сна процессора (powerstate)
+#define POWERSTATE_STOP 1 //Остановка ядра.
+#define POWERSTATE_SLEEP 2 //Остановка тактирования
+#define POWERSTATE_OFF 3 //Полное выключение
+
+void sleep(uint8_t);
+void SetSysClock(uint8_t);
 
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
-#include "led.h"
-#include "termo.h"
-#include "buttons.h"
-#include "usart.h"
-#include "eeprom.h"
-#include "pwm.h"
-#include "beeper.h"
-#include "draw.h"
-#include "timer.h"
-#include "rtc.h"
-#include "i2c.h"
-#include "wdg.h"
-#endif
-
-#ifdef SYSTEM_WIN
-#endif
 extern config_t config;
 extern count_t count;
+#endif
 extern state_t state;
+
+uint8_t powerModeSet = POWERMODE_NULL;
+#ifdef SYSTEM_STM32
+/*******************************************************************************
+ *Обслуживание энергопотребления
+ ******************************************************************************/
+void powerService() {
+	uint8_t onCounter = 0;
+	if (state.powerMode == POWERMODE_NORMAL)
+		if (state.taskList & ~(TASK_TIMER | TASK_STOPWATCH))
+			setPowerMode(POWERSTATE_SLEEP);
+	if (state.powerMode == POWERMODE_NULL) {
+		setPowerMode(POWERMODE_NULL);
+		while (1) {
+			ADC_SoftwareStartConvCmd(ADC2, ENABLE);
+			RCC->APB1ENR |= RCC_APB1ENR_TIM4EN; //Включаем тактирование таймера
+			TIM4->CNT = 0; //Обнуляем счетчик
+			while (TIM_GetCounter(TIM4) < 3277)
+				;
+			RCC->APB1ENR &= ~RCC_APB1ENR_TIM4EN; //Выключаем тактирование таймера
+			if (ADC_GetConversionValue(ADC2) > 500) {
+				if (onCounter < 5)
+					onCounter++;
+				else {
+					setPowerMode(POWERMODE_NORMAL);
+					break;
+				}
+			} else
+				sleep(POWERSTATE_OFF); //Если нет условий для включения, вырубаем
+		}
+	} else if (state.powerMode == POWERMODE_SLEEP)
+		sleep(POWERSTATE_SLEEP);
+
+	if (state.powerMode != powerModeSet)
+		setPowerMode(state.powerMode);
+}
+#endif
 
 /*******************************************************************************
  *Переход в указанный режим работы
  ******************************************************************************/
 void setPowerMode(uint8_t mode) {
 #ifdef SYSTEM_STM32
-	switch(mode) {
-		case POWERMODE_TURBO : {}break;
-		case POWERMODE_ACTIVE : {}break;
-		case POWERMODE_NORMAL : {
+	if (powerModeSet == mode) {
+		switch (mode) {
+		case POWERMODE_NORMAL: {
 			count.toSleep = 0; //Не спать, не спать!
-		}break;
-		case POWERMODE_SLEEP : {
-			state.taskList |= TASK_REDRAW;
-		}break;
-		case POWERMODE_OFF : {}break;
-	}
-	state.powerMode = mode;
-#endif
-}
-
-/*******************************************************************************
- *Переход в режимы энергосбережения
- ******************************************************************************/
-void setPowerState(uint8_t mode) {
-#ifdef SYSTEM_STM32
-//	state.taskList |= 128; //FIXME delite for work
-	if(!state.taskList) {
-		reset_leds(LED_BLUE); //Потушили диод пошли спать
-		switch(mode) {
-			case POWERMODE_NORMAL : {
-				__WFI();
-			}break;
-			case POWERMODE_SLEEP : {
-				PWMSet(2, 0);
-				ButtonsInit(MODE_INT); //Переключили кнопку в режим прерывания
-				if(config.SleepDisplayOff)
-				displayOff();
-				PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
-				PWMSet(2, config.PWM[2]);
-				SetSysClock(CLK_24M);
-				SystemCoreClockUpdate();
-				state.taskList |= TASK_UPDATETIME;//Задача обновить время
-				ButtonsInit(MODE_ADC);
-				setPowerMode(POWERMODE_NORMAL);
-				if(config.SleepDisplayOff)
-				drawInit();//Запуск дисплея
-			}break;
-			case POWERMODE_OFF : {
-				/* Enable PWR clock */
-				RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
-				/* Enable WKUP pin */
-				PWR_WakeUpPinCmd(ENABLE);
-				/* Request to enter STANDBY mode (Wake Up flag is cleared in PWR_EnterSTANDBYMode function) */
-				PWR_EnterSTANDBYMode();
-			}break;
 		}
-		set_leds(LED_BLUE); //Зажгли диод пошли работать
-	}
-#endif
-}
-
-/*******************************************************************************
- *Настройка блоков соответственно состоянию
- ******************************************************************************/
-void initMCU(uint8_t state) {
-#ifdef SYSTEM_STM32
-	switch(state) {
-		case STATE_NULL : {
-			SetSysClock(CLK_24M);
-			init_printf(NULL, putcUSART); //Для использования функций printf, sprintf
-			ButtonsInit(MODE_ADC);//Настройка портов кнопок
+			break;
+		case POWERMODE_NULL: {
 			/* Разрешим прерывания отказов */
 			SCB->SHCSR |= SCB_SHCSR_BUSFAULTENA;
 			SCB->SHCSR |= SCB_SHCSR_MEMFAULTENA;
 			SCB->SHCSR |= SCB_SHCSR_USGFAULTENA;
-		}break;
-		case STATE_SLEEP : {
-			displayOff();
-		}break;
-		case STATE_START : {
+			SetSysClock(CLK_24M);
+#ifdef DEBUG
+			init_printf(NULL, DBG_print); //Для использования функций printf, sprintf
+#else		
+			init_printf(NULL, putcUSART); //Для использования функций printf, sprintf
+#endif			
 			ButtonsInit(MODE_ADC); //Настройка портов кнопок
-			RTC_init();//Запуск часов реального времени
-			CircleSensorInit();//Настройка входа датчика оборотов колеса
-			CircleTimerInit();//Настройка таймера оборотов колеса
-			SysTickInit(100);//Запуск таймера. Вызов 100 раз в секунд
-			i2c_init();//Запустили i2c шину
-			loadParams();//Загрузили параметры из EEPROM
-			PWM_init();//Настройка ШИМ
+			CircleTimerInit(); //Настройка таймера оборотов колеса и прочего счета
+		}
+			break;
+		}
+	} else {
+		switch (mode) {
+//		case POWERMODE_ACTIVE : {}break;
+		case POWERMODE_NORMAL: {
+			SysTickInit(100); //Запуск системного таймера. Вызов 100 раз в секунд
+			drawInit(); //Запуск дисплея
+			ButtonsInit(MODE_ADC); //Настройка портов кнопок
+			RTC_init(); //Запуск часов реального времени
+			CircleSensorInit(); //Настройка входа датчика оборотов колеса
+			SysTickInit(100); //Запуск таймера. Вызов 100 раз в секунд
+			i2c_init(); //Запустили i2c шину
+			loadParams(); //Загрузили параметры из EEPROM
+			PWM_init(); //Настройка ШИМ
 			PWMSet(0, config.PWM[0]);
 			PWMSet(1, config.PWM[1]);
 			PWMSet(2, config.PWM[2]);
-			USARTInit();//Настройка портов USART
-			LED_init();//Настройка портов светодиодов
-			beep_init();//Настройка бипера
-			drawInit();//Запуск дисплея
-			term_init();//Запуск внутреннего термометра
-			BMS_init();//Подготовка к работе с BMS
-//			WWDG_Init();//Запустили сторожевой таймер
-		}break;
-		case STATE_MAIN : {
-			SysTickInit(100); //Запуск таймера. Вызов 100 раз в секунд
-			drawInit();//Запуск дисплея
-			ButtonsInit(MODE_ADC);//Настройка портов кнопок
-		}break;
-		case STATE_OFF : {
-			displayOff();
-		}break;
+			USARTInit(); //Настройка портов USART
+			LED_init(); //Настройка портов светодиодов
+			beep_init(); //Настройка бипера
+			drawInit(); //Запуск дисплея
+			term_init(); //Запуск внутреннего термометра
+			BMS_init(); //Подготовка к работе с BMS
+			//IWDG_Init(7, 156);//Запустили сторожевой таймер на отсчет 500 мсек
+		}
+			break;
+		case POWERMODE_SLEEP: {
+			state.taskList |= TASK_REDRAW;
+		}
+			break;
+		case POWERMODE_OFF: {
+			sleep(POWERSTATE_OFF);
+		}
+			break;
+		}
 	}
 #endif
+	state.powerMode = mode;
+	powerModeSet = mode;
 }
 
+#ifdef SYSTEM_STM32
+/*******************************************************************************
+ *Уйти в заданный режим сна выполнив необходимые действия
+ ******************************************************************************/
+void sleep(uint8_t powerstate) {
+	reset_leds(LED_BLUE); //Потушили диод пошли спать
+	switch (powerstate) {
+	case POWERSTATE_STOP: { //Остановим ядро до любого события
+		__WFI();
+	}
+		break;
+	case POWERSTATE_SLEEP: {
+		PWMSet(2, 0); //Гасим подсветку
+		ButtonsInit(MODE_INT); //Переключили кнопку в режим прерывания
+		if (config.SleepDisplayOff)
+			displayOff();
+		PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
+		PWMSet(2, config.PWM[2]);
+		SetSysClock(CLK_24M);
+		SystemCoreClockUpdate();
+		state.taskList |= TASK_UPDATETIME; //Задача обновить время
+		ButtonsInit(MODE_ADC);
+		setPowerMode(POWERMODE_NORMAL);
+		if (config.SleepDisplayOff)
+			drawInit(); //Запуск дисплея
+	}
+		break;
+	case POWERSTATE_OFF: {
+		/* Enable PWR clock */
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
+		/* Enable WKUP pin */
+		PWR_WakeUpPinCmd(ENABLE);
+		/* Request to enter STANDBY mode (Wake Up flag is cleared in PWR_EnterSTANDBYMode function) */
+		PWR_EnterSTANDBYMode();
+	}
+		break;
+	}
+	set_leds(LED_BLUE); //Зажгли диод пошли работать
+}
 
 /*******************************************************************************
  *Настройка тактовой частоты
  ******************************************************************************/
 void SetSysClock(uint8_t clockMode) {
-#ifdef SYSTEM_STM32
 	__IO uint32_t HSEStatus = RESET;
 	uint16_t StartUpCounter = 0;
 	//	Сбрасываем все перед настройкой
@@ -197,7 +221,7 @@ void SetSysClock(uint8_t clockMode) {
 			RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV2;
 		} else {
 			/* PCLK1 = HCLK */
-//		   RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV1;
+		   RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV1;
 		}
 		if(clockMode == CLK_8M) {
 			/* Select HSE as system clock source */
@@ -248,5 +272,5 @@ void SetSysClock(uint8_t clockMode) {
 		ERR("HSE not started");
 	}
 	SystemCoreClockUpdate();
-#endif
 }
+#endif

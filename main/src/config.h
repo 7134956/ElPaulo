@@ -1,30 +1,94 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#ifndef SYSTEM_WIN
+#define SYSTEM_STM32
+#endif
+
+/*********************************Includes*************************************/
 #include "stdint.h"
+#include "bitmap.h"
+#include "eeprom.h"
+#include "termo.h"
+#include "pwm.h"
+#include "draw.h"
+#include "power.h"
+#include "bms.h"
 
-/* SPI display */
-/* Тактируем выбраные блоки */
-#define SPI_RCC				RCC_APB2Periph_GPIOA | RCC_APB2Periph_SPI1
-/* Настройка модуля SPI */
-#define SPI_UNIT			SPI1
-/* Настройка выводов SPI */
-#define SPI_PORT			GPIOA
-#define SPI_PINS			GPIO_Pin_5 | GPIO_Pin_7
-/* Настройка вывода CS */
-#define SPI_PORT_CS			GPIOA
-#define SPI_PIN_CS			GPIO_Pin_6
-/* Настройка вывода A0 */
-#define SPI_PORT_A0			GPIOA
-#define SPI_PIN_A0			GPIO_Pin_4
+#ifdef SYSTEM_STM32
+#define NULL 0
+#include "printf.h"
+#include "led.h"
+#include "termo.h"
+#include "buttons.h"
+#include "usart.h"
+#include "eeprom.h"
+#include "pwm.h"
+#include "beeper.h"
+#include "draw.h"
+#include "timer.h"
+#include "rtc.h"
+#include "i2c.h"
+#include "wdg.h"
+#include "dbg.h"
+#include "power.h"
+#include "i2c.h"
+#include "bms.h"
+#endif
 
-/* Display driver */
-	//u8g_InitComFn(&u8g, &u8g_dev_st7586s_hw_spi, u8g_com_hw_spi_fn); //Minimal RAM mode
-	//u8g_InitComFn(&u8g, &u8g_dev_st7586s_4x_hw_spi, u8g_com_hw_spi_fn); //Speed mode
-#define U8G_INIT			u8g_InitComFn(&u8g, &u8g_dev_st7586s_20x_hw_spi, u8g_com_hw_spi_fn); //Max speed mode
-	//u8g_InitComFn(&u8g, &u8g_dev_st7586s_20x_hw_spi, u8g_com_hw_spi_9bit_fn); //Max speed mode. 3-wire SPI
-	//u8g_InitComFn(&u8g, &u8g_dev_st7669a_4x_hw_spi, u8g_com_hw_spi_fn); //Speed mode
-	//u8g_InitComFn(&u8g, &u8g_dev_sh1106_128x64_i2c, u8g_com_hw_i2c_fn); //
+#ifdef SYSTEM_WIN
+//#include <time.h>
+#include <stdio.h>
+//#include <math.h>
+#define SAVEFILE "SAVE.BIN"
+#endif
+
+/***************************Настройки сборки***********************************/
+/* Отладка */
+//#define DEBUG
+//#define DEBUG_KEYBOARD
+//#define DEBUG_DISPLAY
+
+/* Выберите один драйвер дисплея */
+//#define DISPLAY_ST7586S_SPI //Minimal RAM mode
+//#define DISPLAY_ST7586S_4X_SPI //Speed mode
+#define DISPLAY_ST7586S_20X_SPI //Max speed mode
+//#define DISPLAY_ST7586S_20X_SPI_9B //Max speed mode. 3-wire SPI
+//#define DISPLAY_ST7669_4X_SPI //Speed mode
+//#define DISPLAY_SH1106_SPI_IIC //
+
+/* Длина PIN кода */
+#define PASSWORD_LENGHT 4
+/******************************************************************************/
+
+// Определители вывода текста
+#ifdef DEBUG
+	#define DBG(arg)  DBG_print((char *)arg)
+#else
+	#define DBG(arg)	printf("%s", (char *)arg)
+#endif
+#define ERR(arg) printf("%s", (char *)arg)
+#define MSG(arg) printf("%s", (char *)arg)
+
+/* Select display driver */
+#ifdef SYSTEM_WIN
+#define DISPLAY_SDL //Max speed mode
+#endif
+
+///* SPI display */
+///* Тактируем выбраные блоки */
+//#define SPI_RCC				RCC_APB2Periph_GPIOA | RCC_APB2Periph_SPI1
+///* Настройка модуля SPI */
+//#define SPI_UNIT			SPI1
+///* Настройка выводов SPI */
+//#define SPI_PORT			GPIOA
+//#define SPI_PINS			GPIO_Pin_5 | GPIO_Pin_7
+///* Настройка вывода CS */
+//#define SPI_PORT_CS			GPIOA
+//#define SPI_PIN_CS			GPIO_Pin_6
+///* Настройка вывода A0 */
+//#define SPI_PORT_A0			GPIOA
+//#define SPI_PIN_A0			GPIO_Pin_4
 
 /* I2C, EEPROM */
 #define I2C_RCC				RCC_APB1Periph_I2C1 | RCC_APB2Periph_GPIOB
@@ -47,17 +111,12 @@
 #define HIST_ITEM_COUNT 64 //Число сохраняемых заездов в памяти (Вторая половина eeprom)
 #define BUF_MASK (HIST_ITEM_COUNT-1)
 
-#ifdef SYSTEM_WIN
-#include <SDL_rwops.h>
-#define FILE "SAVE.BIN"
-#endif
-
 /* Beeper */
 #define BEEP_BUF_SIZE	8 //размер буфера звуков.
 #define BEEP_BUF_MASK	(BEEP_BUF_SIZE-1)
 #define BEEP_TIM			TIM3
-#define BEEP_RCC_TIM			RCC_APB1Periph_TIM3
-#define BEEP_RCC_PORT			RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO
+#define BEEP_RCC_TIM		RCC_APB1Periph_TIM3
+#define BEEP_RCC_PORT		RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO
 #define BEEP_PIN			GPIO_Pin_0
 #define BEEP_CCR			CCR3
 #define BEEP_ARR			ARR

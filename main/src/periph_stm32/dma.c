@@ -1,6 +1,6 @@
-#include "dma.h"
+#include "config.h"
 #include "stm32f10x.h"
-#include "led.h"
+#include "dma.h"
 
 /*******************************************************************************
  *Настройка блока DMA

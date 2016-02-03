@@ -1,5 +1,4 @@
 #include "mtk.h"
-#include "string.h"
 
 char *raceParams[2][7] = {
 		{"Max. speed", "Expense", "Travel time", "Discharge", "To charging", "Aver. speed" ,"Odograph"},
@@ -41,7 +40,10 @@ extern mtk_element_t
 		mtk_BMS_tImax,
 		mtk_BMS_Tmax,
 		mtk_BMS_Tmin,
-		mtkAbout;
+		mtkAbout,
+
+		mtkStopwatch,
+		mtkTimer;
 
 extern mtk_select_t mtkLangList;
 
@@ -79,7 +81,7 @@ void setStrings(uint8_t lang) {
 		mtkSleepSec.label[0] = "Autosleep sec";
 		mtkSleepSec.label[1] = "Aвтосон(сек)";
 		mtkMaxFPS.label[0] = "Maximum FPS";
-		mtkMaxFPS.label[1] = "Макс. кадров/Сек";
+		mtkMaxFPS.label[1] = "Частота кадров";
 		mtkSleepDisplayOff.label[0] = "Display off";
 		mtkSleepDisplayOff.label[1] = "Выкл. экран";
 
@@ -118,4 +120,9 @@ void setStrings(uint8_t lang) {
 
 		mtkAbout.label[0] = "About";
 		mtkAbout.label[1] = "Об этом";
+
+		mtkStopwatch.label[0] = "Stopwatch";
+		mtkStopwatch.label[1] = "Секундомер";
+		mtkTimer.label[0] = "Timer";
+		mtkTimer.label[1] = "Таймер";
 }

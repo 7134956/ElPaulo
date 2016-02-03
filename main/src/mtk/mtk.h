@@ -1,7 +1,6 @@
 #ifndef _MTK_H_
 #define _MTK_H_
 
-
 #define LANG_COUNT 2
 
 #include "u8g.h"
@@ -15,7 +14,6 @@
 
 #define MTK_ACTION_INC 1
 #define MTK_ACTION_DEC 2
-#define MTK_ACTION_IS 3
 
 //#define UNLOCK_CLOSE 0
 //#define UNLOCK_OPEN 1
@@ -71,6 +69,8 @@ struct _mtk_struct_t {
 	uint8_t size_y;			//Размер вертикальный
 	uint8_t step_x;			//Шаг горизонтальный
 	uint8_t step_y;			//Шаг вертикальный
+	uint8_t glyph_y;			//Размер символа вертикальный
+	uint8_t ascent;			//Смешение вверх от базовой линии шрифта
 	u8g_t * u8g;			//Ссылка на графическую структуру
 	uint8_t command;		//Комманда для меню
 	mtk_element_p element;	//Текущий элемент
@@ -130,7 +130,7 @@ void mtk_commandDateTime(mtk_t *);
 void mtk_commandSelect(mtk_t *);
 void mtk_commamdGfunc(mtk_t *);
 void mtk_editDateTime(mtk_t *, uint8_t);
-void mtk_changeVal(uint8_t, void *, uint16_t, uint16_t, uint8_t);
+void mtk_changeVal(uint8_t *, uint16_t, uint16_t, uint8_t);
 void mtk_findStartElement(mtk_t *);
 void unlock(mtk_t *);
 uint32_t power(uint8_t, uint8_t);

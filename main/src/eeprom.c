@@ -1,21 +1,20 @@
+#include "config.h"
 #include "eeprom.h"
-#include "main.h"
-#include "crc.h"
-#include "printf.h"
-#include "pwm.h"
 #include "rtc.h"
-#include "i2c.h"
+#include "memory.h"
 #include "timer.h"
-#include "rtc.h"
+#include "crc.h"
 
-#ifdef SYSTEM_STM32
-#include "stm32f10x.h"
+#ifdef SYSTEM_WIN
+#include <SDL.h>
+#include <time.h>
 #endif
 
 extern track_t track;
 extern config_t config;
 
 #ifdef SYSTEM_STM32
+#include "stm32f10x.h"
 extern track_t histItem;
 extern racelist_t racelist;
 extern calendar_t calendar;
@@ -332,16 +331,16 @@ void I2C_EE_WaitEepromStandbyState(void) {
 
 #ifdef SYSTEM_WIN
 void I2C_EE_BufferWrite(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteToWrite) {
-	SDL_RWops *io = SDL_RWFromFile(FILE, "r+b");
+	SDL_RWops *io = SDL_RWFromFile(SAVEFILE, "r+b");
 	if (io == NULL)
-		io = SDL_RWFromFile(FILE, "w+b");
+		io = SDL_RWFromFile(SAVEFILE, "w+b");
 	io->seek(io, WriteAddr, SEEK_SET);
 	io->write(io, pBuffer, NumByteToWrite, 1);
 	io->close(io);
 }
 
 void I2C_EE_BufferRead(uint8_t* pBuffer, uint16_t ReadAddr,	uint16_t NumByteToRead){
-	SDL_RWops *io = SDL_RWFromFile(FILE, "r+b");
+	SDL_RWops *io = SDL_RWFromFile(SAVEFILE, "r+b");
 	if (io != NULL) {
 		io->seek(io, ReadAddr, SEEK_SET);
 	    io->read(io, pBuffer, NumByteToRead, 1);
@@ -508,24 +507,4 @@ void loadHistItem() {
 	memcpy(&histItem.startTime, &buffer[16], 4);
 #endif
 }
-/*******************************************************************************
- *Копирование участков памяти
- ******************************************************************************/
-void *memcpy(void *dst, const void *src, size_t n) {
-	uint16_t len;
-	const char *p = src;
-	char *q = dst;
-	len = n/4;
-	while (len--) {
-		*(uint32_t*)q++ = *(uint32_t*)p++;
-	}
-	switch (len & 3) {
-	case 3:
-		*q++ = *p++; //Вкидываем новую порцию
-	case 2:
-		*q++ = *p++; //Вкидываем новую порцию
-	case 1:
-		*q++ = *p++; //Вкидываем новую порцию
-	}
-	return dst;
-}
+

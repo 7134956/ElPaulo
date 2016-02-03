@@ -1,7 +1,7 @@
 ﻿#ifndef FLASH_H
 #define FLASH_H
 
-#include "stm32f10x.h"
+#include "config.h"
 
 #define ADDRESS 0x801fc00
 

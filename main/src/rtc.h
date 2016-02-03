@@ -1,7 +1,11 @@
 #ifndef _DATETIME_H_
 #define _DATETIME_H_
 
-#include "main.h"
+#ifdef SYSTEM_WIN
+#include <time.h>
+#endif
+
+#include "config.h"
 
 typedef struct tm tm_t;
 //struct tm
@@ -17,8 +21,6 @@ typedef struct tm tm_t;
 //	int	tm_isdst;	/* +1 Daylight Savings Time, 0 No DST, * -1 don't know */
 //};
 
-#define JD0 2451911 // Число дней до 01 января 2001 года
-
 #ifdef SYSTEM_STM32
 typedef struct tm {
 	uint8_t tm_sec;		/* Секунды: 0-59 */
@@ -26,12 +28,14 @@ typedef struct tm {
 	uint8_t tm_hour; 	/* Часы: 0-23 */
 	uint8_t tm_mday;	/* День месяца: 1-31 */
 	uint8_t tm_mon;		/* Месяц 0-11 */
-	uint16_t tm_year;	/* Год - 1900*/
+	uint8_t tm_year;	/* Год - 1900*/
 	uint8_t tm_wday;	/* День недели с понедельника 1-7 */
 }tm_t;
 #endif
+
 #ifdef SYSTEM_WIN
-#include <time.h>
+void RTC_IRQHandler(void);
+uint32_t RTC_GetCounter(void);
 #endif
 
 void NVIC_GenerateSystemReset(void);

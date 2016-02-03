@@ -1,5 +1,6 @@
-#include "can.h"
+#include "config.h"
 #include "stm32f10x.h"
+#include "can.h"
 
 CanTxMsg TxMessage;
 CanRxMsg RxMessage;
@@ -123,7 +124,25 @@ void CAN1_TX_IRQHandler(void) {
  ******************************************************************************/
 void CAN1_RX0_IRQHandler(void) {
 	if (CAN_GetITStatus(CAN1, CAN_IT_FMP0)) {			    // message pending ?
-		CAN_ClearITPendingBit(CAN1, CAN_IT_FF0);
+// Сама сбросится		CAN_ClearITPendingBit(CAN1, CAN_IT_FF0);
+		CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
 		//do smth
 	}
+}
+
+/*******************************************************************************
+*Временная функция для проверки
+ ******************************************************************************/
+void CAN1TxTest(void)	{
+	TxMessage.StdId=134222929;
+	TxMessage.ExtId=458227712;
+	TxMessage.Data[0] = 0;
+	TxMessage.Data[1] = 1;
+	TxMessage.Data[2] = 2;
+	TxMessage.Data[3] = 3;
+	TxMessage.Data[4] = 4;
+	TxMessage.Data[5] = 5;
+	TxMessage.Data[6] = 6;
+	TxMessage.Data[7] = 7;
+	CAN_Transmit(CAN1, &TxMessage);
 }

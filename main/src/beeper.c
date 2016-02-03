@@ -1,9 +1,5 @@
-#include "main.h"
-#include "timer.h"
+#include "config.h"
 #include "beeper.h"
-#ifdef SYSTEM_STM32
-#include "stm32f10x.h"
-#endif
 
 typedef struct beep_buffer_t{
 	uint16_t time;
@@ -19,6 +15,7 @@ typedef struct beep_t {
 beep_t beepTask;
 
 #ifdef SYSTEM_STM32
+#include "stm32f10x.h"
 void beep_systick_calback(void);
 #endif
 
@@ -64,6 +61,9 @@ void beep_init() {
 
 	//Включение счетчика TIM3
 	TIM_Cmd(BEEP_TIM, ENABLE);
+	
+	/* Выключаем тактирование таймера */
+	RCC_APB1PeriphClockCmd(BEEP_RCC_TIM, DISABLE);
 #endif
 }
 
@@ -75,6 +75,7 @@ void beep(uint16_t f, uint16_t t) {
 #ifdef SYSTEM_STM32
 		if (!BEEP_TIM->BEEP_CCR) //Если пищалка свободна пускаем звук на нее
 		{
+			RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 			SysTick_task_add(&beep_timer_callback, t);
 			BEEP_TIM->BEEP_ARR = 1000000 / f;
 			BEEP_TIM->BEEP_CCR = 100000 / f; //Устанавливаем скважность половина
@@ -95,6 +96,7 @@ void beep_timer_callback(void){
 	if (beepTask.idxIN == beepTask.idxOUT) {//Если звук отработал
 		BEEP_TIM->BEEP_CCR = 0; //Устанавливаем скважность 0
 		SysTick_task_del(&beep_timer_callback); //Удаляемся из планировщика
+		RCC->APB1ENR &= ~ RCC_APB1ENR_TIM3EN;
 	} else //Запускаем отложенный звук
 	{
 		BEEP_TIM->BEEP_ARR = 1000000 / beepTask.buf[beepTask.idxOUT].freq;

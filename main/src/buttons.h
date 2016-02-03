@@ -1,7 +1,7 @@
 #ifndef _BUTTONS_H_
 #define _BUTTONS_H_
 
-#include "main.h"
+#include "config.h"
 
 #define BUTTON_VERIF_COUNT 3 //Число циклов для подтверждения нажатия
 #define BUTTON_REPEAT_DELAY 50 //Число циклов перед автоповтором нажатия

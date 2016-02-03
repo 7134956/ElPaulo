@@ -2,7 +2,6 @@
 #include "bitmap.h"
 
 void about(mtk_t * mtk) {
-	u8g_SetColorIndex(mtk->u8g, 3);
 	u8g_SetFont(mtk->u8g, u8g_font_helvR24);
 	u8g_DrawRFrame(mtk->u8g, 0, 20, 240, 140, 5);
 	u8g_DrawRFrame(mtk->u8g, 5, 25, 230, 130, 5);
@@ -13,3 +12,5 @@ void about(mtk_t * mtk) {
 	u8g_DrawStr(mtk->u8g, 95, 145, "v.0.1.5");
 	u8g_DrawStr(mtk->u8g, 50, 110, "7134956@gmail.com");
 }
+
+

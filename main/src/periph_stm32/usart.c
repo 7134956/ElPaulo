@@ -3,11 +3,11 @@
  * байта в буффер. Работает по прерыванию до опустошения буффера.
  */
 
-#include "buttons.h"
+#include "config.h"
 #include "stm32f10x.h"
 #include "usart.h"
-#include "led.h"
-#include "printf.h"
+#include "buttons.h"
+//#include "printf.h"
 
 char transBuff[256] = { "\n\n\rElPaulo 0.1!\n\r" };
 uint8_t transIN = 18, transOUT = 0; //Куда складывать, откуда передавать

@@ -1,7 +1,6 @@
+#include "config.h"
 #include "bms.h"
 #include "mtk.h"
-#include "string.h"
-#include "bitmap.h"
 
 void BMS_info(mtk_t * mtk);
 void BMS_voltage(mtk_t * mtk);

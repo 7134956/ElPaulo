@@ -1,7 +1,7 @@
 #ifndef _BMS_H
 #define _BMS_H
 
-#include "config.h"
+//#include "config.h"
 
 typedef struct BMSconfig_t { //информация BMS
 	uint8_t BMSVersion;		//Номер версии bms

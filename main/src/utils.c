@@ -8,6 +8,8 @@
 #include "config.h"
 #include "utils.h"
 #include "timer.h"
+#include "rtc.h"
+#include "draw.h"
 
 extern uint8_t stateMain;
 extern state_t state;
@@ -16,10 +18,13 @@ mtk_element_t mtkStopwatch,	//Секундомер
 
 stopwatch_t sWatch;
 
+tm_t * timerGetSet(tm_t * t);
+
 void utilInit(void) {
 	mtk_SetRootElement(&mtkStopwatch);
 	mtk_SetupElement(&mtkStopwatch, ELEMENT_GFUNC, NULL, 0, TYPE_CMD_ACCEPT, &stopwatch, &mtkTimer);
-	mtk_SetupElement(&mtkTimer, ELEMENT_GFUNC, NULL, 0, TYPE_CMD_ACCEPT, &timer, NULL);
+	//mtk_SetupElement(&mtkTime, ELEMENT_TIME, NULL, 3, TYPE_NEEDOK | TYPE_FUNC, &timeGetSet, NULL);
+	mtk_SetupElement(&mtkTimer, ELEMENT_TIME, NULL, 3, TYPE_FUNC | TYPE_NEEDOK, &timerGetSet, NULL);
 }
 
 /*******************************************************************************
@@ -97,12 +102,12 @@ void stopwatch(mtk_t * mtk) {
 				u8g_SetDefaultForegroundColor(mtk->u8g);
 			} else
 				u8g_DrawStr(mtk->u8g, x, y, sTemp);
-			x += 17;
+			x += 18;
 		}
 		if (state.taskList & TASK_STOPWATCH)
-			u8g_DrawStr(mtk->u8g, 180, y, " RUN");
+			u8g_DrawStr(mtk->u8g, 190, y, "RUN");
 		else if (!sWatch.nums)
-			u8g_DrawStr(mtk->u8g, 180, y, " STOP");
+			u8g_DrawStr(mtk->u8g, 188, y, "STOP");
 		else
 			u8g_DrawStr(mtk->u8g, 180, y, "PAUSE");
 		y = 57;
@@ -156,16 +161,37 @@ void stopwatchTick(void) {
 		state.taskList |= TASK_LIM_REDRAW;
 }
 
-uint32_t timerSec;
-uint32_t timerStart;
+uint32_t timer;
+/*******************************************************************************
+ * Задача отсчетов таймера
+ ******************************************************************************/
+void timerTick(void) {
+	if(timer){
+		timer--;
+		state.taskList |= TASK_LIM_REDRAW;
+	}else{
+		SysTick_task_del(timerTick);
+		state.taskList |= TASK_REDRAW;
+		state.taskList &= ~ TASK_TIMER;
+		messageCall(NULL, "Timer: Time is over!", POPUP_ALERT);
+	}
+}
 
-void timer(mtk_t * mtk) {
-	char sTemp[10];
-//	uint8_t i, x, y;
-	timerSec = 86399;
-	u8g_SetFont(mtk->u8g, u8g_font_elpaulo32n);
+tm_t tempTimer;
+tm_t * timerGetSet(tm_t * t) {
+	if (!t) { //Взять значение таймера
+		CounterToFtime(timer, &tempTimer);
+		return  &tempTimer;
+	} else {//Установить значение таймера
+		timer = FtimeToCounter(t);
+		SysTick_task_add(timerTick, 1000);
+		state.taskList |= TASK_TIMER;
+		return NULL;
+	}
+}
 
-	sprintf(sTemp, "%02d:%02d:%02d", timerSec / 3600, (timerSec / 60) % 60,
-			timerSec % 60);
-	u8g_DrawStr(mtk->u8g, 38, 100, sTemp);
+/*******************************************************************************
+* Рисуем компас
+ ******************************************************************************/
+void compass(mtk_t * mtk) {
 }

@@ -3,9 +3,9 @@
 
 #include "config.h"
 
+#define LANGUAGE_ENG 0
 #define LANGUAGE_RUS 1
-#define LANGUAGE_ENG 2
 
-void setStrings(uint8_t lang);
+uint8_t setStrings(uint8_t * lang);
 
 #endif /* _STRING_H_ */

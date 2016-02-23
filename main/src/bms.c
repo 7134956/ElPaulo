@@ -192,7 +192,7 @@ void BMS_cap(mtk_t * mtk){
 	BMSinfo.v[22] = 3239;
 	BMSinfo.v[23] = 3285;
 
-	graph.title = mtk_BMS_cap.label[config.lang];
+	graph.title = mtk_BMS_cap.label;
 	graph.num = BMSinfo.batNum;
 	graph.mas = &BMSinfo.v[0];
 	graph.active = BMS.ActiveShunt;
@@ -229,7 +229,7 @@ void BMS_resist(mtk_t * mtk){
 	BMSinfo.v[22] = 3239;
 	BMSinfo.v[23] = 3285;
 
-	graph.title = mtk_BMS_resist.label[config.lang];
+	graph.title = mtk_BMS_resist.label;
 	graph.num = BMSinfo.batNum;
 	graph.mas = &BMSinfo.v[0];
 	graph.active = BMS.ActiveShunt;

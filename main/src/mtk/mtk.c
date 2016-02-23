@@ -12,8 +12,7 @@ extern config_t config;
 void mtk_Init(u8g_t * u8g) {
 
 	mtk_SetupElement(&mtkUnlock, ELEMENT_NUM16, NULL, PASSWORD_LENGHT, EDITING_PROCESS, &mtk.tempNum, NULL);
-	mtkUnlock.label[0] = 0;
-	mtkUnlock.label[1] = 0;
+	mtkUnlock.label = 0;
 
 	mtk.pos_x = 0;
 	mtk.pos_y = 0;
@@ -84,7 +83,7 @@ void mtk_drawLL(mtk_t *mtk) {
 	mtk->element = mtk->rootHist[mtk->indexHist];
 	tempElement_p = mtk->element;
 	while (1) { //Найдем длину самой длинной строки и выставим начало отрисовки по ее размеру
-		temp = u8g_GetStrWidth(mtk->u8g, tempElement_p->label[config.lang]);
+		temp = u8g_GetStrWidth(mtk->u8g, tempElement_p->label);
 		if (temp > maxSize)
 			maxSize = temp;
 		if (tempElement_p->next)
@@ -105,7 +104,7 @@ void mtk_drawLL(mtk_t *mtk) {
 			if ((mtk->select == mtk->count + 1) && !(mtk->element->flags & EDITING_PROCESS))
 				u8g_DrawStr(mtk->u8g, 0, mtk->pos_y, arrow);
 			//Рисуем саму строку
-			u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, mtk->element->label[config.lang]);
+			u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, mtk->element->label);
 			temp = mtk->pos_x;
 			mtk->pos_x += maxSize;
 

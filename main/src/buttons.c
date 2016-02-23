@@ -1,18 +1,16 @@
 #include "config.h"
 #include "buttons.h"
+#include "power.h"
 
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
 
+extern power_t powerControl;
 extern track_t track;
 extern state_t state;
 extern config_t config;
+extern uint8_t stateMain;
 #endif
-
-uint8_t button_count; //Счетчик цыклов чтения
-uint8_t buttonPushed; //В данный момент нажато
-uint8_t buttonPushedPrev; //Было нажато в прошлом цыкле
-uint8_t buttonStatePrev; //Тут предыдущее считанное подтвержденное нажатие
 
 /*******************************************************************************
  *Функция инициализации портов кнопок
@@ -23,12 +21,6 @@ void ButtonsInit(uint8_t mode) {
 	EXTI_InitTypeDef EXTI_InitStructure;
 	ADC_InitTypeDef ADC_InitStructure;//Структура настройки АЦП
 	NVIC_InitTypeDef NVIC_InitStructure;
-
-	button_count = 0;//Счетчик цыклов чтения
-	buttonPushed = BUTTON_NULL;//В данный момент нажато
-	buttonPushedPrev = BUTTON_NULL;//Было нажато в прошлом цыкле
-	state.button = BUTTON_NULL;//Тут считанное подтвержденное нажатие
-	buttonStatePrev = BUTTON_LOCK;//Тут предыдущее считанное подтвержденное нажатие
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);//Включаем порт А
 
@@ -72,12 +64,14 @@ void ButtonsInit(uint8_t mode) {
 	} else if(mode == MODE_INT) {
 		SysTick_task_del(&readButtons); //Удаляем задачу чтения нажатий
 
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);//Включаем тактирование порта A и альтернативной функции
+
 		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; //Это свободный вход
 		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;//
 		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;// Это PA0
 		GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-		GPIO_EXTILineConfig(GPIO_PortSourceGPIOA | RCC_APB2Periph_AFIO, GPIO_PinSource0);// выбор порта на котором хотим получить внешнее прерывание
+		GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource0);// выбор порта на котором хотим получить внешнее прерывание
 		EXTI_InitStructure.EXTI_Line = EXTI_Line0;// выбираем линию порта
 		EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;// настраиваем на внешнее прерывание
 		EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
@@ -101,31 +95,36 @@ void ButtonsInit(uint8_t mode) {
  ******************************************************************************/
 void readButtons(void) {
 #ifdef SYSTEM_STM32
+	static uint8_t button_count = 0;//Счетчик цыклов чтения
+	static uint8_t buttonPushed = BUTTON_NULL;//В данный момент нажато
+	static uint8_t buttonPushedPrev = BUTTON_NULL;//Было нажато в прошлом цыкле
+	static uint8_t buttonStatePrev = BUTTON_LOCK;//Тут предыдущее считанное подтвержденное нажатие
 	uint16_t adc_res;
 	adc_res = ADC_GetConversionValue(ADC2); //Считываем значение АЦП
 	ADC_SoftwareStartConvCmd(ADC2, ENABLE);// Запускаем преобразование. Пускай готовится новое значение
 #ifdef DEBUG_KEYBOARD	
-	printf("\r\n%d", adc_res);//Печатаем значение
+	printf("\r\n%d", adc_res); //Печатаем значение
 #endif
-	if (buttonStatePrev == BUTTON_LOCK)//Если клавиатура заблокирована (После включения устройства)
+	if (buttonStatePrev == BUTTON_LOCK) //Если клавиатура заблокирована (После включения устройства)
 	{
-		if (adc_res < 500) {
-			buttonStatePrev = BUTTON_NULL;
-		}
-	} else //Определяем текущее нажатие
-	{
+		if (adc_res < 500)
+		buttonStatePrev = BUTTON_NULL;
+	} else { //Определяем текущее нажатие
 		if (adc_res < 500) {
 			buttonPushed = BUTTON_NULL;
-		} else if ((adc_res > 1500) && (adc_res < 2500)) {
-			buttonPushed = BUTTON_UP;
-		} else if ((adc_res > 500) && (adc_res < 1500)) {
-			buttonPushed = BUTTON_DOWN;
-		} else if ((adc_res > 2500) && (adc_res < 3500)) {
-			buttonPushed = BUTTON_LEFT;
-		} else if (adc_res > 3500) {
-			buttonPushed = BUTTON_RIGHT;
+		} else {
+			powerControl.freqMCU = CLK_72M;
+			SetClock(); //Разогнали микроконтроллер
+			if ((adc_res > 1500) && (adc_res < 2500)) {
+				buttonPushed = BUTTON_UP;
+			} else if ((adc_res > 500) && (adc_res < 1500)) {
+				buttonPushed = BUTTON_DOWN;
+			} else if ((adc_res > 2500) && (adc_res < 3500)) {
+				buttonPushed = BUTTON_LEFT;
+			} else if (adc_res > 3500) {
+				buttonPushed = BUTTON_RIGHT;
+			}
 		}
-
 		//Если нажатие продолжается увеличиваем счетчик. Иначе обнуляем
 		if (buttonPushed == buttonPushedPrev)//Сравниваем с предыдущим цыклом
 		{
@@ -193,7 +192,7 @@ void CircleSensorInit() {
 void EXTI15_10_IRQHandler(void) {
 	if (EXTI_GetITStatus(EXTI_Line12) != RESET) { //Если прерывание пришло от линии 12
 		EXTI_ClearITPendingBit(EXTI_Line12);//Сбросим флаг прерывания
-		if(state.powerMode != POWERMODE_SLEEP) { // Если находимся не в спящем режиме
+		if(stateMain != STATE_SILENT) { // Если не в рижиме тихого счетчика пробега
 			if (!(state.taskList & TASK_DRIVE)) { //Если не стоял флаг движения,
 				RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;//Включаем тактирование таймера
 				TIM4->CNT = 0;//Обнуляем счетчик
@@ -208,14 +207,13 @@ void EXTI15_10_IRQHandler(void) {
 				state.taskList |= TASK_LIM_REDRAW;
 			}
 		}
-		setPowerMode(POWERMODE_NORMAL); //Просыпаемся
 		track.odometr += track.circle; //Прибавляем к общему счетчику длину колеса
 		track.distance += track.circle;//Прибавляем к счетчику пути длину колеса
 	}
 }
 
 /*******************************************************************************
- *Настройка таймера оборота колеса
+ * Настройка таймера оборота колеса
  ******************************************************************************/
 void CircleTimerInit() {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
@@ -238,9 +236,8 @@ void CircleTimerInit() {
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
 	
-	TIM_ARRPreloadConfig(TIM4, ENABLE); //Включаем автоматический перезапуск таймера
-	
-	TIM_SetAutoreload(TIM4, 0); //Задаем значение автоперезапуска таймера
+//	TIM_ARRPreloadConfig(TIM4, ENABLE); //Включаем автоматический перезапуск таймера
+//	TIM_SetAutoreload(TIM4, 0); //Задаем значение автоперезапуска таймера
 
 	TIM_ITConfig(TIM4, TIM_IT_Update, ENABLE); //Включаем TIM IT
 	
@@ -253,13 +250,14 @@ void CircleTimerInit() {
  *Обработка прерывания от таймера 4
  ******************************************************************************/
 void TIM4_IRQHandler(void) {
+	RCC->APB1ENR |= RCC_APB1ENR_TIM4EN; //Включаем тактирование таймера
 	if (TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM4, TIM_IT_Update); //Сбрасываем бит переполнения
 		state.taskList &= ~ TASK_DRIVE; //Снимаем признак движения
 		TIM4->CR1 |= TIM_CR1_CEN; //Включаем таймер
-		RCC->APB1ENR &= ~ RCC_APB1ENR_TIM4EN; //Выключаем тактирование таймера
 		state.taskList |= TASK_REDRAW;	//Перерисовка
 	}
+			RCC->APB1ENR &= ~ RCC_APB1ENR_TIM4EN; //Выключаем тактирование таймера
 }
 
 /*******************************************************************************
@@ -270,6 +268,7 @@ void EXTI0_IRQHandler(void) {
 	if (EXTI_GetITStatus(EXTI_Line0) != RESET) { //Если прерывание пришло от линии 12
 		EXTI_ClearITPendingBit(EXTI_Line0);//Сбросим флаг прерывания
 		NVIC_DisableIRQ(EXTI0_IRQn);
+		state.taskList |= TASK_USER | TASK_UPDATETIME;
 	}
 }
 #endif

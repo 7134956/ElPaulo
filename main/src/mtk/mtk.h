@@ -87,7 +87,7 @@ struct _mtk_struct_t {
 
 struct _mtk_element_t {
 	uint8_t type;	//Тип элемента
-	char *label[LANG_COUNT];	//Текстовая метка
+	char *label;	//Текстовая метка
 	void * pointer;	//Указатель то что будем изменять
 	uint8_t length;	//Количество значащих знаков в числе или число элементов в селекторе
 	uint8_t flags;	//Флаги для свойств и состояний элемента
@@ -96,7 +96,7 @@ struct _mtk_element_t {
 
 struct _mtk_select_t {
 	char * string[2];	//Массив строк с именами пунктов селектора
-	void * pointer;	//Указатель на номер селектора
+	void * pointer;	//Указатель на номер селектора или функцию взятия/установки параметра
 };
 
 struct _mtk_graph_t {

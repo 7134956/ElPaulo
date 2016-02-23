@@ -605,7 +605,7 @@
 //     <o3> Priority <0=>Low <1=>Medium <2=>High <3=>Very high
 //     <i>  Sets DMA Channel priority
 //   </e>
-#define RTE_UART4_RX_DMA                0
+#define RTE_UART4_RX_DMA                1
 #define RTE_UART4_RX_DMA_NUMBER         2
 #define RTE_UART4_RX_DMA_CHANNEL        3
 #define RTE_UART4_RX_DMA_PRIORITY       0
@@ -1261,7 +1261,7 @@
 #define RTE_CAN1                        0
 
 //   <o> CAN1_RX Pin <0=>PA11 <1=>PB8 <2=>PD0
-#define RTE_CAN1_RX_PORT_ID             0
+#define RTE_CAN1_RX_PORT_ID             1
 #if    (RTE_CAN1_RX_PORT_ID == 0)
 #define RTE_CAN1_RX_PORT                GPIOA
 #define RTE_CAN1_RX_BIT                 11
@@ -1276,7 +1276,7 @@
 #endif
 
 //   <o> CAN1_TX Pin <0=>PA12 <1=>PB9 <2=>PD1
-#define RTE_CAN1_TX_PORT_ID             0
+#define RTE_CAN1_TX_PORT_ID             2
 #if    (RTE_CAN1_TX_PORT_ID == 0)
 #define RTE_CAN1_TX_PORT                GPIOA
 #define RTE_CAN1_TX_BIT                 12
@@ -1662,7 +1662,7 @@
 //       <o3> Bit <0-15>
 //       <i>  Selects Port Bit
 //     </e>
-#define RTE_OTG_FS_VBUS_PIN             1
+#define RTE_OTG_FS_VBUS_PIN             0
 #define RTE_OTG_FS_VBUS_ACTIVE          0
 #define RTE_OTG_FS_VBUS_PORT            GPIO_PORT(2)
 #define RTE_OTG_FS_VBUS_BIT             9
@@ -1678,7 +1678,7 @@
 //       <o3> Bit <0-15>
 //       <i>  Selects Port Bit
 //     </e>
-#define RTE_OTG_FS_OC_PIN               1
+#define RTE_OTG_FS_OC_PIN               0
 #define RTE_OTG_FS_OC_ACTIVE            0
 #define RTE_OTG_FS_OC_PORT              GPIO_PORT(4)
 #define RTE_OTG_FS_OC_BIT               1

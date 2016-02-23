@@ -16,7 +16,7 @@
 #define POPUP_NULL 0
 #define POPUP_ALERT 1
 #define POPUP_ERROR 2
-#define POPUP_QUEST 3
+#define POPUP_QUERY 3
 
 typedef struct popup_t {
 	uint8_t type; //Флани типа и ответа
@@ -30,6 +30,7 @@ void redrawDisplay(void);
 void displayOff(void);
 void displayOn(void);
 uint32_t contrastGetSet(uint32_t *);
+void messageCall(char *, char *, uint8_t);
 void message(void);
 
 #endif /* _DRAW_H_ */

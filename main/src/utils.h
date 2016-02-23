@@ -19,6 +19,6 @@ typedef struct stopwatch_t { //Глобальная структура с нас
 void utilInit(void);
 void stopwatch(mtk_t *);
 void stopwatchTick(void);
-void timer(mtk_t *);
+//void timer(mtk_t *);
 
 #endif /* UTILS_H_ */

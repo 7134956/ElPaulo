@@ -5,6 +5,8 @@
 #include "buttons.h"
 #include "string.h"
 #include "utils.h"
+#include "timer.h"
+#include "beeper.h"
 
 
 #ifdef SYSTEM_STM32
@@ -16,8 +18,8 @@
 #endif
 
 #ifdef SYSTEM_WIN
-//#include <stdio.h>
-//#include <stdlib.h>
+#include <math.h>
+#include <stdlib.h>
 #endif
 
 #define CONTRAST_MAX 96
@@ -101,14 +103,13 @@ int main() {
 	track.odometr = 1000000000; //Общий путь в мм (0 ... 18446744073709551615)
 	config.lang = 0;
 	stateMain = STATE_START;
-	SysTick_task_add(RTC_IRQHandler, 1000);
-	init_printf(NULL, putc); //Для использования функций printf, sprintf
+	SysTick_task_add(RTC_IRQHandler, 1000); //Эмуляция тиков часов
 	RTC_init();
 	drawInit();
 	BMS_init();//Подготовка к работе с BMS
 	loadParams();//Загрузили параметры из EEPROM
 	SysTickInit(100);//Запуск таймера. Вызов 100 раз в секунд
-	contrastGetSet(&config.contrast);
+	contrastGetSet((uint32_t*)&config.contrast);
 #endif
 #ifdef SYSTEM_STM32
 //	powerService();
@@ -163,8 +164,9 @@ int main() {
 	mtk_SetupElement(&mtkDateTime, ELEMENT_MENU, NULL, 0, 0, &mtkDate, &mtkLang);
 	mtk_SetupElement(&mtkDate, ELEMENT_DATE, NULL, 3, TYPE_NEEDOK | TYPE_FUNC, &timeGetSet, &mtkTime);
 	mtk_SetupElement(&mtkTime, ELEMENT_TIME, NULL, 3, TYPE_NEEDOK | TYPE_FUNC, &timeGetSet, NULL);
-	mtk_SetupElement(&mtkLang, ELEMENT_SEL, NULL, 2, 0, &mtkLangList, &mtkPower);
-	mtkLangList.pointer = &config.lang;
+	mtk_SetupElement(&mtkLang, ELEMENT_SEL, NULL, 2, TYPE_FUNC, &mtkLangList, &mtkPower);
+	//mtkLangList.pointer = &config.lang;
+	mtkLangList.pointer = &setStrings;
 //------------------------------------------
 	mtk_SetupElement(&mtkPower, ELEMENT_MENU, NULL, 0, 0, &mtkMaxFPS, &mtkMenuBMS);
 	mtk_SetupElement(&mtkMaxFPS, ELEMENT_NUM8, NULL, 1, 0, &config.maxFPS, &mtkSecInTime);
@@ -177,11 +179,10 @@ int main() {
 	mtk_SetupElement(&mtkAbout, ELEMENT_GFUNC, NULL, 0, 0, &about, NULL);
 //---------
 
-	setStrings(1);
+	setStrings(&config.lang);
 
 	state.taskList |= TASK_UPDATETIME; //Ставим задачу взять время со счетчика
 	state.taskList |= TASK_REDRAW; //Запросим первую перерисовку экрана
-	state.powerMode = POWERMODE_NULL; //Начальный режим
 	//Перед входом в главный цыкл...
 	mainLoop();
 	return 0;
@@ -201,7 +202,6 @@ void mainLoop() {
 #endif
 		if (state.button != BUTTON_NULL) {
 			beep(2000, 50);
-			setPowerMode(POWERMODE_NORMAL);
 			buttonsParse(); //Разбор кнопочных нажатий
 			state.taskList |= TASK_REDRAW;
 		}
@@ -234,8 +234,7 @@ void mainLoop() {
 			}
 		}
 			break;
-		case STATE_SLEEP: {
-			setPowerMode(POWERMODE_SLEEP);
+		case STATE_SILENT: {
 		}
 			break;
 		case STATE_NULL: {
@@ -245,13 +244,15 @@ void mainLoop() {
 		}
 		/* Обработка запроса ограниченной отрисовки */
 		if (state.taskList & TASK_LIM_REDRAW) { //Если стоит задача отложенной перерисовки
-			if (!config.maxFPS) //Ограничения нету
+			if (!config.maxFPS){ //Ограничения нету
 				state.taskList |= TASK_REDRAW;
+				state.taskList &= ~ TASK_LIM_REDRAW;
+			}
 			else if (!SysTick_task_check(drawTask))	//Не запущен планировщик перерисовки
 				SysTick_task_add(drawTask, 10); //Запускаем планировщик перерисовки
 		}
 		/* Запуск обновления экрана, если нужно */
-		if ((state.taskList & TASK_REDRAW) && (stateMain != STATE_SLEEP)) {
+		if ((state.taskList & TASK_REDRAW) && (stateMain != STATE_SILENT)) {
 #ifdef DEBUG_DISPLAY
 			RCC->APB1ENR |= RCC_APB1ENR_TIM4EN; //Включаем тактирование таймера
 			TIM4->CNT = 0;//Обнуляем счетчик
@@ -263,7 +264,7 @@ void mainLoop() {
 			track.circleTics = TIM4->CNT; //Считали значение счетчика. 32768 импульсов в секунду
 			RCC->APB1ENR &= ~ RCC_APB1ENR_TIM4EN;//Включаем тактирование таймера
 #endif
-			state.taskList &= ~(TASK_REDRAW | TASK_LIM_REDRAW); //Снимаем запросы перерисовки
+			state.taskList &= ~ TASK_REDRAW; //Снимаем запросы перерисовки
 		}
 	}
 }
@@ -283,7 +284,7 @@ void newState() {
 	}
 	switch (stateMain) {
 	case STATE_MAIN: {
-		if ((stateMainPrev == STATE_SLEEP) || (stateMainPrev == STATE_START))
+		if ((stateMainPrev == STATE_SILENT) || (stateMainPrev == STATE_START) || (stateMainPrev == STATE_NULL))
 			dateTime_p = timeGetSet(NULL); //Настроим указатель на дату, время.
 		if (state.taskList & TASK_TIMESETUP) {
 			stateMain = STATE_SETUP;
@@ -333,7 +334,7 @@ void newState() {
 		mtk_SetRootElement(&mtk_BMS_info);
 	}
 		break;
-	case STATE_SLEEP:
+	case STATE_SILENT:
 	case STATE_OFF: {
 		saveParams();
 		redrawDisplay();
@@ -345,7 +346,7 @@ void newState() {
 		TIM4->CNT = 0;//Обнуляем счетчик
 		while (TIM_GetCounter(TIM4) < 65535);
 		displayOff();
-		setPowerMode(POWERMODE_OFF);
+		state.taskList |= TASK_POWEROFF;
 #endif
 #ifdef SYSTEM_WIN
 		exit(1);
@@ -378,6 +379,7 @@ void newState() {
  *Обработка нажатий кнопок в зависимости от стостояния
  ******************************************************************************/
 void buttonsParse() {
+	state.taskList |= TASK_USER; // Отметим активность пользователя
 	if (popup.type) { //Если есть всплывающее сообщение
 		switch (state.button) {
 		case BUTTON_UP:
@@ -397,9 +399,10 @@ void buttonsParse() {
 			break;
 		}
 		state.button = BUTTON_NULL;
-	}
-	switch (stateMain) {
-	case STATE_START: {
+	} else
+		//if(){}else
+		switch (stateMain) {
+		case STATE_START: {
 		mtk_Command(state.button);
 	}
 		break;
@@ -415,7 +418,7 @@ void buttonsParse() {
 			if (!navigate[0])
 				navigate[0] = 1;
 			else
-				stateMain = STATE_SLEEP;
+				stateMain = STATE_SILENT;
 		}
 			break;
 		case BUTTON_LEFT: {
@@ -705,20 +708,19 @@ void buttonsParse() {
 			break;
 		case BUTTON_LEFT: {
 			if (navigate[0]) {
-				if (config.PWM[navigate[0] - 1] < 32) {
-					config.PWM[navigate[0] - 1] = 0;
-				} else
-					config.PWM[navigate[0] - 1] -= 32;
+				config.PWM[navigate[0] - 1] = config.PWM[navigate[0] - 1]/2;
 				PWMSet(navigate[0] - 1, config.PWM[navigate[0] - 1]);
 			}
 		}
 			break;
 		case BUTTON_RIGHT: {
 			if (navigate[0]) {
-				if (config.PWM[navigate[0] - 1] > 223) {
+				if (config.PWM[navigate[0] - 1] == 0) {
+					config.PWM[navigate[0] - 1] = 1;
+				} else if (config.PWM[navigate[0] - 1] > 64)
 					config.PWM[navigate[0] - 1] = 255;
-				} else
-					config.PWM[navigate[0] - 1] += 32;
+				else
+					config.PWM[navigate[0] - 1] = config.PWM[navigate[0] - 1]*2;
 				PWMSet(navigate[0] - 1, config.PWM[navigate[0] - 1]);
 			}
 		}

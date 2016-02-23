@@ -16,13 +16,12 @@ void Time_Adjust(tm_t*);
 void RTC_Configuration(void);
 void NVIC_Configuration(void);
 void NVIC_GenerateSystemReset(void);
-uint32_t FtimeToCounter(tm_t *);
 uint8_t isleapyear(uint16_t);
 
-extern count_t count;
 extern state_t state;
 extern config_t config;
 extern uint32_t i2cTimeLimit;
+extern power_t powerControl;
 
 tm_t dateTime; //Структура с актуальной датой и временем
 uint8_t lastdaysofmonths[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
@@ -47,7 +46,8 @@ uint8_t weekDay(uint8_t day, uint8_t month, uint16_t year) {
 	a = (14 - month) / 12;
 	y = year - a;
 	m = month + 12 * a - 2;
-	return ((7000 + (day + y + y / 4 - y / 100 + y / 400 + (31 * m) / 12)) + 1) % 7;
+	return ((7000 + (day + y + y / 4 - y / 100 + y / 400 + (31 * m) / 12)) + 1)
+			% 7;
 }
 
 /*******************************************************************************
@@ -93,7 +93,6 @@ void RTC_init(void) {
 	RTC_Counter = FtimeToCounter(&dateTime);
 #endif
 
-
 #ifdef SYSTEM_STM32
 	if (BKP_ReadBackupRegister(BKP_DR1) != 0xA5A5) {
 		/* Если в бекап регистре не установлена верная метка, настроим часы */
@@ -133,7 +132,9 @@ void RTC_init(void) {
 		/* Ждем синхронизации */
 		RTC_WaitForSynchro();
 		/* Включаем прерывание счета секунд */
-		RTC_ITConfig(RTC_IT_SEC, ENABLE);
+		RTC_ITConfig(RTC_IT_SEC | RTC_IT_ALR, ENABLE);
+		/* Включаем прерывание будильника */
+		//RTC_ITConfig(RTC_IT_ALR, ENABLE);
 		/* Ждем записи регистров */
 		RTC_WaitForLastTask();
 	}
@@ -142,7 +143,7 @@ void RTC_init(void) {
 	//Обновим структуру со временем
 	CounterToFtime(RTC_GetCounter(), &dateTime);
 	/* Копировали флаги сброса */
-	state.reset = ((RCC->CSR) >> 24) ;		
+	state.reset = ((RCC->CSR) >> 24);
 	/* Обнуляем флаги сброса */
 	RCC_ClearFlag();
 #endif
@@ -153,11 +154,26 @@ void RTC_init(void) {
  * Настройка прерываний для часов
  ******************************************************************************/
 void NVIC_Configuration(void) {
+	EXTI_InitTypeDef EXTI_InitStruct;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	/* Настройка группы приоритета прерывания */
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
 	/* Включим прерывание от часов */
 	NVIC_InitStructure.NVIC_IRQChannel = RTC_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	/* Настроим внешнее прерывание от будильника */
+	EXTI_ClearITPendingBit(EXTI_Line17);
+	EXTI_InitStruct.EXTI_Line = EXTI_Line17;
+	EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStruct.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStruct);
+	/* Настроим обработчик */
+	NVIC_InitStructure.NVIC_IRQChannel = RTCAlarm_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
@@ -180,8 +196,8 @@ void Time_Adjust(tm_t* time) {
 
 	/* Clear reset flags */
 	RCC_ClearFlag();
-	
-  /* Обновляем время в структуре */
+
+	/* Обновляем время в структуре */
 	CounterToFtime(RTC_GetCounter(), &dateTime);
 }
 
@@ -234,7 +250,7 @@ void RTC_Configuration(void) {
 #define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
 
 /*******************************************************************************
- * Сброс.
+ * Сброс микроконтроллера.
  ******************************************************************************/
 void NVIC_GenerateSystemReset(void) {
 	SCB->AIRCR = AIRCR_VECTKEY_MASK | (uint32_t) 0x04;
@@ -242,54 +258,37 @@ void NVIC_GenerateSystemReset(void) {
 #endif
 
 /*******************************************************************************
+ * Прерывание от будильника.
+ ******************************************************************************/
+void RTCAlarm_IRQHandler(void) {
+#ifdef SYSTEM_STM32
+	printf("%s", "RTCAlarm_IRQHandler...");
+	EXTI_ClearITPendingBit(EXTI_Line17);
+	state.taskList |= TASK_REDRAW | TASK_UPDATETIME | TASK_ALARM;
+	printf("%s", "[OK]\r\n");
+#endif
+}
+
+/*******************************************************************************
  Ежесекундное прерывание от часов.
  ******************************************************************************/
 void RTC_IRQHandler(void) {
+	printf("%s", "RTC_IRQHandler...");
 #ifdef SYSTEM_STM32
-	DBG("Tic....\r\n");
 	if (RTC_GetITStatus(RTC_IT_SEC) != RESET) {
 		/* Снимаем флаг прерывания секунд */
 		RTC_ClearITPendingBit(RTC_IT_SEC);
-		if(!(state.taskList & TASK_DRIVE)) { //Если не едем
-			if((state.powerMode == POWERMODE_NORMAL) && config.SleepSec) {
-				count.toSleep++; //Приблизиться ко сну
-			}
-			if(count.toSleep > config.SleepSec) //Не пора ли спать?
-				setPowerMode(POWERMODE_SLEEP);//Спать готов
-		}
-
-		/*Обновим время на дисплее, если не спящий режим*/
-		if(state.powerMode != POWERMODE_SLEEP) {
-			if (state.taskList & TASK_UPDATETIME) {
-				CounterToFtime(RTC_GetCounter(), &dateTime);
-				state.taskList &=~ TASK_UPDATETIME;
-				state.taskList |= TASK_REDRAW;
-			}
-			else {
-				dateTime.tm_sec++;
-				if (dateTime.tm_sec == 60) {
-					dateTime.tm_sec = 0;
-					dateTime.tm_min++;
-					if (dateTime.tm_min == 60) {
-						dateTime.tm_min = 0;
-						dateTime.tm_hour++;
-						if (dateTime.tm_hour == 24) {
-							CounterToFtime(RTC_GetCounter(), &dateTime);
-						}
-					}
-					state.taskList |= TASK_REDRAW; //Перерисовка каждую минуту
-				}
-				if(config.SecInTime)state.taskList |= TASK_REDRAW; //Перерисовка если показываем секунды
-			}
-		}
-
-	//	if (i2cTimeLimit > 1000000) //Если i2c висит
-	//	NVIC_GenerateSystemReset();//Ребут
-	}
 #endif
 #ifdef SYSTEM_WIN
-	/*Обновим время на дисплее, если не спящий режим*/
-	if(state.powerMode != POWERMODE_SLEEP) {
+		{
+#endif
+		if(config.SleepSec && (powerControl.countToSleep < config.SleepSec)) //Приблизим ко сну
+		powerControl.countToSleep++;
+
+		if(powerControl.CloclLockTime > 0)
+		powerControl.CloclLockTime--;
+
+		/*Обновим время на дисплее*/
 		if (state.taskList & TASK_UPDATETIME) {
 			CounterToFtime(RTC_GetCounter(), &dateTime);
 			state.taskList &=~ TASK_UPDATETIME;
@@ -312,11 +311,28 @@ void RTC_IRQHandler(void) {
 			if(config.SecInTime)state.taskList |= TASK_REDRAW; //Перерисовка если показываем секунды
 		}
 	}
-#endif
+		printf("%s", "[OK]\r\n");
 }
-
 /*******************************************************************************
- * Затычка для ПК версии
+ * Установить через сколько секунд сработает будильник
+ ******************************************************************************/
+#ifdef SYSTEM_STM32
+void setAlarm(uint32_t count) {
+	printf("%s", "setAlarm...");
+	/* Ждем когда все операции будут завершены */
+	RTC_WaitForLastTask();
+	if(count)
+	/*  */
+	RTC_SetAlarm(RTC_GetCounter() + count);
+	else
+	RTC_SetAlarm(RTC_GetCounter()-(RTC_GetCounter()%60)+60);
+	/* Ждем завершения операции */
+	RTC_WaitForLastTask();
+	printf("%s", "[OK]\r\n");
+}
+#endif
+/*******************************************************************************
+ * Затычка для SDL версии
  ******************************************************************************/
 #ifdef SYSTEM_WIN
 uint32_t RTC_GetCounter(void){
@@ -329,10 +345,7 @@ uint32_t RTC_GetCounter(void){
  ******************************************************************************/
 void CounterToFtime(uint32_t counter, tm_t * dateTime) {
 	uint32_t ace;
-	uint8_t b;
-	uint8_t d;
-	uint8_t m;
-
+	uint8_t b, d, m;
 	ace = (counter / 86400) + 32044 + JD0;
 	b = (4 * ace + 3) / 146097; // может ли произойти потеря точности из-за переполнения 4*ace ??
 	ace = ace - ((146097 * b) / 4);
@@ -352,9 +365,8 @@ void CounterToFtime(uint32_t counter, tm_t * dateTime) {
  * Преобразование григорианской даты и времени в значение счетчика
  ******************************************************************************/
 uint32_t FtimeToCounter(tm_t * dateTime) {
-	uint8_t a;
+	uint8_t a, m;
 	uint16_t y;
-	uint8_t m;
 	uint32_t JDN;
 // Вычисление необходимых коэффициентов
 	a = (13 - dateTime->tm_mon) / 12;
@@ -368,7 +380,7 @@ uint32_t FtimeToCounter(tm_t * dateTime) {
 	JDN += -y / 100;
 	JDN += y / 400;
 	JDN -= 32045;
-	JDN -= JD0;// так как счетчик у нас нерезиновый, уберем дни которые прошли до 01 янв 2001
+	JDN -= JD0;// так как счетчик у нас не резиновый, уберем дни которые прошли до 01 янв 2001
 	JDN *= 86400;// переводим дни в секунды
 	JDN += (dateTime->tm_hour * 3600);// и дополняем его секундами текущего дня
 	JDN += (dateTime->tm_min * 60);
@@ -376,4 +388,3 @@ uint32_t FtimeToCounter(tm_t * dateTime) {
 // итого имеем количество секунд с 00-00 01 янв 2001
 	return JDN;
 }
-

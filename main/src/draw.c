@@ -3,20 +3,21 @@
 #include "bitmap.h"
 #include "rtc.h"
 #include "utils.h"
+#include "power.h"
 
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
-//#include "u8g_com_stm32.h"
 #endif
 
 uint8_t hStart, vStart, hStep, vStep, j, k;
 popup_t popup;
-extern char *month[2][12];
-extern char *days[2][7];
+extern char *month[12];
+extern char *days[7];
 
 u8g_t u8g;
 
 tm_t * time_p; //Указатель на структуру со временем
+extern uint32_t timer;
 extern calendar_t calendar;
 extern racelist_t racelist; //Информация о заездах
 extern track_t track; //Параметры текущего заезда
@@ -26,7 +27,7 @@ extern track_t histItem;
 extern uint8_t navigate[5];
 extern uint8_t stateMain;
 extern stopwatch_t sWatch;
-
+extern power_t powerControl;
 extern mtk_element_t mtkPin;	//Пароль стартового экрана
 /*		mtkPassword,	//Пароль
 		mtkDisplay,		//Меню настройки дисплея
@@ -53,13 +54,15 @@ void drawStat(void);
 void drawBar(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t);
 void drawStart(void);
 void drawTemp(void);
-//void drawSetup(void);
 void drawTempChart(void);
 void drawMainQuickMenu(void);
 void drawStatQuickMenu(void);
 void drawBat(void);
 void drawCell(uint8_t, uint8_t, uint8_t);
 void drawOff(void);
+void drawScrSvr(void);
+void drawDigit(uint8_t, uint8_t, uint8_t, uint8_t);
+void drawSegment(uint8_t, uint8_t, uint8_t, uint8_t);
 
 /*******************************************************************************
  *Запуск дисплея и настройка графики
@@ -130,7 +133,11 @@ void draw(void) {
 //	u8g_SetFontPosCenter( &u8g );
 //	u8g_SetFontPosTop( &u8g );
 	u8g_SetFontPosBaseline(&u8g);
-	if ((stateMain != STATE_START) && (stateMain != STATE_OFF))
+
+	if(powerControl.sleepMode == POWERMODE_STOP)
+		drawScrSvr();
+	else{
+			if ((stateMain != STATE_START) && (stateMain != STATE_OFF) && (stateMain != STATE_SILENT))
 		drawTabs();
 	u8g_SetDefaultForegroundColor(&u8g);
 	switch (stateMain) {
@@ -147,6 +154,10 @@ void draw(void) {
 		break;
 	case STATE_LIGHT: {
 		drawLight();
+	}
+		break;
+	case 5: {
+		drawScrSvr();
 	}
 		break;
 	case STATE_SETUP:
@@ -176,7 +187,6 @@ void draw(void) {
 		}
 	}
 		break;
-	case STATE_SLEEP: 
 	case STATE_OFF: {
 		drawOff();
 	}
@@ -191,6 +201,7 @@ void draw(void) {
 	}
 	if (stateMain != STATE_START)
 		if(popup.type)message();
+}
 }
 
 /*******************************************************************************
@@ -255,9 +266,7 @@ void drawTabs(void) {
 		u8g_DrawStr(&u8g, (stateMain * hStep) - 17, 16, sTemp);
 		u8g_SetDefaultBackgroundColor(&u8g);
 	}
-	if (state.powerMode == POWERMODE_SLEEP)
-		sprintf(sTemp, " SLEEP!");
-	else if (config.SecInTime) {
+	if (config.SecInTime) {
 		sprintf(sTemp, "%02d:%02d:%02d", time_p->tm_hour, time_p->tm_min,
 				time_p->tm_sec);
 		u8g_DrawStr(&u8g, 156, 15, sTemp);
@@ -295,6 +304,10 @@ void drawMain(void) {
 				(sWatch.dsH[sWatch.nums] / 600) % 60,
 				(sWatch.dsH[sWatch.nums] / 10) % 60,
 				sWatch.dsH[sWatch.nums] % 10);
+	else if (state.taskList & TASK_TIMER)
+	sprintf(sTemp, "%01d:%02d:%02d", timer / 3600,
+			(timer / 60) % 60,
+			(timer) % 60);
 	else
 		sprintf(sTemp, "%03u.%03u", track.distance / 1000000,
 				(track.distance % 1000000) / 1000); //Последний пробег
@@ -306,7 +319,7 @@ void drawMain(void) {
 	u8g_DrawStr(&u8g, 155, 78, "A\xb7h");
 	u8g_DrawLine(&u8g, 155, 80, 186, 80);
 	u8g_DrawStr(&u8g, 161, 95, "km");
-	if (!(state.taskList & TASK_STOPWATCH))
+	if (!(state.taskList & (TASK_STOPWATCH | TASK_TIMER)))
 		u8g_DrawStr(&u8g, 176, 136, "km");
 	hStep = 50;
 	if (BMSinfo.maxCap)
@@ -370,7 +383,7 @@ void drawLight(void) {
 	vStep = 45;
 	x = hStart + 60;
 	for (i = 0; i < PWM_COUNT; i++) {
-		sprintf(sTemp, "%d", (100 * PWMGet(i)) / PWM_MAX);
+		sprintf(sTemp, "%d.%d", (100 * PWMGet(i)) / PWM_MAX,  ((1000 * PWMGet(i)) / PWM_MAX)%10);
 
 		if (PWMGet(i))
 			u8g_DrawStr(&u8g, x, vStart - 2 + vStep * i, sTemp);
@@ -404,11 +417,11 @@ void drawCalendar(void) {
 	hStart = 36;
 	vStart = 33;
 	for (i = 0; i < 7; i++) {
-		u8g_DrawStr(&u8g, hStart + 5 + hStep * i, vStart - 1, days[config.lang][i]);
+		u8g_DrawStr(&u8g, hStart + 5 + hStep * i, vStart - 1, days[i]);
 	}
 	u8g_SetRot270(&u8g);
-	i = u8g_GetStrWidth(&u8g, month[config.lang][calendar.month - 1]);
-	u8g_DrawStr(&u8g, 45 - i / 2, 18, month[config.lang][calendar.month - 1]);
+	i = u8g_GetStrWidth(&u8g, month[calendar.month - 1]);
+	u8g_DrawStr(&u8g, 45 - i / 2, 18, month[calendar.month - 1]);
 	sprintf(sTemp, "%d", calendar.year);
 	u8g_DrawStr(&u8g, 96, 18, sTemp);
 	u8g_UndoRotation(&u8g);
@@ -483,10 +496,12 @@ void drawRacelist(void) {
 				vStart - 18 + racelist.itemsDisplay * vStep);
 	}
 	u8g_DrawFrame(&u8g, 0, vStart - 17, 240, 2);
+	u8g_DrawStr(&u8g, hStart - 35, vStart - 19 + navigate[2] * vStep, str);
+	if(racelist.itemsDisplay)
 	for (i = 0; i < racelist.itemsDisplay; i++) {
 		u8g_DrawLine(&u8g, hStart - 20, vStart + 3 + vStep * i, 239,
 				vStart + 3 + vStep * i);
-		str[1] = i + 49;
+		str[0] = i + 49;
 		u8g_DrawStr(&u8g, hStart - 20, vStart + i * vStep, str);
 		sprintf(sTemp, "%02d:%02d", racelist.startTime[i] / 100, racelist.startTime[i] % 100);
 		u8g_DrawStr(&u8g, hStart + hStep * 0, vStart + i * vStep, sTemp);
@@ -496,8 +511,8 @@ void drawRacelist(void) {
 		sprintf(sTemp, "%02d.%02d", racelist.averSpeed[i] / 100,
 				racelist.averSpeed[i] % 100);
 		u8g_DrawStr(&u8g, hStart + hStep * 2, vStart + i * vStep, sTemp);
-	}
-	u8g_DrawStr(&u8g, hStart - 35, vStart - 19 + navigate[2] * vStep, str);
+	}else
+		u8g_DrawStr(&u8g, hStart, vStart, "Empty");
 }
 
 
@@ -689,7 +704,7 @@ void drawStat(void) {
 	uint8_t i;
 	uint32_t timeSec;
 	char sTemp[15];
-	extern char *raceParams[2][7];
+	extern char *raceParams[7];
 	hStart = 0;
 	vStart = 36;
 	hStep = 0;
@@ -698,7 +713,7 @@ void drawStat(void) {
 	for (i = 0; i < 7; i++) {
 		u8g_DrawLine(&u8g, 0, vStart + 3 + vStep * i, 239,
 				vStart + 3 + vStep * i);
-		u8g_DrawStr(&u8g, hStart, vStart + i * vStep, raceParams[config.lang][i]);
+		u8g_DrawStr(&u8g, hStart, vStart + i * vStep, raceParams[i]);
 	}
 	u8g_DrawLine(&u8g, 115, 18, 115, 159);
 	//Максимальная скорость за заезд.
@@ -731,7 +746,7 @@ void drawStat(void) {
 void drawHistItem(void) {
 	char sTemp[15];
 	uint8_t i;
-	extern char *raceParams[2][7];
+	extern char *raceParams[7];
 	uint32_t timeSec;
 	hStart = 0;
 	vStart = 36;
@@ -741,7 +756,7 @@ void drawHistItem(void) {
 	for (i = 0; i < 4; i++) {
 		u8g_DrawLine(&u8g, 0, vStart + 3 + vStep * i, 239,
 				vStart + 3 + vStep * i);
-		u8g_DrawStr(&u8g, hStart, vStart + i * vStep, raceParams[config.lang][i]);
+		u8g_DrawStr(&u8g, hStart, vStart + i * vStep, raceParams[i]);
 	}
 	//Максимальная скорость за заезд.
 	u8g_DrawLine(&u8g, 115, 18, 115, 18 + vStep * i);
@@ -760,18 +775,29 @@ void drawHistItem(void) {
 }
 
 /*******************************************************************************
+ *Вызов сообщения
+ ******************************************************************************/
+void messageCall(char * head, char * body, uint8_t type){
+	if(head)
+		popup.head = head;
+	popup.body = body;
+	popup.type = type;
+}
+/*******************************************************************************
  *Выводит всплывающее окно
  ******************************************************************************/
 void message(void) {
 	char sTemp[2];
 	uint8_t x, y, x2, y2, w, h, i, j;
-	char *str1[4] = {"", "Alert", "!!! Error !!!", "??? Query ???"};
+	char *str1[4] = {"", "\x14 Alert \x14", "\x12 Error \x12", "\x13 Query \x13"};
 	if(!popup.head)
 		popup.head = str1[popup.type];
 	if(!popup.body)
 		popup.body = "Empty message!";
 	u8g_SetFont(&u8g, u8g_font_elpaulo20);
 	w = 10 + u8g_GetStrWidth(&u8g, popup.body);
+	if(w < 130)
+		w = 130;
 	h = 66;
 	x = (DISPLAY_WIDTH - w) / 2;
 	y = (DISPLAY_HEIGHT - h) / 2;
@@ -788,7 +814,10 @@ void message(void) {
 	y2 = y + h - 24;
 	u8g_DrawLine(&u8g, x + 3, y2, x + w - 4, y2);
 	y2 = y+h-7;
+	if(popup.type == POPUP_QUERY)
 	u8g_DrawStr(&u8g, x+15, y2, "Cancel");
+	else
+		u8g_DrawStr(&u8g, x+15, y2, "Ok");
 	u8g_DrawStr(&u8g, x+w-35, y2, "Ok");
 	y2 +=2;
 	sTemp[0] = ARROW_LEFT;
@@ -808,4 +837,136 @@ void message(void) {
 				u8g_DrawPixel(&u8g, x2, j);
 		}
 	}
+}
+
+/*******************************************************************************
+ *Заставка для спящего режима в виде стильизованных часов
+ ******************************************************************************/
+void drawScrSvr(void) {
+	uint8_t x, y, s, step;
+	x = 3;
+	y = 20;
+	s = 36;
+	step = s*1.5;
+	drawDigit(x, y, s, time_p->tm_hour / 10);
+	x+=step;
+	drawDigit(x, y, s, time_p->tm_hour % 10);
+	x += step*2-20;
+	u8g_DrawBox(&u8g, x - 30, y + 10, 10, 10);
+	u8g_DrawBox(&u8g, x - 30, y + 50, 10, 10);
+	drawDigit(x, y, s, time_p->tm_min / 10);
+	x += step;
+	drawDigit(x, y, s, time_p->tm_min % 10);
+
+	s = 17;
+	y = 124;
+	x = 2;
+	step = s*1.5;
+	drawDigit(x, y, s, time_p->tm_mday / 10);
+	x += step;
+	drawDigit(x, y, s, time_p->tm_mday % 10);
+	x += step-2;
+	u8g_DrawBox(&u8g, x+5, y + 31, 4, 4);
+	x += step-2;
+	drawDigit(x, y, s, (time_p->tm_mon+1) / 10);
+	x += step;
+	drawDigit(x, y, s, (time_p->tm_mon+1) % 10);
+	x += step-2;
+	u8g_DrawBox(&u8g, x+5, y + 31, 4, 4);
+	x += step-2;
+	drawDigit(x, y, s, 2);
+	x += step;
+	drawDigit(x, y, s, 0);
+	x += step;
+	drawDigit(x, y, s, (time_p->tm_year-100) / 10);
+	x += step;
+	drawDigit(x, y, s, (time_p->tm_year-100) % 10);
+
+
+}
+
+/*******************************************************************************
+ *Выводит цифру стилизованную под ЖК
+ ******************************************************************************/
+void drawDigit(uint8_t x, uint8_t y, uint8_t s, uint8_t n) {
+	uint8_t i, h, w, x2, y2, ls;
+	uint8_t seg[11] = { 0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE0, 0xFE, 0xF6, 0x01 };
+	ls=5;
+	for (i = 0; i < 8; i++) {
+		if (seg[n] & 128 >> i) {
+			switch (i) {
+			case 0:
+				x2 = x + 2;
+				y2 = y;
+				h = ls;
+				w = s - 4;
+				break;
+			case 1:
+				x2 = x + s;
+				y2 = y + 2;
+				h = s - 4;
+				w = ls;
+				break;
+			case 2:
+				x2 = x + s;
+				y2 = y + s + 2;
+				h = s - 4;
+				w = ls;
+				break;
+			case 3:
+				x2 = x + 2;
+				y2 = y + s * 2;
+				h = ls;
+				w = s - 4;
+				break;
+			case 4:
+				x2 = x;
+				y2 = y + s + 2;
+				h = s - 4;
+				w = ls;
+				break;
+			case 5:
+				x2 = x;
+				y2 = y + 2;
+				h = s - 4;
+				w = ls;
+				break;
+			case 6:
+				x2 = x + 2;
+				y2 = y + s;
+				h = ls;
+				w = s - 4;
+				break;
+			case 7:
+				x2 = x + 2;
+				y2 = y + 2 + s * 2;
+				h = ls*2;
+				w = ls*3;
+				break;
+			}
+			if(h > w)
+				w =1+ h/8;
+			else
+				h =1+ w/8;
+			drawSegment(x2, y2, h, w);
+		}
+	}
+}
+
+/*******************************************************************************
+ *Выводит сегмент стилизованную под ЖК
+ ******************************************************************************/
+void drawSegment(uint8_t x, uint8_t y, uint8_t h, uint8_t w) {
+	uint8_t i;
+	if (h > w)
+		/*Вертикальный*/
+		for (i = 0; i < w; i++) {
+			u8g_DrawLine(&u8g, x + i, y + i, x + i, y + h - i);
+			u8g_DrawLine(&u8g, x - i, y + i, x - i, y + h - i);
+		}
+	else
+		for (i = 0; i < h; i++) {
+			u8g_DrawLine(&u8g, x + i, y + i, x + w - i, y + i);
+			u8g_DrawLine(&u8g, x + i, y - i, x + w - i, y - i);
+		}
 }

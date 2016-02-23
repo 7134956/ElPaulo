@@ -40,8 +40,10 @@ uint32_t RTC_GetCounter(void);
 
 void NVIC_GenerateSystemReset(void);
 void CounterToFtime(uint32_t, tm_t *);
+uint32_t FtimeToCounter(tm_t *);
 tm_t * timeGetSet(tm_t *);
 void RTC_init(void);
+void setAlarm(uint32_t);
 uint8_t lastdayofmonth(uint16_t, uint8_t);
 uint8_t weekDay(uint8_t, uint8_t, uint16_t);
 

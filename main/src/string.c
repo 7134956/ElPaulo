@@ -1,21 +1,11 @@
 #include "mtk.h"
+#include "string.h"
 
-char *raceParams[2][7] = {
-		{"Max. speed", "Expense", "Travel time", "Discharge", "To charging", "Aver. speed" ,"Odograph"},
-		{"Макс. скор", "Ср. расход", "Время пути", "Потрачено", "До зарядки", "Сред. скор" , "Общ. пробег"} };
-char *sBMSinfo[2][7] = {
-		{"Name:", "", "", "", "", "" ,""},
-		{"Имя:", "", "", "", "", "" , ""} };
-
-char *month[2][12] = {
-		{"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" },
-		{"Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", " Сентябрь", "Октябрь", "Ноябрь", " Декабрь" } };
-
-char *days[2][7] = {
-		{ "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su" },
-		{ "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс" } };
-
-char *sVoltage[2] = { "(Voltage)", "(Напряжение)"};
+char *raceParams[7];
+char *sBMSinfo[7];
+char *month[12];
+char *days[7];
+char *sVoltage;
 
 extern mtk_element_t
 		mtk_BMS_statist,
@@ -27,11 +17,22 @@ extern mtk_element_t
 		mtkAutoBright,	//Включение автояркости дисплея
 		mtkMenuOdometr,	//Меню настройки одометра
 		mtkCircle,		//Настройка длины окружности колеса
-		mtkOdometr,	//Пройденное расстояние в мм
+		mtkOdometr,		//Пройденное расстояние в мм
 		mtkPin,			//Пароль стартового экрана
 		mtkLang,
-		mtkDateTime, mtkDate, mtkTime,
-		mtkPower, mtkSecInTime, mtkMaxFPS, mtkSleepDisplayOff, mtkSleepSec, mtkMenuBMS, mtk_BMS_config, mtk_BMS_voltage, mtk_BMS_cap, mtk_BMS_resist,
+		mtkDateTime,
+		mtkDate,
+		mtkTime,
+		mtkPower,
+		mtkSecInTime,
+		mtkMaxFPS,
+		mtkSleepDisplayOff,
+		mtkSleepSec,
+		mtkMenuBMS,
+		mtk_BMS_config,
+		mtk_BMS_voltage,
+		mtk_BMS_cap,
+		mtk_BMS_resist,
 		mtk_BMS_charge,
 		mtk_BMS_discharge,
 		mtk_BMS_Vmin,
@@ -41,88 +42,176 @@ extern mtk_element_t
 		mtk_BMS_Tmax,
 		mtk_BMS_Tmin,
 		mtkAbout,
-
 		mtkStopwatch,
 		mtkTimer;
 
 extern mtk_select_t mtkLangList;
 
-void setStrings(uint8_t lang) {
-		mtkDisplay.label[0] = "Display";
-		mtkDisplay.label[1] = "Экран";
-		mtkContrast.label[0] = "Contrast";
-		mtkContrast.label[1] = "Контраст";
-		mtkAutoBright.label[0] = "Autobright";
-		mtkAutoBright.label[1] = "Автоподсветка";
-		mtkMenuOdometr.label[0] = "Odometr";
-		mtkMenuOdometr.label[1] = "Одометр";
-		mtkCircle.label[0] = "Circle(mm)";
-		mtkCircle.label[1] = "Колесо(mm)";
-		mtkOdometr.label[0] = "Odometr(Km)";
-		mtkOdometr.label[1] = "Одометр(Km)";
-		mtkPassword.label[0] = "Password";
-		mtkPassword.label[1] = "Пароль";
-		mtkDateTime.label[0] = "Date, time";
-		mtkDateTime.label[1] = "Дата, время";
-		mtkDate.label[0] = "Date";
-		mtkDate.label[1] = "Дата";
-		mtkTime.label[0] = "Time";
-		mtkTime.label[1] = "Время";
-		mtkPin.label[0] = "";
-		mtkPin.label[1] = "";
-		mtkLang.label[0] = "Language";
-		mtkLang.label[1] = "Язык";
-		mtkLangList.string[0] = "English";
-		mtkLangList.string[1] = "Русский";
-		mtkPower.label[0]  = "PowerSave";
-		mtkPower.label[1]  = "Сбережение";
-		mtkSecInTime.label[0]  = "Draw sec";
-		mtkSecInTime.label[1] = "Показ секунд";
-		mtkSleepSec.label[0] = "Autosleep sec";
-		mtkSleepSec.label[1] = "Aвтосон(сек)";
-		mtkMaxFPS.label[0] = "Maximum FPS";
-		mtkMaxFPS.label[1] = "Частота кадров";
-		mtkSleepDisplayOff.label[0] = "Display off";
-		mtkSleepDisplayOff.label[1] = "Выкл. экран";
+uint8_t currentLang;
+/******************************************************************************
+ * Get/set current GUI language
+ *****************************************************************************/
+uint8_t setStrings(uint8_t * lang) {
+	if(!lang)
+		return currentLang;
+	switch (*lang) {
+	case LANGUAGE_ENG:
+		raceParams[0] = "Max. speed";
+		raceParams[1] = "Expense";
+		raceParams[2] = "Travel time";
+		raceParams[3] = "Discharge";
+		raceParams[4] = "To charging";
+		raceParams[5] = "Aver. speed";
+		raceParams[6] = "Odograph";
 
-		mtkMenuBMS.label[0] = "Battery";
-		mtkMenuBMS.label[1] = "Батарея";
-		mtk_BMS_statist.label[0] = "Statistic";
-		mtk_BMS_statist.label[1] = "Статист.";
-		mtk_BMS_balanse.label[0] = "Balance";
-		mtk_BMS_balanse.label[1] = "Баланс";
-		mtk_BMS_info.label[0] = "Info";
-		mtk_BMS_info.label[1] = "Информ.";
-		mtk_BMS_config.label[0] = "Configure";
-		mtk_BMS_config.label[1] = "Настройка";
-		mtk_BMS_voltage.label[0] = "Voltage";
-		mtk_BMS_voltage.label[1] = "Напряжения";
-		mtk_BMS_cap.label[0] = "Capacity";
-		mtk_BMS_cap.label[1] = "Емкость";
-		mtk_BMS_resist.label[0] = "Resistance";
-		mtk_BMS_resist.label[1] = "Сопротивление";
-		mtk_BMS_charge.label[0] = "Charge";
-		mtk_BMS_charge.label[1] = "Зарядка";
-		mtk_BMS_discharge.label[0] = "Discharge";
-		mtk_BMS_discharge.label[1] = "Разрядка";
-		mtk_BMS_Vmin.label[0] = "V min (mV)";
-		mtk_BMS_Vmin.label[1] = "Напр. мин.(мВ)";
-		mtk_BMS_Inom.label[0] = "I nom (A)";
-		mtk_BMS_Inom.label[1] = "Ток ном. (А)";
-		mtk_BMS_Imax.label[0] = "I max (A)";
-		mtk_BMS_Imax.label[1] = "Ток пик. (А)";
-		mtk_BMS_tImax.label[0] = "Time I max (Sec)";
-		mtk_BMS_tImax.label[1] = "Время пика (Сек)";
-		mtk_BMS_Tmax.label[0] = "Temp. max (°C)";
-		mtk_BMS_Tmax.label[1] = "Темп. макс. (°C)";
-		mtk_BMS_Tmin.label[0] = "Temp min (°C)";
-		mtk_BMS_Tmin.label[1] = "Темп. мин. (°C)";
+		sVoltage = "(Voltage)";
 
-		mtkAbout.label[0] = "About";
-		mtkAbout.label[1] = "Об этом";
+		sBMSinfo[0] = "Name:";
+		sBMSinfo[1] = "";
+		sBMSinfo[2] = "";
+		sBMSinfo[3] = "";
+		sBMSinfo[4] = "";
+		sBMSinfo[5] = "";
+		sBMSinfo[5] = "";
 
-		mtkStopwatch.label[0] = "Stopwatch";
-		mtkStopwatch.label[1] = "Секундомер";
-		mtkTimer.label[0] = "Timer";
-		mtkTimer.label[1] = "Таймер";
+		month[0] = "January";
+		month[1] = "February";
+		month[2] = "March";
+		month[3] = "April";
+		month[4] = "May";
+		month[5] = "June";
+		month[6] = "July";
+		month[7] = "August";
+		month[8] = "September";
+		month[9] = "October";
+		month[10] = "November";
+		month[11] = "December";
+
+		days[0] = "Mo";
+		days[1] = "Tu";
+		days[2] = "We";
+		days[3] = "Th";
+		days[4] = "Fr";
+		days[5] = "Sa";
+		days[6] = "Su";
+
+		mtkDisplay.label = "Display";
+		mtkContrast.label = "Contrast";
+		mtkAutoBright.label = "Autobright";
+		mtkMenuOdometr.label = "Odometr";
+		mtkCircle.label = "Circle(mm)";
+		mtkOdometr.label = "Odometr(Km)";
+		mtkPassword.label = "Password";
+		mtkDateTime.label = "Date, time";
+		mtkDate.label = "Date";
+		mtkTime.label = "Time";
+		mtkPin.label = "";
+		mtkLang.label = "Language";
+		mtkPower.label  = "PowerSave";
+		mtkSecInTime.label  = "Draw sec";
+		mtkSleepSec.label = "Autosleep sec";
+		mtkMaxFPS.label = "Maximum FPS";
+		mtkSleepDisplayOff.label = "Display off";
+		mtkMenuBMS.label = "Battery";
+		mtk_BMS_statist.label = "Statistic";
+		mtk_BMS_balanse.label = "Balance";
+		mtk_BMS_info.label = "Info";
+		mtk_BMS_config.label = "Configure";
+		mtk_BMS_voltage.label = "Voltage";
+		mtk_BMS_cap.label = "Capacity";
+		mtk_BMS_resist.label = "Resistance";
+		mtk_BMS_charge.label = "Charge";
+		mtk_BMS_discharge.label = "Discharge";
+		mtk_BMS_Vmin.label = "V min (mV)";
+		mtk_BMS_Inom.label = "I nom (A)";
+		mtk_BMS_Imax.label = "I max (A)";
+		mtk_BMS_tImax.label = "Time I max (Sec)";
+		mtk_BMS_Tmax.label = "Temp. max (°C)";
+		mtk_BMS_Tmin.label = "Temp min (°C)";
+		mtkAbout.label = "About";
+		mtkStopwatch.label = "Stopwatch";
+		mtkTimer.label = "Timer";
+		break;
+	case LANGUAGE_RUS:
+		raceParams[0] = "Макс. скор";
+		raceParams[1] = "Ср. расход";
+		raceParams[2] = "Время пути";
+		raceParams[3] = "Потрачено";
+		raceParams[4] = "До зарядки";
+		raceParams[5] = "Сред. скор" ;
+		raceParams[6] = "Общ. пробег";
+
+		sVoltage = "(Напряжение)";
+
+		sBMSinfo[0] = "Имя:";
+		sBMSinfo[1] = "";
+		sBMSinfo[2] = "";
+		sBMSinfo[3] = "";
+		sBMSinfo[4] = "";
+		sBMSinfo[5] = "";
+		sBMSinfo[5] = "";
+
+		month[0] = "Январь";
+		month[1] = "Февраль";
+		month[2] = "Март";
+		month[3] = "Апрель";
+		month[4] = "Май";
+		month[5] = "Июнь";
+		month[6] = "Июль";
+		month[7] =  "Август";
+		month[8] = " Сентябрь";
+		month[9] = "Октябрь";
+		month[10] = "Ноябрь";
+		month[11] = " Декабрь";
+
+		days[0] ="Пн";
+		days[1] ="Вт";
+		days[2] ="Ср";
+		days[3] ="Чт";
+		days[4] = "Пт";
+		days[5] = "Сб";
+		days[6] = "Вс";
+
+		mtkDisplay.label = "Экран";
+		mtkContrast.label = "Контраст";
+		mtkAutoBright.label = "Автоподсветка";
+		mtkMenuOdometr.label = "Одометр";
+		mtkCircle.label = "Колесо(mm)";
+		mtkOdometr.label = "Одометр(Km)";
+		mtkPassword.label = "Пароль";
+		mtkDateTime.label = "Дата, время";
+		mtkDate.label = "Дата";
+		mtkTime.label = "Время";
+		mtkPin.label = "";
+		mtkLang.label = "Язык";
+		mtkPower.label  = "Сбережение";
+		mtkSecInTime.label = "Показ секунд";
+		mtkSleepSec.label = "Aвтосон(сек)";
+		mtkMaxFPS.label = "Частота кадров";
+		mtkSleepDisplayOff.label = "Выкл. экран";
+		mtkMenuBMS.label = "Батарея";
+		mtk_BMS_statist.label = "Статист.";
+		mtk_BMS_balanse.label = "Баланс";
+		mtk_BMS_info.label = "Информ.";
+		mtk_BMS_config.label = "Настройка";
+		mtk_BMS_voltage.label = "Напряжения";
+		mtk_BMS_cap.label = "Емкость";
+		mtk_BMS_resist.label = "Сопротивление";
+		mtk_BMS_charge.label = "Зарядка";
+		mtk_BMS_discharge.label = "Разрядка";
+		mtk_BMS_Vmin.label = "Напр. мин.(мВ)";
+		mtk_BMS_Inom.label = "Ток ном. (А)";
+		mtk_BMS_Imax.label = "Ток пик. (А)";
+		mtk_BMS_tImax.label = "Время пика (Сек)";
+		mtk_BMS_Tmax.label = "Темп. макс. (°C)";
+		mtk_BMS_Tmin.label = "Темп. мин. (°C)";
+		mtkAbout.label = "Об этом";
+		mtkStopwatch.label = "Секундомер";
+		mtkTimer.label = "Таймер";
+		break;
+	}
+	mtkLangList.string[0] = "English";
+	mtkLangList.string[1] = "Русский";
+	currentLang = *lang;
+	return 0;
 }

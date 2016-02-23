@@ -65,7 +65,7 @@ void PWMSet(uint8_t num, uint8_t value) {
 #ifdef SYSTEM_STM32
 	if(value)
 		RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
-	config.PWM[num] = value;
+//	config.PWM[num] = value;
 	switch (num) {
 	case 0:
 		TIM_SetCompare2(TIM2, value);

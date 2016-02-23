@@ -40,7 +40,7 @@ void set_leds(uint8_t led) {
 //		GPIOB->ODR |= PIN_LED_RED;
 //	}
 	if (led & LED_BLUE) {
-		GPIOC->ODR &= ~PIN_LED_BLUE;
+		GPIOC->ODR &= ~ PIN_LED_BLUE;
 	}
 }
 

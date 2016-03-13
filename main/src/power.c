@@ -233,26 +233,6 @@ void SetSysClock(uint8_t clockMode) {
 	__IO uint32_t
 	HSEStatus = RESET;
 	uint16_t StartUpCounter = 0;
-//	Сбрасываем все перед настройкой
-	/* Set HSION bit */
-	RCC->CR |= (uint32_t) 0x00000001;
-
-	/* Reset SW, HPRE, PPRE1, PPRE2, ADCPRE and MCO bits */
-	RCC->CFGR &= (uint32_t) 0xF8FF0000;
-
-	/* Reset HSEON, CSSON and PLLON bits */
-	RCC->CR &= (uint32_t) 0xFEF6FFFF;
-
-	/* Reset HSEBYP bit */
-	RCC->CR &= (uint32_t) 0xFFFBFFFF;
-
-	/* Reset PLLSRC, PLLXTPRE, PLLMUL and USBPRE/OTGFSPRE bits */
-	RCC->CFGR &= (uint32_t) 0xFF80FFFF;
-
-	/* Disable all interrupts and clear pending bits  */
-	RCC->CIR = 0x009F0000;
-
-//---------------------------------------------------------------------------	
 	/* Конфигурацяи  SYSCLK, HCLK, PCLK2 и PCLK1 */
 	/* Включаем HSE */
 	RCC->CR |= ((uint32_t) RCC_CR_HSEON);
@@ -287,44 +267,44 @@ void SetSysClock(uint8_t clockMode) {
 			/* PCLK1 = HCLK */
 			RCC->CFGR |= (uint32_t) RCC_CFGR_PPRE1_DIV1;
 		}
-		if (clockMode == CLK_8M) {
+		if (clockMode == CLK_8M || RCC->CR & RCC_CR_PLLON) {
 			/* Select HSE as system clock source */
 			RCC->CFGR &= (uint32_t)((uint32_t) ~(RCC_CFGR_SW));
 			RCC->CFGR |= (uint32_t) RCC_CFGR_SW_HSE;
 
 			/* Wait till HSE is used as system clock source */
-			while ((RCC->CFGR & (uint32_t) RCC_CFGR_SWS) != (uint32_t) 0x04) {
-			}
+			while ((RCC->CFGR & (uint32_t) RCC_CFGR_SWS) == (uint32_t) RCC_CFGR_SW_HSE) {};
+			RCC->CR &= ~RCC_CR_PLLON;
+
 //				/*  PLL configuration:  = (HSE / 2) * 2 = 8 MHz */
 //				RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
 //				RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLXTPRE_HSE_Div2 | RCC_CFGR_PLLMULL2);
-		} else {
-			/* Конфигурируем множитель PLL. При условии, что кварц на 8МГц!*/
-			switch (clockMode) {
-			case CLK_72M: {
-				/*  PLL configuration: PLLCLK = HSE * 9 = 72 MHz */
-				RCC->CFGR &= (uint32_t)((uint32_t) ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
-				RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLMULL9);
-			}
-				break;
-			case CLK_24M: {
-				/*  PLL configuration:  = (HSE / 2) * 6 = 24 MHz */
-				RCC->CFGR &= (uint32_t)((uint32_t) ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
-				RCC->CFGR |= (uint32_t)( RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLXTPRE_HSE_Div2 | RCC_CFGR_PLLMULL6);
-			}
-				break;
-			}
+		}
+		/* Конфигурируем множитель PLL. При условии, что кварц на 8МГц!*/
+		switch (clockMode) {
+		case CLK_72M: {
+			/*  PLL configuration: PLLCLK = HSE * 9 = 72 MHz */
+			RCC->CFGR &= (uint32_t)((uint32_t) ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
+			RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLMULL9);
+		}
+			break;
+		case CLK_24M: {
+			/*  PLL configuration:  = (HSE / 2) * 6 = 24 MHz */
+			RCC->CFGR &= (uint32_t)((uint32_t) ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
+			RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLXTPRE_HSE_Div2 | RCC_CFGR_PLLMULL6);
+		}
+			break;
+		}
+		if (clockMode != CLK_8M) {
 			/* Включаем PLL */
 			RCC->CR |= RCC_CR_PLLON;
 			/* Ожидаем, пока PLL выставит бит готовности */
-			while ((RCC->CR & RCC_CR_PLLRDY) == 0) {
-			}
+			while ((RCC->CR & RCC_CR_PLLRDY) == 0) {};
 			/* Выбираем PLL как источник системной частоты */
 			RCC->CFGR &= (uint32_t)((uint32_t) ~(RCC_CFGR_SW));
 			RCC->CFGR |= (uint32_t) RCC_CFGR_SW_PLL;
 			/* Ожидаем, пока PLL выберется как источник системной частоты */
-			while ((RCC->CFGR & (uint32_t) RCC_CFGR_SWS) != (uint32_t) 0x08) {
-			}
+			while ((RCC->CFGR & (uint32_t) RCC_CFGR_SWS)== (uint32_t) RCC_CFGR_SW_PLL) {};
 		}
 		//Отключим лишнее
 		RCC->CR &= (uint32_t)((uint32_t) ~(RCC_CR_HSION | RCC_CR_HSEBYP));

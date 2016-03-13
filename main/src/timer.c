@@ -29,7 +29,7 @@ systick_t systick;
 void SysTickInit(uint16_t x) {
 #ifdef SYSTEM_STM32
 	SysTick_Config(SystemCoreClock / x); //x-число раз в секунду
-#elif define SYSTEM_WIN
+#elif defined SYSTEM_WIN
 	SDL_AddTimer(x/10, my_callbackfunc, NULL);
 #endif
 }

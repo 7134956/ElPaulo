@@ -100,4 +100,12 @@ TASK_DRIVE
 EEPROM:
  * PB6 = SCL
  * PB7 = SDA
+ 
+USART1 (Для дебага):
+ * PA9 = TX
+ * PA10 = RX
+ 
+BEEPER:
+ * PB0
+ * GND
 */

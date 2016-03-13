@@ -10,7 +10,7 @@
 #include "timer.h"
 #include "rtc.h"
 #include "draw.h"
-#include <math.h>
+//#include <math.h>
 
 void compass(mtk_t * mtk);
 
@@ -229,8 +229,8 @@ void compass(mtk_t * mtk) {
 * Поворот точки
  ******************************************************************************/
 void rotate(uint8_t x, uint8_t y, uint8_t * x1, uint8_t * y1, uint16_t angle) {
-	float rad = angle / ( 180 / 3.1415926535897932384626433832795 );
-	uint8_t xt=x+(*x1-x)*cos(rad)-(*y1-y)*sin(rad);
-	*y1=y+(*x1-x)*sin(rad)+(*y1-y)*cos(rad);
-	*x1 = xt;
+//	float rad = angle / ( 180 / 3.1415926535897932384626433832795 );
+//	uint8_t xt=x+(*x1-x)*cos(rad)-(*y1-y)*sin(rad);
+//	*y1=y+(*x1-x)*sin(rad)+(*y1-y)*cos(rad);
+//	*x1 = xt;
 }

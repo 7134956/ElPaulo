@@ -139,10 +139,6 @@ void RTC_init(void) {
 	NVIC_Configuration();
 	//Обновим структуру со временем
 	CounterToFtime(RTC_GetCounter(), &dateTime);
-	/* Копировали флаги сброса */
-	state.reset = ((RCC->CSR) >> 24);
-	/* Обнуляем флаги сброса */
-	RCC_ClearFlag();
 #endif
 }
 

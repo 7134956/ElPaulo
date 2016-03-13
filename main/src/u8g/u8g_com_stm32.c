@@ -19,8 +19,7 @@
 /* Настройка вывода A0 */
 #define SPI_PORT_A0			GPIOA
 #define SPI_PIN_A0			GPIO_Pin_4
-/* For speed SPI transfer. If SPI_CLK >= CPU_CLK/2 */
-//#define SPI_SKIP_BUSY
+//#define SPI_SKIP_BUSY /* For speed SPI transfer. If SPI_CLK >= CPU_CLK/2 */
 /*---------------------End configure SPI for display ------------------------*/
 
 #define DELAY_TIM_FREQUENCY 1000000 /* = 1MHZ -> timer runs in microseconds */

@@ -134,6 +134,10 @@ void MCU_preinit(void) {
 #endif
 #ifdef SYSTEM_STM32
 	uint8_t onCounter;
+	/* Копировали флаги сброса */
+	state.reset = ((RCC->CSR) >> 24);
+	/* Обнуляем флаги сброса */
+	RCC_ClearFlag();
 	/* Разрешим прерывания отказов */
 	SCB->SHCSR |= SCB_SHCSR_BUSFAULTENA;
 	SCB->SHCSR |= SCB_SHCSR_MEMFAULTENA;
@@ -146,6 +150,13 @@ void MCU_preinit(void) {
 	init_printf(NULL, putcUSART); //Для использования функций printf, sprintf
 //#endif			
 	keyInit(MODE_ADC); //Настройка портов кнопок
+	if (state.reset & (RESET_FLAG_PINRST |
+										RESET_FLAG_PORRST |
+										RESET_FLAG_LPWRRST |
+										RESET_FLAG_WWDGRST |
+										RESET_FLAG_IWDGRST |
+										RESET_FLAG_SFTRST))
+		return;
 	/* Цикл проверки условия включения */
 	while (1) {
 		ADC_SoftwareStartConvCmd(ADC2, ENABLE);
@@ -175,7 +186,7 @@ void MCU_init(void) {
 #ifdef SYSTEM_STM32
 	i2c_init(); //Запустили i2c шину
 	RTC_init(); //Запуск часов реального времени
-	keyInit(MODE_ADC); //Настройка портов кнопок
+//	keyInit(MODE_ADC); //Настройка портов кнопок
 	USART2Init(); //Настройка входа цифровой клавиатуры
 	batInit();
 	loadParams(); //Загрузили параметры из EEPROM

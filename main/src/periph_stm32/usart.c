@@ -107,6 +107,27 @@ void parseUSART(void) {
 		} else if (reciveBuff[reciveOUT] == '6') {
 			printf("%s", "\n\rBUTTON_RIGHT");
 			state.button = BUTTON_RIGHT;
+		} else if (reciveBuff[reciveOUT] == 27) {
+			reciveOUT++;
+			if (reciveBuff[reciveOUT] == 91) {
+				reciveOUT++;
+				if (reciveBuff[reciveOUT] == 65) {
+					printf("%s", "\n\rBUTTON_UP");
+					state.button = BUTTON_UP;
+				} else if (reciveBuff[reciveOUT] == 66) {
+					printf("%s", "\n\rBUTTON_DOWN");
+					state.button = BUTTON_DOWN;
+				} else if (reciveBuff[reciveOUT] == 68) {
+					printf("%s", "\n\rBUTTON_LEFT");
+					state.button = BUTTON_LEFT;
+				} else if (reciveBuff[reciveOUT] == 67) {
+					printf("%s", "\n\rBUTTON_RIGHT");
+					state.button = BUTTON_RIGHT;
+				}
+			}
+		} else {
+			printf("\n\r%X ", reciveBuff[reciveOUT]);
+			printf("%d ", reciveBuff[reciveOUT]);
 		}
 		reciveOUT++;
 	}

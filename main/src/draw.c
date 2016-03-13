@@ -955,6 +955,7 @@ void drawScrSvr(void) {
 	uint8_t i, x, y, s, step;
 	x=5;
 	y=15;
+	u8g_SetFont(&u8g, u8g_font_elpaulo20);
 	for(i=0; i<7; i++){
 		u8g_DrawStr(&u8g, x+35 * i, y, days[i]);
 	}

@@ -24,12 +24,11 @@ extern uint32_t i2cTimeLimit;
 extern power_t powerControl;
 
 tm_t dateTime; //Структура с актуальной датой и временем
-uint8_t lastdaysofmonths[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-
 /*******************************************************************************
  * Сколько дней в месяце
  ******************************************************************************/
 uint8_t lastdayofmonth(uint16_t year, uint8_t month) {
+	uint8_t lastdaysofmonths[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 	if (month == 2 && isleapyear(year))
 		return 29;
 	return lastdaysofmonths[month];
@@ -73,8 +72,8 @@ tm_t * timeGetSet(tm_t * t) {
 #endif
 #ifdef SYSTEM_WIN
 		RTC_Counter = FtimeToCounter(t);
-		state.taskList |= TASK_UPDATETIME;
 #endif
+		state.taskList |= TASK_UPDATETIME;
 		return NULL;
 	}
 }
@@ -94,6 +93,8 @@ void RTC_init(void) {
 #endif
 
 #ifdef SYSTEM_STM32
+
+
 	if (BKP_ReadBackupRegister(BKP_DR1) != 0xA5A5) {
 		/* Если в бекап регистре не установлена верная метка, настроим часы */
 		printf("%s", "\r\n\n RTC not yet configured....");
@@ -114,25 +115,21 @@ void RTC_init(void) {
 		dateTime.tm_hour = 12;
 		dateTime.tm_min = 0;
 		dateTime.tm_sec = 0;
-
 		/* Настроим счетчик времени */
 		Time_Adjust(&dateTime);
-
 		state.taskList |= TASK_TIMESETUP;
 	} else {
-		/* Check if the Power On Reset flag is set */
-		if (RCC_GetFlagStatus(RCC_FLAG_PORRST) != RESET) {
-			printf("%s", "\r\n\n Power On Reset occurred....");
-		}
-		/* Check if the Pin Reset flag is set */
-		else if (RCC_GetFlagStatus(RCC_FLAG_PINRST) != RESET) {
-			printf("%s", "\r\n\n External Reset occurred....");
-		}
 		printf("%s", "\r\n No need to configure RTC....");
+		/* Enable PWR and BKP clocks */
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
+		/* Allow access to BKP Domain */
+		PWR_BackupAccessCmd(ENABLE);
 		/* Ждем синхронизации */
 		RTC_WaitForSynchro();
+		/* Wait until last write operation on RTC registers has finished */
+		RTC_WaitForLastTask();
 		/* Включаем прерывание счета секунд */
-		RTC_ITConfig(RTC_IT_SEC | RTC_IT_ALR, ENABLE);
+		RTC_ITConfig(RTC_IT_SEC, ENABLE);
 		/* Включаем прерывание будильника */
 		//RTC_ITConfig(RTC_IT_ALR, ENABLE);
 		/* Ждем записи регистров */
@@ -157,11 +154,11 @@ void NVIC_Configuration(void) {
 	EXTI_InitTypeDef EXTI_InitStruct;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	/* Настройка группы приоритета прерывания */
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 	/* Включим прерывание от часов */
 	NVIC_InitStructure.NVIC_IRQChannel = RTC_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 15;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 15;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 
@@ -174,8 +171,8 @@ void NVIC_Configuration(void) {
 	EXTI_Init(&EXTI_InitStruct);
 	/* Настроим обработчик */
 	NVIC_InitStructure.NVIC_IRQChannel = RTCAlarm_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 15;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 14;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 }
@@ -197,8 +194,6 @@ void Time_Adjust(tm_t* time) {
 	/* Clear reset flags */
 	RCC_ClearFlag();
 
-	/* Обновляем время в структуре */
-	CounterToFtime(RTC_GetCounter(), &dateTime);
 }
 
 /*******************************************************************************
@@ -258,7 +253,7 @@ void NVIC_GenerateSystemReset(void) {
 #endif
 
 /*******************************************************************************
- * Прерывание от будильника.
+ * Внешнее прерывание от будильника.
  ******************************************************************************/
 void RTCAlarm_IRQHandler(void) {
 #ifdef SYSTEM_STM32
@@ -272,9 +267,16 @@ void RTCAlarm_IRQHandler(void) {
 /*******************************************************************************
  Ежесекундное прерывание от часов.
  ******************************************************************************/
+extern uint16_t angle;
 void RTC_IRQHandler(void) {
-	printf("%s", "RTC_IRQHandler...");
+		printf("%s", "RTC_IRQHandler...");
+	//Fixme bottom
+	angle+=360/60;
+
 #ifdef SYSTEM_STM32
+	ADC_SoftwareStartConvCmd(ADC1, ENABLE); //Запуск преобразования ADC1
+//Fixme up
+	
 	if (RTC_GetITStatus(RTC_IT_SEC) != RESET) {
 		/* Снимаем флаг прерывания секунд */
 		RTC_ClearITPendingBit(RTC_IT_SEC);
@@ -358,7 +360,7 @@ void CounterToFtime(uint32_t counter, tm_t * dateTime) {
 	dateTime->tm_hour = (counter / 3600) % 24;
 	dateTime->tm_min = (counter / 60) % 60;
 	dateTime->tm_sec = (counter % 60);
-//	dateTime->tm_wday = weekDay(dateTime->tm_mday, dateTime->tm_mon, dateTime->tm_year + 1900);
+	dateTime->tm_wday = weekDay(dateTime->tm_mday, dateTime->tm_mon + 1, dateTime->tm_year + 1900);
 }
 
 /*******************************************************************************

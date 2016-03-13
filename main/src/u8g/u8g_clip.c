@@ -97,6 +97,7 @@ static uint8_t u8g_is_intersection_boolean(u8g_uint_t a0, u8g_uint_t a1, u8g_uin
 //static uint8_t u8g_is_intersection_decision_tree(u8g_uint_t a0, u8g_uint_t a1, u8g_uint_t v0, u8g_uint_t v1) U8G_ALWAYS_INLINE;
 static uint8_t U8G_ALWAYS_INLINE u8g_is_intersection_decision_tree(u8g_uint_t a0, u8g_uint_t a1, u8g_uint_t v0, u8g_uint_t v1) 
 {
+//	return 1;//FIXME
   /* surprisingly the macro leads to larger code */
   /* return U8G_IS_INTERSECTION_MACRO(a0,a1,v0,v1); */
   if ( v0 <= a1 )

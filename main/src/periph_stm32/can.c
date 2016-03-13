@@ -103,8 +103,14 @@ void CAN_init(void) {
 	CAN_ITConfig(CAN1, CAN_IT_FMP0, ENABLE);
 
 	NVIC_InitStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0xFF;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0xFF;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 8;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 7;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	NVIC_InitStructure.NVIC_IRQChannel = USB_HP_CAN1_TX_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 9;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 7;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 }

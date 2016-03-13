@@ -2,7 +2,7 @@
 #include "main.h"
 #include "mtk.h"
 #include "menu.h"
-#include "buttons.h"
+#include "keyboard.h"
 #include "string.h"
 #include "utils.h"
 #include "timer.h"
@@ -20,6 +20,8 @@
 #ifdef SYSTEM_WIN
 #include <math.h>
 #include <stdlib.h>
+#include "bat.h"
+bat_t bat;
 #endif
 
 #define CONTRAST_MAX 96
@@ -78,9 +80,13 @@ mtk_element_t
 		mtkPin, //Пароль стартового экрана
 		mtkLang, //Выбор языка интерфейса
 		mtkDateTime, mtkDate, mtkTime, mtkPower, mtkSecInTime,
-		mtkMaxFPS, mtkSleepDisplayOff, mtkSleepSec, mtkMenuBMS, mtkAbout;
+		mtkMaxFPS, mtkSleepDisplayOff, mtkSleepSec,
+	//	mtkSupply, mtkSupply40, mtkSupply37,
+		mtkMenuBMS,
+		mtkRacelist, //Вид списка заездов (Календарь или список)
+		mtkAbout;
 
-mtk_select_t mtkLangList;
+mtk_select_t mtkLangList, mtkRacelistList;
 
 /*******************************************************************************
  *Стартовая функция с главным цыклом
@@ -90,6 +96,7 @@ mtk_select_t mtkLangList;
 int main() {
 #ifdef SYSTEM_WIN
 	uint8_t i;
+	uint8_t langEng = LANGUAGE_ENG;
 	for (i = 0; i < 6; i++) {
 		racelist.startTime[i] = 8888; //Время старта
 		racelist.distance[i] = 88888; //Пройденное расстояние
@@ -110,9 +117,12 @@ int main() {
 	loadParams();//Загрузили параметры из EEPROM
 	SysTickInit(100);//Запуск таймера. Вызов 100 раз в секунд
 	contrastGetSet((uint32_t*)&config.contrast);
-#endif
-#ifdef SYSTEM_STM32
-//	powerService();
+	setStrings(&langEng); //Сначала язык по умолчанию
+	setStrings(&config.lang); //Установили заданный язык
+
+	bat.voltage = 4000;
+	bat.state = BAT_DISCHARGE;
+	bat.level = 100;
 #endif
 
 	mtkPin.type = ELEMENT_NUM16;
@@ -161,25 +171,32 @@ int main() {
 //----------Password enter
 	mtk_SetupElement(&mtkPassword, ELEMENT_NUM16, NULL, PASSWORD_LENGHT, TYPE_NEEDOK, &config.password, &mtkDateTime);
 //----------DateTime
-	mtk_SetupElement(&mtkDateTime, ELEMENT_MENU, NULL, 0, 0, &mtkDate, &mtkLang);
-	mtk_SetupElement(&mtkDate, ELEMENT_DATE, NULL, 3, TYPE_NEEDOK | TYPE_FUNC, &timeGetSet, &mtkTime);
-	mtk_SetupElement(&mtkTime, ELEMENT_TIME, NULL, 3, TYPE_NEEDOK | TYPE_FUNC, &timeGetSet, NULL);
+	mtk_SetupElement(&mtkDateTime, ELEMENT_MENU, NULL, 0, 0, &mtkTime, &mtkLang);
+	mtk_SetupElement(&mtkTime, ELEMENT_TIME, NULL, 3, TYPE_NEEDOK | TYPE_FUNC, &timeGetSet, &mtkDate);
+	mtk_SetupElement(&mtkDate, ELEMENT_DATE, NULL, 3, TYPE_NEEDOK | TYPE_FUNC, &timeGetSet, NULL);
+
 	mtk_SetupElement(&mtkLang, ELEMENT_SEL, NULL, 2, TYPE_FUNC, &mtkLangList, &mtkPower);
-	//mtkLangList.pointer = &config.lang;
 	mtkLangList.pointer = &setStrings;
 //------------------------------------------
-	mtk_SetupElement(&mtkPower, ELEMENT_MENU, NULL, 0, 0, &mtkMaxFPS, &mtkMenuBMS);
+	mtk_SetupElement(&mtkPower, ELEMENT_MENU, NULL, 0, 0, &mtkMaxFPS, &mtkRacelist);
 	mtk_SetupElement(&mtkMaxFPS, ELEMENT_NUM8, NULL, 1, 0, &config.maxFPS, &mtkSecInTime);
 	mtk_SetupElement(&mtkSecInTime, ELEMENT_FLAG, NULL, 0, 0, &config.SecInTime, &mtkSleepSec);
 	mtk_SetupElement(&mtkSleepSec, ELEMENT_NUM16, NULL, 4, 0, &config.SleepSec, &mtkSleepDisplayOff);
-	mtk_SetupElement(&mtkSleepDisplayOff, ELEMENT_FLAG, NULL, 0, TYPE_NEEDOK, &config.SleepDisplayOff, NULL);
+	mtk_SetupElement(&mtkSleepDisplayOff, ELEMENT_FLAG, NULL, 0, 0, &config.SleepDisplayOff, NULL);
+//	mtk_SetupElement(&mtkSupply, ELEMENT_MENU, NULL, 0, TYPE_PRIVATE, &mtkSupply40, NULL);
+//	mtk_SetupElement(&mtkSupply40, ELEMENT_NUM16, NULL, 4, TYPE_NEEDOK, &config.bat40, &mtkSupply37);
+//	mtk_SetupElement(&mtkSupply37, ELEMENT_NUM16, NULL, 4, TYPE_NEEDOK, &config.bat37, NULL);
+
+//--------------------------------------
+	mtk_SetupElement(&mtkRacelist, ELEMENT_SEL, NULL, 2, 0, &mtkRacelistList, &mtkMenuBMS);
+	mtkRacelistList.pointer = &config.racelistType;
 //--------------------------------------
 	mtk_SetupElement(&mtkMenuBMS, ELEMENT_MENU, NULL, 0, 0, &mtk_BMS_info,	&mtkAbout);
 //--------------------------------------
 	mtk_SetupElement(&mtkAbout, ELEMENT_GFUNC, NULL, 0, 0, &about, NULL);
 //---------
 
-	setStrings(&config.lang);
+	//setStrings(&config.lang);
 
 	state.taskList |= TASK_UPDATETIME; //Ставим задачу взять время со счетчика
 	state.taskList |= TASK_REDRAW; //Запросим первую перерисовку экрана
@@ -193,14 +210,14 @@ int main() {
  ******************************************************************************/
 void mainLoop() {
 	while (1) {
-#ifdef SYSTEM_STM32
 		powerService(); //Управление энергопотреблением
+#ifdef SYSTEM_STM32
 		parseUSART();
 #endif
 #ifdef SYSTEM_WIN
 		state.button = getButton(); //Проверяем нажатия
 #endif
-		if (state.button != BUTTON_NULL) {
+		if (state.button > 1) {
 			beep(2000, 50);
 			buttonsParse(); //Разбор кнопочных нажатий
 			state.taskList |= TASK_REDRAW;
@@ -252,7 +269,12 @@ void mainLoop() {
 				SysTick_task_add(drawTask, 10); //Запускаем планировщик перерисовки
 		}
 		/* Запуск обновления экрана, если нужно */
+#ifdef SYSTEM_STM32
+		if ((state.taskList & TASK_REDRAW) && !(DMA1_Channel3->CCR & DMA_CCR3_EN) && (stateMain != STATE_SILENT)) {
+#elif defined SYSTEM_WIN
 		if ((state.taskList & TASK_REDRAW) && (stateMain != STATE_SILENT)) {
+#endif
+
 #ifdef DEBUG_DISPLAY
 			RCC->APB1ENR |= RCC_APB1ENR_TIM4EN; //Включаем тактирование таймера
 			TIM4->CNT = 0;//Обнуляем счетчик
@@ -289,7 +311,7 @@ void newState() {
 		if (state.taskList & TASK_TIMESETUP) {
 			stateMain = STATE_SETUP;
 			changePos(0, 1, 1, ACTION_IS);
-			mtk_SetRootElement(&mtkDate);
+			mtk_SetRootElement(&mtkTime);
 			mtk_SelectElement(1);
 			state.taskList &= ~ TASK_TIMESETUP;
 		}

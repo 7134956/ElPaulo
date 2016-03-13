@@ -282,6 +282,12 @@ extern u8g_dev_t u8g_dev_st7586s_jlx240160g666_hw_spi;
 extern u8g_dev_t u8g_dev_st7586s_jlx240160g666_4x_hw_spi;
 extern u8g_dev_t u8g_dev_st7586s_jlx240160g666_20x_hw_spi;
 
+/* Display: JLX240160G-676-BN, Size: 240x160 monochrome or 4 gray levels */	 
+extern u8g_dev_t u8g_dev_st75256_jlx240160g676_hw_spi;
+extern u8g_dev_t u8g_dev_st75256_jlx240160g676_4x_hw_spi;
+extern u8g_dev_t u8g_dev_st75256_jlx240160g676_20x_hw_spi;
+extern u8g_dev_t u8g_dev_st75256_jlx240160g676_20x_dma_hw_spi;
+
 /* EA DOGM 240-6 */
 extern u8g_dev_t u8g_dev_uc1611_dogm240_i2c;
 extern u8g_dev_t u8g_dev_uc1611_dogm240_hw_spi;
@@ -710,6 +716,8 @@ uint8_t u8g_com_atxmega_st7920_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_va
 uint8_t u8g_com_msp430_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);      /* u8g_com_msp430_hw_spi.c */
 
 uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);	/* u8g_com_stm32.c */
+uint8_t u8g_com_stm32_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);	/* u8g_com_stm32.c */
+uint8_t u8g_com_stm32_hw_spi_dma_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);	/* u8g_com_stm32.c */
 
 uint8_t u8g_com_raspberrypi_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);                /* u8g_com_rasperrypi_hw_spi.c */
 uint8_t u8g_com_raspberrypi_ssd_i2c_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);		/* u8g_com_raspberrypi_ssd_i2c.c */
@@ -1029,6 +1037,12 @@ uint8_t u8g_dev_pb8v1_base_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg
 
 /* u8g_pb16v1.c */
 uint8_t u8g_dev_pb16v1_base_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg);
+
+/* u8g_pb32v1.c (x4 memory of pb8v2) */
+uint8_t u8g_dev_pb32v1_base_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg);
+
+/* u8g_pb160v1.c (x20 memory of pb8v2) */ 
+uint8_t u8g_dev_pb160v1_base_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg);
 
 /* u8g_pb14v1.c */
 uint8_t u8g_dev_pb14v1_base_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg);

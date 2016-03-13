@@ -28,6 +28,7 @@ extern mtk_element_t
 		mtkMaxFPS,
 		mtkSleepDisplayOff,
 		mtkSleepSec,
+//		mtkSupply, mtkSupply40, mtkSupply37,
 		mtkMenuBMS,
 		mtk_BMS_config,
 		mtk_BMS_voltage,
@@ -41,11 +42,13 @@ extern mtk_element_t
 		mtk_BMS_tImax,
 		mtk_BMS_Tmax,
 		mtk_BMS_Tmin,
+		mtkRacelist,
 		mtkAbout,
 		mtkStopwatch,
-		mtkTimer;
+		mtkTimer,
+		mtkCompass;
 
-extern mtk_select_t mtkLangList;
+extern mtk_select_t mtkLangList, mtkRacelistList;
 
 uint8_t currentLang;
 /******************************************************************************
@@ -102,7 +105,7 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkCircle.label = "Circle(mm)";
 		mtkOdometr.label = "Odometr(Km)";
 		mtkPassword.label = "Password";
-		mtkDateTime.label = "Date, time";
+		mtkDateTime.label = "Time";
 		mtkDate.label = "Date";
 		mtkTime.label = "Time";
 		mtkPin.label = "";
@@ -112,6 +115,9 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkSleepSec.label = "Autosleep sec";
 		mtkMaxFPS.label = "Maximum FPS";
 		mtkSleepDisplayOff.label = "Display off";
+//		mtkSupply.label = "Bat calibr";
+//		mtkSupply40.label = "ADC level 4.0V";
+//		mtkSupply37.label = "ADC level 3.7V";
 		mtkMenuBMS.label = "Battery";
 		mtk_BMS_statist.label = "Statistic";
 		mtk_BMS_balanse.label = "Balance";
@@ -128,9 +134,13 @@ uint8_t setStrings(uint8_t * lang) {
 		mtk_BMS_tImax.label = "Time I max (Sec)";
 		mtk_BMS_Tmax.label = "Temp. max (°C)";
 		mtk_BMS_Tmin.label = "Temp min (°C)";
+		mtkRacelist.label = "Racelist";
+		mtkRacelistList.string[0] = "Calendar";
+		mtkRacelistList.string[1] = "List";
 		mtkAbout.label = "About";
 		mtkStopwatch.label = "Stopwatch";
 		mtkTimer.label = "Timer";
+		mtkCompass.label = "Compass";
 		break;
 	case LANGUAGE_RUS:
 		raceParams[0] = "Макс. скор";
@@ -179,7 +189,7 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkCircle.label = "Колесо(mm)";
 		mtkOdometr.label = "Одометр(Km)";
 		mtkPassword.label = "Пароль";
-		mtkDateTime.label = "Дата, время";
+		mtkDateTime.label = "Часы";
 		mtkDate.label = "Дата";
 		mtkTime.label = "Время";
 		mtkPin.label = "";
@@ -189,6 +199,9 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkSleepSec.label = "Aвтосон(сек)";
 		mtkMaxFPS.label = "Частота кадров";
 		mtkSleepDisplayOff.label = "Выкл. экран";
+//		mtkSupply.label = "Батар. калибр.";
+//		mtkSupply40.label = "Уровень АЦП 4.0В";
+//		mtkSupply37.label = "Уровень АЦП 3.7В";
 		mtkMenuBMS.label = "Батарея";
 		mtk_BMS_statist.label = "Статист.";
 		mtk_BMS_balanse.label = "Баланс";
@@ -205,9 +218,13 @@ uint8_t setStrings(uint8_t * lang) {
 		mtk_BMS_tImax.label = "Время пика (Сек)";
 		mtk_BMS_Tmax.label = "Темп. макс. (°C)";
 		mtk_BMS_Tmin.label = "Темп. мин. (°C)";
+		mtkRacelist.label = "Заезды";
+		mtkRacelistList.string[0] = "Календарь";
+		mtkRacelistList.string[1] = "Список";
 		mtkAbout.label = "Об этом";
 		mtkStopwatch.label = "Секундомер";
 		mtkTimer.label = "Таймер";
+		mtkCompass.label = "Компас";
 		break;
 	}
 	mtkLangList.string[0] = "English";

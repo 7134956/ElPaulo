@@ -3,6 +3,8 @@
 #include "main.h"
 #include "string.h"
 #include "rtc.h"
+#include "bat.h"
+#include "keyboard.h"
 
 void MCU_preinit(void);
 void MCU_init(void);
@@ -13,32 +15,29 @@ power_t powerControl; //Структура с данными по питанию
 
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
-extern config_t config;
 extern count_t count;
 #endif
 extern state_t state;
+extern config_t config;
 
-#ifdef SYSTEM_STM32
 /*******************************************************************************
  *Обслуживание энергопотребления
  ******************************************************************************/
 void powerService() {
 	if (powerControl.freqMCU != CLK_NULL) {
-
-		if (!powerControl.CloclLockTime) { //Прошел лимит времени удержания частоты
-			/* Снижаем тактовую частоту до допустимого уровня */
-			if (state.taskList & (TASK_CLOCK_MAX)) {
-				powerControl.freqMCU = CLK_72M;
-			} else if (state.taskList & (TASK_DRIVE))
-				powerControl.freqMCU = CLK_24M;
-			else
-				powerControl.freqMCU = CLK_8M;
-			SetClock(); //Задали частоты
-		}
+		/* Снижаем тактовую частоту до допустимого уровня */
+		if (state.taskList & (TASK_CLOCK_MAX)) {
+			powerControl.freqMCU = CLK_72M;
+		} else if (state.taskList & (TASK_DRIVE))
+			powerControl.freqMCU = CLK_24M;
+		else
+			powerControl.freqMCU = CLK_8M;
+		SetClock(); //Задали частоты
 
 		/* Выбираем доступный режим сна */
 		if (state.taskList
-				& (TASK_REDRAW | TASK_UPDATETIME | TASK_SAVEPARAMS)) {
+	//			& (TASK_REDRAW | TASK_UPDATETIME | TASK_SAVEPARAMS)) {
+				& (TASK_UPDATETIME | TASK_SAVEPARAMS)) {
 			powerControl.sleepMode = POWERMODE_ACTIVE; //Все работает постоянно
 			powerControl.countToSleep = 0; //А сон отсрочим
 		} else if (state.taskList
@@ -67,16 +66,16 @@ void powerService() {
 		MCU_init();
 	}
 }
-#endif
 
 /*******************************************************************************
  * Уйти в заданный режим сна выполнив необходимые действия
  ******************************************************************************/
-#ifdef SYSTEM_STM32
 void sleep(void) {
+#ifdef SYSTEM_STM32
 	reset_leds(LED_BLUE); //Потушили диод пошли спать
-	
-	if(!(state.taskList & TASK_REDRAW) || (powerControl.sleepMode == POWERMODE_OFF))
+
+	if (!(state.taskList & TASK_REDRAW)
+			|| (powerControl.sleepMode == POWERMODE_OFF))
 		switch (powerControl.sleepMode) {
 		case POWERMODE_ACTIVE: { //Никак не спать
 		}
@@ -86,26 +85,30 @@ void sleep(void) {
 		}
 			break;
 		case POWERMODE_STOP: { //Разрешено выключить тактировку переферии
-			PWMSet(2, 0); //Гасим подсветку
-			ButtonsInit(MODE_INT); //Переключили кнопку в режим прерывания
-			if (config.SleepDisplayOff){
+			PWMSet(1, 0); //Гасим подсветку
+#ifdef KEYBOARD_ADC
+			keyInit(MODE_INT); //Переключили кнопку в режим прерывания
+#endif
+			if (config.SleepDisplayOff) {
 				displayOff();
-			}
-			else
+			} else
 				setAlarm(0); //Установит будильник на следующую минуту
+			while(DMA1_Channel3->CCR & DMA_CCR3_EN){};
 			PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
-			if(state.taskList & TASK_ALARM) //Если проснулись по будильнику
-				state.taskList &=~ TASK_ALARM; //Сбрасываем флаг
-				else{													//иначе
-			PWMSet(2, config.PWM[2]);
-			powerControl.freqMCU_prev = CLK_NULL;
-			SetClock();
-//			state.taskList |= TASK_UPDATETIME | TASK_REDRAW; //Задача обновить время
-			ButtonsInit(MODE_ADC);
-			powerControl.sleepMode = POWERMODE_SLEEP;// Убрали СТОП режим
-			if (config.SleepDisplayOff)
-				drawInit(); //Запуск дисплея
-	}
+			if (state.taskList & TASK_ALARM) //Если проснулись по будильнику
+				state.taskList &= ~ TASK_ALARM; //Сбрасываем флаг
+			else {													//иначе
+				setAlarm(0xFFFFFFFF); //Установит будильник на далеко
+				PWMSet(1, config.PWM[1]);
+				powerControl.freqMCU_prev = CLK_NULL;
+				SetClock();
+#ifdef KEYBOARD_ADC
+				keyInit(MODE_ADC);
+#endif
+				powerControl.sleepMode = POWERMODE_SLEEP;	// Убрали СТОП режим
+				if (config.SleepDisplayOff)
+					drawInit(); //Запуск дисплея
+			}
 		}
 			break;
 		case POWERMODE_OFF: {
@@ -118,14 +121,17 @@ void sleep(void) {
 		}
 			break;
 		}
-		
-		set_leds(LED_BLUE); //Зажгли диод пошли работать
+	set_leds(LED_BLUE); //Зажгли диод пошли работать
+#endif
 }
 
 /*******************************************************************************
  * Начальная инициализация и проверка условий запуска.
  ******************************************************************************/
 void MCU_preinit(void) {
+#ifdef SYSTEM_WIN
+	powerControl.freqMCU = CLK_8M;
+#endif
 #ifdef SYSTEM_STM32
 	uint8_t onCounter;
 	/* Разрешим прерывания отказов */
@@ -139,15 +145,15 @@ void MCU_preinit(void) {
 //#else		
 	init_printf(NULL, putcUSART); //Для использования функций printf, sprintf
 //#endif			
-	ButtonsInit(MODE_ADC); //Настройка портов кнопок
+	keyInit(MODE_ADC); //Настройка портов кнопок
 	/* Цикл проверки условия включения */
 	while (1) {
 		ADC_SoftwareStartConvCmd(ADC2, ENABLE);
-		RCC->APB1ENR |= RCC_APB1ENR_TIM4EN; //Включаем тактирование таймера
-		TIM4->CNT = 0; //Обнуляем счетчик
-		while (TIM_GetCounter(TIM4) < 3277)
-			;
-		RCC->APB1ENR &= ~RCC_APB1ENR_TIM4EN; //Выключаем тактирование таймера
+//		RCC->APB1ENR |= RCC_APB1ENR_TIM4EN; //Включаем тактирование таймера
+//		TIM4->CNT = 0; //Обнуляем счетчик
+//		while (TIM_GetCounter(TIM4) < 3277)
+//			;
+//		RCC->APB1ENR &= ~RCC_APB1ENR_TIM4EN; //Выключаем тактирование таймера
 		if (ADC_GetConversionValue(ADC2) > 500) {
 			if (onCounter < 5)
 				onCounter++;
@@ -165,17 +171,20 @@ void MCU_preinit(void) {
  * Настройка перефирии микроконтроллера
  ******************************************************************************/
 void MCU_init(void) {
+	uint8_t langEng = LANGUAGE_ENG;
 #ifdef SYSTEM_STM32
 	i2c_init(); //Запустили i2c шину
 	RTC_init(); //Запуск часов реального времени
-	ButtonsInit(MODE_ADC); //Настройка портов кнопок
+	keyInit(MODE_ADC); //Настройка портов кнопок
+	USART2Init(); //Настройка входа цифровой клавиатуры
+	batInit();
 	loadParams(); //Загрузили параметры из EEPROM
-	setStrings(&config.lang); //Установили язык
+	setStrings(&langEng); //Сначала язык по умолчанию
+	setStrings(&config.lang); //Установили заданный язык
 	drawInit(); //Запуск дисплея
 	PWM_init(); //Настройка ШИМ
 	PWMSet(0, config.PWM[0]);
 	PWMSet(1, config.PWM[1]);
-	PWMSet(2, config.PWM[2]);
 	CircleSensorInit();
 	LED_init(); //Настройка портов светодиодов
 	beep_init(); //Настройка бипера
@@ -189,24 +198,28 @@ void MCU_init(void) {
  *Настройка тактовой частоты и переферии под частоту
  ******************************************************************************/
 void SetClock(void) {
-	if (powerControl.freqMCU_prev != powerControl.freqMCU) {
+	if((!powerControl.CloclLockTime && powerControl.freqMCU < powerControl.freqMCU_prev) || (powerControl.freqMCU > powerControl.freqMCU_prev)){
+#ifdef SYSTEM_STM32
 		SetSysClock(powerControl.freqMCU); // Установим частоты шин
 		SystemCoreClockUpdate(); //Обновили значение частоты
 		if (powerControl.freqMCU_prev != powerControl.freqMCU) {
 			SysTickInit(100); //Запуск системного таймера. Вызов 100 раз в секунд
 			beep_init(); //Настройка бипера
 			CircleTimerInit(); //Настройка таймера оборотов колеса и прочего счета
-			USARTInit(); //Настройка портов USART
+			USARTInit(); //Настройка порта отладочных сообщений
+			USART2Init(); //Настройка входа цифровой клавиатуры
 		}
+#endif
 		powerControl.freqMCU_prev = powerControl.freqMCU;
 	}
-	powerControl.CloclLockTime = 2;
+	powerControl.CloclLockTime = 3;
 }
 
 /*******************************************************************************
  *Настройка тактировок
  ******************************************************************************/
 void SetSysClock(uint8_t clockMode) {
+#ifdef SYSTEM_STM32
 	__IO uint32_t
 	HSEStatus = RESET;
 	uint16_t StartUpCounter = 0;
@@ -316,5 +329,6 @@ void SetSysClock(uint8_t clockMode) {
 		ERR("HSE not started");
 	}
 	SystemCoreClockUpdate();
-}
 #endif
+}
+

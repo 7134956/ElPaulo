@@ -21,8 +21,8 @@ void PWM_init(void) {
 	//Initialize clocks for GPIOA, AFIO
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 
-	//Configure pin TIM2 CH4 = PA3 as alternative function push-pull
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
+	//Configure pin TIM2 CH2 = PA1 as alternative function push-pull
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -44,15 +44,14 @@ void PWM_init(void) {
 	TIM_OC_InitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OC_InitStructure.TIM_OutputNState = TIM_OutputNState_Disable;
 
-//	TIM_OC_InitStructure.TIM_Pulse = config.PWM[2];
-
-	TIM_OC4Init(TIM2, &TIM_OC_InitStructure);
+	TIM_OC1Init(TIM2, &TIM_OC_InitStructure);
+	TIM_OC2Init(TIM2, &TIM_OC_InitStructure);
 
 	TIM_Cmd(TIM2, ENABLE);
 	
+	TIM2->CCR1 = 0;
 	TIM2->CCR2 = 0;
-	TIM2->CCR3 = 0;
-	TIM2->CCR4 = 0;
+	//TIM2->CCR3 = 0;
 	
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, DISABLE);
 #endif
@@ -68,16 +67,13 @@ void PWMSet(uint8_t num, uint8_t value) {
 //	config.PWM[num] = value;
 	switch (num) {
 	case 0:
-		TIM_SetCompare2(TIM2, value);
+		TIM_SetCompare1(TIM2, value);
 		break;
 	case 1:
-		TIM_SetCompare3(TIM2, value);
-		break;
-	case 2:
-		TIM_SetCompare4(TIM2, value);
+		TIM_SetCompare2(TIM2, value);
 		break;
 	}
-	if(!TIM2->CCR2 & !TIM2->CCR3 & !TIM2->CCR4)
+	if(!TIM2->CCR1 & !TIM2->CCR2)
 		RCC->APB1ENR &=~ RCC_APB1ENR_TIM2EN;
 #endif
 }

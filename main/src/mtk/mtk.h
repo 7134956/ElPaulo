@@ -7,10 +7,10 @@
 #include "../rtc.h"
 
 #define COMMAND_NULL 0
-#define COMMAND_PREV 4
+#define COMMAND_PREV 2
 #define COMMAND_NEXT 3
-#define COMMAND_UP 1
-#define COMMAND_DOWN 2
+#define COMMAND_UP 4
+#define COMMAND_DOWN 5
 
 #define MTK_ACTION_INC 1
 #define MTK_ACTION_DEC 2
@@ -69,12 +69,13 @@ struct _mtk_struct_t {
 	uint8_t size_y;			//Размер вертикальный
 	uint8_t step_x;			//Шаг горизонтальный
 	uint8_t step_y;			//Шаг вертикальный
-	uint8_t glyph_y;			//Размер символа вертикальный
+	uint8_t glyph_y;		//Размер символа вертикальный
 	uint8_t ascent;			//Смешение вверх от базовой линии шрифта
 	u8g_t * u8g;			//Ссылка на графическую структуру
 	uint8_t command;		//Комманда для меню
 	mtk_element_p element;	//Текущий элемент
 	uint8_t pos;			//Позиция курсора при редактировании числа
+//	uint8_t skip;			//Сколько пунктов меню пропустить не рисуя
 	uint8_t count;			//Какой элемент(строку) по счету рисуем/нарисовали
 	uint8_t select;			//Какой элемент(строка) по счету выбран
 	uint8_t indexHist;		//Указатель на позицию в истории переходов в глубь

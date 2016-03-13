@@ -371,9 +371,9 @@
             <vShortWch>0</vShortWch>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>SPI_SKIP_BUSY, DEBUG_DISPLAY, DEBUG</Define>
+              <Define>DEBUG_DISPLAY, DEBUG</Define>
               <Undefine></Undefine>
-              <IncludePath>..\src;..\src\mtk;..\src\onewire;..\src\periph_stm32;..\..\..\u8glib\csrc</IncludePath>
+              <IncludePath>..\src;..\src\mtk;..\src\onewire;..\src\periph_stm32;..\src\u8g</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -553,6 +553,16 @@
               <FileType>1</FileType>
               <FilePath>..\src\timer.c</FilePath>
             </File>
+            <File>
+              <FileName>keyboard.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\keyboard.c</FilePath>
+            </File>
+            <File>
+              <FileName>README.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\src\README.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -621,6 +631,11 @@
               <FileType>1</FileType>
               <FilePath>..\src\periph_stm32\termo.c</FilePath>
             </File>
+            <File>
+              <FileName>bat.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\periph_stm32\bat.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -642,11 +657,6 @@
               <FilePath>..\src\u8g\u8g_clip.c</FilePath>
             </File>
             <File>
-              <FileName>u8g_com_stm32.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_com_stm32.c</FilePath>
-            </File>
-            <File>
               <FileName>u8g_com_api.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\src\u8g\u8g_com_api.c</FilePath>
@@ -657,9 +667,34 @@
               <FilePath>..\src\u8g\u8g_com_null.c</FilePath>
             </File>
             <File>
+              <FileName>u8g_com_stm32.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\u8g\u8g_com_stm32.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_com_stm32_n.c</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\src\u8g\u8g_com_stm32_n.c</FilePath>
+            </File>
+            <File>
               <FileName>u8g_delay.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\src\u8g\u8g_delay.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_dev_sdl.c</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\src\u8g\u8g_dev_sdl.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_dev_st7586s_jlx240160g666.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\u8g\u8g_dev_st7586s_jlx240160g666.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_dev_st75256_jlx240160g676.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\u8g\u8g_dev_st75256_jlx240160g676.c</FilePath>
             </File>
             <File>
               <FileName>u8g_font.c</FileName>
@@ -717,6 +752,16 @@
               <FilePath>..\src\u8g\u8g_pb32h1.c</FilePath>
             </File>
             <File>
+              <FileName>u8g_pb32v1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\u8g\u8g_pb32v1.c</FilePath>
+            </File>
+            <File>
+              <FileName>u8g_pb160v1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\src\u8g\u8g_pb160v1.c</FilePath>
+            </File>
+            <File>
               <FileName>u8g_pbxh16.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\src\u8g\u8g_pbxh16.c</FilePath>
@@ -750,11 +795,6 @@
               <FileName>u8g_state.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\src\u8g\u8g_state.c</FilePath>
-            </File>
-            <File>
-              <FileName>u8g_dev_st7586s_jlx240160g666.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\src\u8g\u8g_dev_st7586s_jlx240160g666.c</FilePath>
             </File>
           </Files>
         </Group>

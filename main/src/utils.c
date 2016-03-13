@@ -10,11 +10,15 @@
 #include "timer.h"
 #include "rtc.h"
 #include "draw.h"
+#include <math.h>
+
+void compass(mtk_t * mtk);
 
 extern uint8_t stateMain;
 extern state_t state;
 mtk_element_t mtkStopwatch,	//Секундомер
-		mtkTimer;		//Таймер
+		mtkTimer,		//Таймер
+		mtkCompass;		//Компас
 
 stopwatch_t sWatch;
 
@@ -23,8 +27,8 @@ tm_t * timerGetSet(tm_t * t);
 void utilInit(void) {
 	mtk_SetRootElement(&mtkStopwatch);
 	mtk_SetupElement(&mtkStopwatch, ELEMENT_GFUNC, NULL, 0, TYPE_CMD_ACCEPT, &stopwatch, &mtkTimer);
-	//mtk_SetupElement(&mtkTime, ELEMENT_TIME, NULL, 3, TYPE_NEEDOK | TYPE_FUNC, &timeGetSet, NULL);
-	mtk_SetupElement(&mtkTimer, ELEMENT_TIME, NULL, 3, TYPE_FUNC | TYPE_NEEDOK, &timerGetSet, NULL);
+	mtk_SetupElement(&mtkTimer, ELEMENT_TIME, NULL, 3, TYPE_FUNC | TYPE_NEEDOK, &timerGetSet, &mtkCompass);
+	mtk_SetupElement(&mtkCompass, ELEMENT_GFUNC, NULL, 0, TYPE_CMD_ACCEPT, &compass, NULL);
 }
 
 /*******************************************************************************
@@ -190,8 +194,43 @@ tm_t * timerGetSet(tm_t * t) {
 	}
 }
 
+uint16_t angle;
+void rotate(uint8_t x, uint8_t y, uint8_t * x1, uint8_t * y1, uint16_t angle);
 /*******************************************************************************
 * Рисуем компас
  ******************************************************************************/
 void compass(mtk_t * mtk) {
+	char sTemp[10];
+	uint8_t x, y, x1, y1, x2, y2, x3, y3;
+
+	x = 60;
+	y = 80;
+	x1 = 60;
+	y1 = 30;
+	x2 = 50;
+	y2 = 60;
+	x3 = 70;
+	y3 = 60;
+
+	u8g_DrawCircle(mtk->u8g, 60, 80, 50, U8G_DRAW_ALL);
+	u8g_DrawCircle(mtk->u8g, 60, 80, 20, U8G_DRAW_ALL);
+	u8g_DrawStr(mtk->u8g, 55, 87, "N");
+
+	rotate(x, y, &x1, &y1, angle);
+	rotate(x, y, &x2, &y2, angle);
+	rotate(x, y, &x3, &y3, angle);
+
+	u8g_DrawTriangle(mtk->u8g, x1,y1, x2,y2, x3,y3);
+	sprintf(sTemp, "Degree: %d", angle);
+	u8g_DrawStr(mtk->u8g, 120, 40, sTemp);
+}
+
+/*******************************************************************************
+* Поворот точки
+ ******************************************************************************/
+void rotate(uint8_t x, uint8_t y, uint8_t * x1, uint8_t * y1, uint16_t angle) {
+	float rad = angle / ( 180 / 3.1415926535897932384626433832795 );
+	uint8_t xt=x+(*x1-x)*cos(rad)-(*y1-y)*sin(rad);
+	*y1=y+(*x1-x)*sin(rad)+(*y1-y)*cos(rad);
+	*x1 = xt;
 }

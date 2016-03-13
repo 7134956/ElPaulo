@@ -1,6 +1,8 @@
 #ifndef _POWER_H_
 #define _POWER_H_
 
+#include "config.h"
+
 typedef struct power_t { //Глобальная структура с настройкой энергопотребления
 	uint8_t freqMCU_prev;
 	uint8_t freqMCU;
@@ -18,9 +20,9 @@ typedef struct power_t { //Глобальная структура с настр
 
 //Выбор частоты процессора
 #define CLK_NULL 0	//Не была установлена частота
-#define CLK_72M 1		//Максимальная
+#define CLK_8M 1		//Низкая
 #define CLK_24M 2		//Средняя
-#define CLK_8M 3		//Низкая
+#define CLK_72M 3		//Максимальная
 
 void SetClock(void);
 void powerService(void); //Обслуживание системы после рабочего цыкла

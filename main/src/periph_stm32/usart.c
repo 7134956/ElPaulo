@@ -6,7 +6,7 @@
 #include "config.h"
 #include "stm32f10x.h"
 #include "usart.h"
-#include "buttons.h"
+#include "keyboard.h"
 //#include "printf.h"
 
 char transBuff[256] = { "\n\n\rElPaulo 0.1!\n\r" };

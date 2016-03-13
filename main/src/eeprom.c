@@ -408,6 +408,8 @@ void saveParams(void) {
 	memcpy(&Buffer[36], &config.SleepDisplayOff, 1);
 	memcpy(&Buffer[37], &config.password, 2);
 	memcpy(&Buffer[39], &config.contrast, 1);
+	memcpy(&Buffer[40], &config.bat_kS, 4);
+	memcpy(&Buffer[44], &config.racelistType, 1);
 
 	config.crc = crc32_calc(Buffer, CONFIG_UNINT_SIZE - 4);
 	memcpy(&Buffer[60], &config.crc, 4);
@@ -436,6 +438,8 @@ void loadParams(void) {
 		memcpy(&config.SleepDisplayOff, &Buffer[35], 1);
 		memcpy(&config.password, &Buffer[37], 2);
 		memcpy(&config.contrast, &Buffer[39], 1);
+		memcpy(&config.bat_kS, &Buffer[40], 4);
+		memcpy(&config.racelistType, &Buffer[44], 1);
 
 		memcpy(&config.crc, &Buffer[60], 4);
 	} else {
@@ -455,6 +459,8 @@ void loadParams(void) {
 		config.SleepDisplayOff = 0;
 		config.password = 0000;
 		config.contrast = 60;
+		config.bat_kS = 1.000000;
+		config.racelistType = 0;
 	}
 }
 

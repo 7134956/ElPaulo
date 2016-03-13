@@ -72,10 +72,14 @@ void mtk_SetupElement(mtk_element_p element, uint8_t type, char * string, uint8_
  *Отрисовка меню и элементов
  ******************************************************************************/
 void mtk_drawLL(mtk_t *mtk) {
+	char arrowSel[2] = { ARROW_RIGHT, 0 };
 	char arrow[2] = { 187, 0 };
+	uint8_t i;
+	int8_t skip = 0;
+	int8_t skipMax;
+	uint8_t itemCount = 0; //Число пунктов меню
 	volatile uint8_t maxSize = 0, temp = 0;	//Максимальный размер строки меню
 	mtk_element_p tempElement_p, temp2Element;
-	mtk->step_x = u8g_GetStrWidth(mtk->u8g, "0");
 	mtk->step_y = 1 + u8g_GetFontAscent(mtk->u8g);
 	mtk->glyph_y = u8g_GetFontAscent(mtk->u8g) - u8g_GetFontDescent(mtk->u8g);
 	mtk->ascent = u8g_GetFontAscent(mtk->u8g);
@@ -83,6 +87,7 @@ void mtk_drawLL(mtk_t *mtk) {
 	mtk->element = mtk->rootHist[mtk->indexHist];
 	tempElement_p = mtk->element;
 	while (1) { //Найдем длину самой длинной строки и выставим начало отрисовки по ее размеру
+		itemCount++;
 		temp = u8g_GetStrWidth(mtk->u8g, tempElement_p->label);
 		if (temp > maxSize)
 			maxSize = temp;
@@ -93,16 +98,40 @@ void mtk_drawLL(mtk_t *mtk) {
 	}
 	maxSize += u8g_GetStrWidth(mtk->u8g, " ");
 
+	//Вычислим число шагов прокрутки меню
+	skipMax = ((itemCount * mtk->step_y) + mtk->pos_y - 159) / mtk->step_y;
+	if (skipMax > 0) {
+		skip = (mtk->select + (itemCount - skipMax)/2) - (itemCount - skipMax);
+		if (skip > skipMax)
+			skip = skipMax;
+		if (skip < 0)
+			skip = 0;
+		//Пропустим скрытые за экраном пункты
+		for (i = 0; i < skip; i++) {
+			mtk->element = mtk->element->next;
+		}
+	}
+	if (skip) //Если есть пропущенные элементы
+		u8g_DrawStr(mtk->u8g, 0, mtk->pos_y, "\14");
 	while (1) {  //Цикл отрисовки всех пунктов меню
-		if (!mtk->element)  //Если нет элемента выходим из цикла
+		if (!mtk->element)  //Если нарисовали выходим из цикла
 			break;
-		if ((mtk->element->type == ELEMENT_GFUNC) && (mtk->element->flags & EDITING_PROCESS)) {
+		if ((mtk->element->type == ELEMENT_GFUNC)
+				&& (mtk->element->flags & EDITING_PROCESS)) {
 			mtk_elementGfunc(mtk);
 			break; //Если графика активна, остальные пункты не рисуем
 		} else {			//Иначе рисуем строку
 			//Рисуем указатель на выбраную строку если ее элемент не в процессе редактирования
-			if ((mtk->select == mtk->count + 1) && !(mtk->element->flags & EDITING_PROCESS))
-				u8g_DrawStr(mtk->u8g, 0, mtk->pos_y, arrow);
+			if ((mtk->select - skip == mtk->count + 1)
+					&& !(mtk->element->flags & EDITING_PROCESS))
+				u8g_DrawStr(mtk->u8g, 0, mtk->pos_y, arrowSel);
+			//Рисуем указатель пунктов ниже экрана
+			if (mtk->pos_y - mtk->step_y * skip > 159) {
+				u8g_DrawStr(mtk->u8g, 0, mtk->pos_y - mtk->step_y, "\15");
+				mtk->element = mtk->element->next;
+				mtk->count++;
+				continue; //Не рисуем за границей экрана
+			}
 			//Рисуем саму строку
 			u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, mtk->element->label);
 			temp = mtk->pos_x;
@@ -114,43 +143,42 @@ void mtk_drawLL(mtk_t *mtk) {
 					mtk->element = &mtkUnlock;
 					mtk_elementNum(mtk);
 					mtk->element = temp2Element;
-				} else{
+				} else {
 					u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, "\x0E");
 				}
-				mtk->pos_x += mtk->step_x;
-
 			} else
-			switch (mtk->element->type) {
-			case ELEMENT_NUM8:
-			case ELEMENT_NUM16:
-			case ELEMENT_NUM32:
-			case ELEMENT_NUM64X1M: {
-				mtk_elementNum(mtk);
-			}
-				break;
-			case ELEMENT_MENU: {
-				u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, arrow);
-			}
-				break;
-			case ELEMENT_FLAG: {
-				mtk_elementFlag(mtk);
-			}
-				break;
-			case ELEMENT_DATE:
-			case ELEMENT_TIME: {
-				mtk_elementDateTime(mtk);
-			}
-				break;
-			case ELEMENT_SEL: {
-				mtk_elementSelect(mtk);
-			}
-				break;
-			case ELEMENT_GFUNC: {
-				mtk_elementGfunc(mtk);
-			}
-				break;
-			}
-			if ((mtk->element->flags & TYPE_NEEDOK) && (mtk->element->flags & EDITING_EDITED)) //Если нужно подтверждение
+				switch (mtk->element->type) {
+				case ELEMENT_NUM8:
+				case ELEMENT_NUM16:
+				case ELEMENT_NUM32:
+				case ELEMENT_NUM64X1M: {
+					mtk_elementNum(mtk);
+				}
+					break;
+				case ELEMENT_MENU: {
+					u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, arrow);
+				}
+					break;
+				case ELEMENT_FLAG: {
+					mtk_elementFlag(mtk);
+				}
+					break;
+				case ELEMENT_DATE:
+				case ELEMENT_TIME: {
+					mtk_elementDateTime(mtk);
+				}
+					break;
+				case ELEMENT_SEL: {
+					mtk_elementSelect(mtk);
+				}
+					break;
+				case ELEMENT_GFUNC: {
+					mtk_elementGfunc(mtk);
+				}
+					break;
+				}
+			if ((mtk->element->flags & TYPE_NEEDOK)
+					&& (mtk->element->flags & EDITING_EDITED)) //Если нужно подтверждение
 				u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, arrow);
 			mtk->pos_x = temp;
 			mtk->element = mtk->element->next;
@@ -158,6 +186,7 @@ void mtk_drawLL(mtk_t *mtk) {
 		}
 		mtk->pos_y += mtk->step_y;
 	}
+	mtk->count += skip;
 }
 
 /*******************************************************************************

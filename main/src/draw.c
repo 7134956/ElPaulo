@@ -2,6 +2,7 @@
 #include "draw.h"
 #include "bitmap.h"
 #include "rtc.h"
+#include "bat.h"
 #include "utils.h"
 #include "power.h"
 
@@ -22,7 +23,8 @@ extern calendar_t calendar;
 extern racelist_t racelist; //Информация о заездах
 extern track_t track; //Параметры текущего заезда
 extern BMSinfo_t BMSinfo;
-extern BMS_t BMS;
+extern BMS_t BMS;	//Силовая батарея
+extern bat_t bat;	//Батарейка питания велокомпа
 extern track_t histItem;
 extern uint8_t navigate[5];
 extern uint8_t stateMain;
@@ -62,12 +64,14 @@ void drawCell(uint8_t, uint8_t, uint8_t);
 void drawOff(void);
 void drawScrSvr(void);
 void drawDigit(uint8_t, uint8_t, uint8_t, uint8_t);
+void drawNum(uint8_t *, uint8_t, uint8_t, uint8_t);
 void drawSegment(uint8_t, uint8_t, uint8_t, uint8_t);
 
 /*******************************************************************************
  *Запуск дисплея и настройка графики
  ******************************************************************************/
 void drawInit(void) {
+
 #ifdef DISPLAY_SDL
 	u8g_Init(&u8g, &u8g_dev_sdl_2bit);
 #elif defined DISPLAY_ST7586S_SPI
@@ -76,13 +80,92 @@ void drawInit(void) {
 	u8g_InitComFn(&u8g, &u8g_dev_st7586s_jlx240160g666_4x_hw_spi, u8g_com_stm32_st7586s_hw_spi_fn); //Speed mode
 #elif defined DISPLAY_ST7586S_20X_SPI
 	u8g_InitComFn(&u8g, &u8g_dev_st7586s_jlx240160g666_20x_hw_spi, u8g_com_stm32_st7586s_hw_spi_fn); //Max speed mode
+#elif defined DISPLAY_ST75256_SPI
+	u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_hw_spi, u8g_com_stm32_hw_spi_fn); //Minimal RAM mode
+#elif defined DISPLAY_ST75256_4X_SPI
+	u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_4x_hw_spi, u8g_com_stm32_hw_spi_fn); //Speed mode
+#elif defined DISPLAY_ST75256_20X_SPI
+	u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_20x_hw_spi, u8g_com_stm32_hw_spi_fn); //Max speed mode
+#elif defined DISPLAY_ST75256_SPI_DMA
+	u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_hw_spi, u8g_com_stm32_hw_spi_dma_fn); //Minimal RAM mode
+#elif defined DISPLAY_ST75256_4X_SPI_DMA
+	u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_4x_hw_spi, u8g_com_stm32_hw_spi_dma_fn); //Speed mode
+#elif defined DISPLAY_ST75256_20X_SPI_DMA
+	u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_20x_dma_hw_spi, u8g_com_stm32_hw_spi_dma_fn); //Max speed mode
 #elif defined DISPLAY_ST7586S_20X_SPI_9B
-u8g_InitComFn(&u8g, &u8g_dev_st7586s_20x_hw_spi, u8g_com_hw_spi_9bit_fn); //Max speed mode. 3-wire SPI
+	u8g_InitComFn(&u8g, &u8g_dev_st7586s_20x_hw_spi, u8g_com_hw_spi_9bit_fn); //Max speed mode. 3-wire SPI
 #elif defined DISPLAY_ST7669_4X_SPI
 	u8g_InitComFn(&u8g, &u8g_dev_st7669a_4x_hw_spi, u8g_com_hw_spi_fn); //Speed mode
 #elif defined DISPLAY_SH1106_SPI_IIC
 	u8g_InitComFn(&u8g, &u8g_dev_sh1106_128x64_i2c, u8g_com_hw_i2c_fn); //
 #endif	
+
+	/*
+	uint8_t select = 9;
+	switch (select) {
+	case 0:
+// DISPLAY_SDL
+		u8g_Init(&u8g, &u8g_dev_sdl_2bit);
+		break;
+	case 1:
+// DISPLAY_ST7586S_SPI
+		u8g_InitComFn(&u8g, &u8g_dev_st7586s_jlx240160g666_hw_spi,
+				u8g_com_stm32_st7586s_hw_spi_fn); //Minimal RAM mode
+		break;
+	case 2:
+// DISPLAY_ST7586S_4X_SPI
+		u8g_InitComFn(&u8g, &u8g_dev_st7586s_jlx240160g666_4x_hw_spi,
+				u8g_com_stm32_st7586s_hw_spi_fn); //Speed mode
+		break;
+	case 3:
+// DISPLAY_ST7586S_20X_SPI
+		u8g_InitComFn(&u8g, &u8g_dev_st7586s_jlx240160g666_20x_hw_spi,
+				u8g_com_stm32_st7586s_hw_spi_fn); //Max speed mode
+		break;
+	case 4:
+// DISPLAY_ST75256_SPI
+		u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_hw_spi,
+				u8g_com_stm32_hw_spi_fn); //Minimal RAM mode
+		break;
+	case 5:
+// DISPLAY_ST75256_4X_SPI
+		u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_4x_hw_spi,
+				u8g_com_stm32_hw_spi_fn); //Speed mode
+		break;
+	case 6:
+// DISPLAY_ST75256_20X_SPI
+		u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_20x_hw_spi,
+				u8g_com_stm32_hw_spi_fn); //Max speed mode
+		break;
+	case 7:
+// DISPLAY_ST75256_SPI_DMA
+		u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_hw_spi,
+				u8g_com_stm32_hw_spi_dma_fn); //Minimal RAM mode
+		break;
+	case 8:
+// DISPLAY_ST75256_4X_SPI_DMA
+		u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_4x_hw_spi,
+				u8g_com_stm32_hw_spi_dma_fn); //Speed mode
+		break;
+	case 9:
+// DISPLAY_ST75256_20X_SPI_DMA
+		u8g_InitComFn(&u8g, &u8g_dev_st75256_jlx240160g676_20x_dma_hw_spi,
+				u8g_com_stm32_hw_spi_dma_fn); //Max speed mode
+		break;
+//	case 10:
+// DISPLAY_ST7586S_20X_SPI_9B
+//		u8g_InitComFn(&u8g, &u8g_dev_st7586s_jlx240160g666_20x_hw_spi,
+//				u8g_com_hw_spi_9bit_fn); //Max speed mode. 3-wire SPI
+//		break;
+//	case 11:
+// DISPLAY_ST7669_4X_SPI
+//		u8g_InitComFn(&u8g, &u8g_dev_st7669a_4x_hw_spi, u8g_com_hw_spi_fn); //Speed mode
+//		break;
+//	case 12:
+// DISPLAY_SH1106_SPI_IIC
+//		u8g_InitComFn(&u8g, &u8g_dev_sh1106_128x64_i2c, u8g_com_hw_i2c_fn); //
+	}
+	*/
 	mtk_Init(&u8g);
 	time_p = timeGetSet(NULL);//Взяли указатель на время
 	u8g_SetContrast(&u8g, config.contrast);
@@ -111,7 +194,7 @@ uint32_t contrastGetSet(uint32_t *contrast) {
 		config.contrast = *contrast;
 		return 0;
 	} else
-		return (uint32_t)config.contrast;
+		return (uint32_t) config.contrast;
 }
 
 /*******************************************************************************
@@ -134,81 +217,82 @@ void draw(void) {
 //	u8g_SetFontPosTop( &u8g );
 	u8g_SetFontPosBaseline(&u8g);
 
-	if(powerControl.sleepMode == POWERMODE_STOP)
+	if (powerControl.sleepMode == POWERMODE_STOP)
 		drawScrSvr();
-	else{
-			if ((stateMain != STATE_START) && (stateMain != STATE_OFF) && (stateMain != STATE_SILENT))
-		drawTabs();
-	u8g_SetDefaultForegroundColor(&u8g);
-	switch (stateMain) {
-	case STATE_START: {
-		drawStart();
-	}
-		break;
-	case STATE_MAIN: {
-		if (navigate[0]) {
-			drawMainQuickMenu();
-		} else
-			drawMain();
-	}
-		break;
-	case STATE_LIGHT: {
-		drawLight();
-	}
-		break;
-	case 5: {
-		drawScrSvr();
-	}
-		break;
-	case STATE_SETUP:
-	case STATE_UTIL: {
-		mtk_Pos(12, 35);
-		mtk_Draw();
-	}
-		break;
-	case STATE_TERMO: {
-		if (navigate[1])
-			drawTempChart();
-		else
-			drawTemp();
-	}
-		break;
-	case STATE_BAT: {
-		drawBat();
-	}
-		break;
-	case STATE_CALENDAR: {
-		if (navigate[3]) {
-			drawHistItem();
-		} else if (navigate[2]) {
-			drawRacelist();
-		} else {
-			drawCalendar();
+	else {
+		if ((stateMain != STATE_START) && (stateMain != STATE_OFF)
+				&& (stateMain != STATE_SILENT))
+			drawTabs();
+		u8g_SetDefaultForegroundColor(&u8g);
+		switch (stateMain) {
+		case STATE_START: {
+			drawStart();
 		}
+			break;
+		case STATE_MAIN: {
+			if (navigate[0]) {
+				drawMainQuickMenu();
+			} else
+				drawMain();
+		}
+			break;
+		case STATE_LIGHT: {
+			drawLight();
+		}
+			break;
+		case 5: {
+			drawScrSvr();
+		}
+			break;
+		case STATE_SETUP:
+		case STATE_UTIL: {
+			mtk_Pos(16, 35);
+			mtk_Draw();
+		}
+			break;
+		case STATE_TERMO: {
+			if (navigate[1])
+				drawTempChart();
+			else
+				drawTemp();
+		}
+			break;
+		case STATE_BAT: {
+			drawBat();
+		}
+			break;
+		case STATE_CALENDAR: {
+			if (navigate[3]) {
+				drawHistItem();
+			} else if (navigate[2]) {
+				drawRacelist();
+			} else {
+				drawCalendar();
+			}
+		}
+			break;
+		case STATE_OFF: {
+			drawOff();
+		}
+			break;
+		case STATE_STAT: {
+			if (navigate[0]) {
+				drawStatQuickMenu();
+			} else
+				drawStat();
+		}
+			break;
+		}
+		if (stateMain != STATE_START)
+			if (popup.type)
+				message();
 	}
-		break;
-	case STATE_OFF: {
-		drawOff();
-	}
-		break;
-	case STATE_STAT: {
-		if (navigate[0]) {
-			drawStatQuickMenu();
-		} else
-			drawStat();
-	}
-		break;
-	}
-	if (stateMain != STATE_START)
-		if(popup.type)message();
-}
 }
 
 /*******************************************************************************
  *Рисует стартовый экран с паролем
  ******************************************************************************/
 void drawStart(void) {
-	u8g_SetColorIndex(&u8g, 3);
 	u8g_SetFont(&u8g, u8g_font_helvR24);
 	u8g_DrawRFrame(&u8g, 0, 0, 240, 160, 5);
 	u8g_DrawRFrame(&u8g, 5, 5, 230, 150, 5);
@@ -363,8 +447,8 @@ void drawMain(void) {
 		amps = 15 - ((155 * BMS.current) / (BMSinfo.maxCurrent * 10));
 	for (i = 0; i < 15; i++) {
 		for (j = 0; j < 6; j++) {
-			u8g_DrawLine(&u8g, 220, 20 + j + i * 8, 240, 30 + j + i * 8);
-			u8g_DrawLine(&u8g, 200, 30 + j + i * 8, 220, 20 + j + i * 8);
+			u8g_DrawLine(&u8g, 220, 20 + j + i * 8, 239, 29 + j + i * 8);
+			u8g_DrawLine(&u8g, 201, 29 + j + i * 8, 220, 20 + j + i * 8);
 			if (i < amps)
 				j = 6;
 		}
@@ -378,9 +462,9 @@ void drawLight(void) {
 	char sTemp[6];
 	uint8_t i, x, y;
 	hStart = 40;
-	vStart = 40;
+	vStart = 50;
 	hStep = 120;
-	vStep = 45;
+	vStep = 60;
 	x = hStart + 60;
 	for (i = 0; i < PWM_COUNT; i++) {
 		sprintf(sTemp, "%d.%d", (100 * PWMGet(i)) / PWM_MAX,  ((1000 * PWMGet(i)) / PWM_MAX)%10);
@@ -395,8 +479,7 @@ void drawLight(void) {
 	x = hStart + hStep + 10;
 	y = vStart - 8;
 	u8g_DrawXBM(&u8g, x, y + vStep * 0, 32, 32, u8g_neighbor_bits);
-	u8g_DrawXBM(&u8g, x, y + vStep * 1, 32, 32, u8g_farthest_bits);
-	u8g_DrawXBM(&u8g, x, y + vStep * 2, 32, 32, u8g_lightdisplay_bits);
+	u8g_DrawXBM(&u8g, x, y + vStep * 1, 32, 32, u8g_lightdisplay_bits);
 	if (navigate[0]) {
 		sTemp[0] = ARROW_RIGHT;
 		sTemp[1] = 0;
@@ -514,7 +597,6 @@ void drawRacelist(void) {
 	}else
 		u8g_DrawStr(&u8g, hStart, vStart, "Empty");
 }
-
 
 /*******************************************************************************
  *Рисуем прогрессбар
@@ -637,6 +719,7 @@ void drawStatQuickMenu(void) {
 	char sTemp[2];
 	sTemp[1] = 0;
 	u8g_DrawStr(&u8g, 70, 50, "Statistics");
+	u8g_DrawLine(&u8g, 70, 53, 168, 53);
 	u8g_DrawStr(&u8g, 50, 90, "Back");
 	u8g_DrawStr(&u8g, 155, 90, "Reset");
 	u8g_DrawStr(&u8g, 54, 130, "Save and reset");
@@ -654,24 +737,48 @@ void drawStatQuickMenu(void) {
  *Вкладка с параметрами батареи
  ******************************************************************************/
 void drawBat(void) {
+	char sTemp[10];
 	uint8_t x, y, v;
 	x = 0;
 	y = 38;
 	v = 20;
+
 	u8g_DrawStr(&u8g, x, y, "Control");
-	drawCell(x, 40, 8);
+	drawCell(x, 40, bat.level/10);
 	x = 115;
-	u8g_DrawStr(&u8g, x, y, "83%");
-	u8g_DrawStr(&u8g, x, y += v, "3.956V");
-	u8g_DrawStr(&u8g, x, y += v, "Discharge");
-	x = 0; y = 108;
+	sprintf(sTemp, "%d%%", bat.level);
+	u8g_DrawStr(&u8g, x, y, sTemp);
+	sprintf(sTemp, "%d.%03d", bat.voltage / 1000, bat.voltage % 1000);
+	u8g_DrawStr(&u8g, x, y += v, sTemp);
+	switch (bat.state) {
+	case BAT_DISCHARGE:		//Используется
+		sprintf(sTemp, "Use");
+		break;
+	case BAT_CHARGE:		//Заряжается
+		sprintf(sTemp, "Charge");
+		break;
+	case BAT_FULL:			//Заряд окончен
+		sprintf(sTemp, "Full");
+		break;
+	case BAT_RESERVE:		//Не используется
+		sprintf(sTemp, "Reserve");
+		break;
+	case BAT_NULL:
+		sprintf(sTemp, "NULL");
+		break;
+	}
+	u8g_DrawStr(&u8g, x, y += v, sTemp);
+	x = 0;
+	y = 108;
 	u8g_DrawLine(&u8g, x, 88, 239, 88);
+
 	u8g_DrawStr(&u8g, x, y, "Power");
 	drawCell(x, 111, 6);
 	x = 115;
 	u8g_DrawStr(&u8g, x, y, "60%");
 	u8g_DrawStr(&u8g, x, y += v, "9000mA\xB7h");
-	u8g_DrawStr(&u8g, x, y += v, "Discharge");
+
+	u8g_DrawStr(&u8g, x, y += v, "State");
 }
 
 /*******************************************************************************
@@ -681,7 +788,7 @@ void drawCell(uint8_t x, uint8_t y, uint8_t val) {
 	uint8_t i;
 	u8g_DrawFrame(&u8g, x + 72, y + 10, 6, 20);
 	u8g_DrawFrame(&u8g, x, y, 73, 40);
-	x -= 12;
+	x -= 5;
 	y += 2;
 	for (i = 0; i < val; i++) {
 		u8g_DrawBox(&u8g, x += 7, y, 6, 36);
@@ -783,6 +890,7 @@ void messageCall(char * head, char * body, uint8_t type){
 	popup.body = body;
 	popup.type = type;
 }
+
 /*******************************************************************************
  *Выводит всплывающее окно
  ******************************************************************************/
@@ -843,34 +951,35 @@ void message(void) {
  *Заставка для спящего режима в виде стильизованных часов
  ******************************************************************************/
 void drawScrSvr(void) {
-	uint8_t x, y, s, step;
-	x = 3;
-	y = 20;
+	extern char *days[7];
+	uint8_t i, x, y, s, step;
+	x=5;
+	y=15;
+	for(i=0; i<7; i++){
+		u8g_DrawStr(&u8g, x+35 * i, y, days[i]);
+	}
+	u8g_DrawBox(&u8g, x - 5 + 35*time_p->tm_wday, y + 3, 30, 5);
+
+	x = 4;
+	y = 35;
 	s = 36;
-	step = s*1.5;
-	drawDigit(x, y, s, time_p->tm_hour / 10);
-	x+=step;
-	drawDigit(x, y, s, time_p->tm_hour % 10);
-	x += step*2-20;
-	u8g_DrawBox(&u8g, x - 30, y + 10, 10, 10);
-	u8g_DrawBox(&u8g, x - 30, y + 50, 10, 10);
-	drawDigit(x, y, s, time_p->tm_min / 10);
-	x += step;
-	drawDigit(x, y, s, time_p->tm_min % 10);
+	step = s/2;
+	drawNum(&x, y, s, time_p->tm_hour);
+	x += 57;
+	u8g_DrawBox(&u8g, x, y + 10, 10, 10);
+	u8g_DrawBox(&u8g, x, y + 50, 10, 10);
+	x = 145;
+	drawNum(&x, y, s, time_p->tm_min);
 
 	s = 17;
 	y = 124;
 	x = 2;
 	step = s*1.5;
-	drawDigit(x, y, s, time_p->tm_mday / 10);
-	x += step;
-	drawDigit(x, y, s, time_p->tm_mday % 10);
+	drawNum(&x, y, s, time_p->tm_mday);
 	x += step-2;
 	u8g_DrawBox(&u8g, x+5, y + 31, 4, 4);
 	x += step-2;
-	drawDigit(x, y, s, (time_p->tm_mon+1) / 10);
-	x += step;
-	drawDigit(x, y, s, (time_p->tm_mon+1) % 10);
+	drawNum(&x, y, s, time_p->tm_mon+1);
 	x += step-2;
 	u8g_DrawBox(&u8g, x+5, y + 31, 4, 4);
 	x += step-2;
@@ -878,11 +987,17 @@ void drawScrSvr(void) {
 	x += step;
 	drawDigit(x, y, s, 0);
 	x += step;
-	drawDigit(x, y, s, (time_p->tm_year-100) / 10);
-	x += step;
-	drawDigit(x, y, s, (time_p->tm_year-100) % 10);
+	drawNum(&x, y, s, time_p->tm_year-100);
+}
 
-
+/*******************************************************************************
+ *Заставка для спящего режима в виде стильизованных часов
+ ******************************************************************************/
+void drawNum(uint8_t * x, uint8_t y, uint8_t s, uint8_t num) {
+	uint8_t step = s*1.5;
+	drawDigit(*x, y, s, num/10);
+	*x += step;
+	drawDigit(*x, y, s, num%10);
 }
 
 /*******************************************************************************

@@ -60,8 +60,11 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.mingw.exe.debug.200233112" name="MinGW C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.mingw.exe.debug"/>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.1652978686.1117415761" name="u8g_com_stm32_n.c" rcbsApplicability="disable" resourcePath="src/u8g/u8g_com_stm32_n.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.debug.111497099.368819880">
+						<tool id="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.debug.111497099.368819880" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.debug.111497099"/>
+					</fileInfo>
 					<sourceEntries>
-						<entry excluding="src/string - копия.h|src/string - копия.c|src/mtk - копия|src/u8g/u8g_com_stm32.c|src/periph_stm32|src/onewire|main/onewire" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/u8g/u8g_com_stm32_n.c|src/string - копия.h|src/string - копия.c|src/mtk - копия|src/u8g/u8g_com_stm32.c|src/periph_stm32|src/onewire|main/onewire" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -133,10 +136,10 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
-		<configuration configurationName="Debug">
+		<configuration configurationName="Release">
 			<resource resourceType="PROJECT" workspacePath="/ElPaulo_main"/>
 		</configuration>
-		<configuration configurationName="Release">
+		<configuration configurationName="Debug">
 			<resource resourceType="PROJECT" workspacePath="/ElPaulo_main"/>
 		</configuration>
 	</storageModule>

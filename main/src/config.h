@@ -52,13 +52,13 @@
 /* Выберите один драйвер дисплея */
 //#define DISPLAY_ST7586S_SPI //Minimal RAM mode
 //#define DISPLAY_ST7586S_4X_SPI //Speed mode
-//#define DISPLAY_ST7586S_20X_SPI //Max speed mode
+#define DISPLAY_ST7586S_20X_SPI //Max speed mode
 //#define DISPLAY_ST75256_SPI //Minimal RAM mode
 //#define DISPLAY_ST75256_4X_SPI //Speed mode
 //#define DISPLAY_ST75256_20X_SPI //Max speed mode
 //#define DISPLAY_ST75256_SPI_DMA //Minimal RAM mode
 //#define DISPLAY_ST75256_4X_SPI_DMA //Speed mode
-#define DISPLAY_ST75256_20X_SPI_DMA //Max speed mode
+///////////#define DISPLAY_ST75256_20X_SPI_DMA //Max speed mode
 //#define DISPLAY_ST7586S_20X_SPI_9B //Max speed mode. 3-wire SPI
 //#define DISPLAY_ST7669_4X_SPI //Speed mode
 //#define DISPLAY_SH1106_SPI_IIC //

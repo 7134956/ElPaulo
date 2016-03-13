@@ -107,8 +107,9 @@ void sleep(void) {
 				keyInit(MODE_ADC);
 //#endif
 				powerControl.sleepMode = POWERMODE_SLEEP;	// Убрали СТОП режим
-				if (config.SleepDisplayOff)
-					drawInit(); //Запуск дисплея
+				if (config.SleepDisplayOff) {
+					displayOn();
+				}
 			}
 		}
 			break;
@@ -213,7 +214,6 @@ void SetClock(void) {
 	if((!powerControl.CloclLockTime && powerControl.freqMCU < powerControl.freqMCU_prev) || (powerControl.freqMCU > powerControl.freqMCU_prev)){
 #ifdef SYSTEM_STM32
 			SetSysClock(powerControl.freqMCU); // Установим частоты шин
-//	  	SystemCoreClockUpdate(); //Обновили значение частоты
 			SysTickInit(100); //Запуск системного таймера. Вызов 100 раз в секунд
 			beep_init(); //Настройка бипера
 			CircleTimerInit(); //Настройка таймера оборотов колеса и прочего счета

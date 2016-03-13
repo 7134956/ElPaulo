@@ -153,8 +153,6 @@ static const uint8_t u8g_dev_st7586s_data_start[] PROGMEM = {
 static const uint8_t u8g_dev_st7586s_sleep_on[] PROGMEM = {
 		U8G_ESC_ADR(0), /* instruction mode */
 		U8G_ESC_CS(1), /* enable chip */
-		0x28, /* Display off */
-		0x22, /* all pixel off */
 		0x10, /* set power save mode */
 		U8G_ESC_CS(0),
 		U8G_ESC_END /* end of sequence */
@@ -163,7 +161,6 @@ static const uint8_t u8g_dev_st7586s_sleep_on[] PROGMEM = {
 static const uint8_t u8g_dev_st7586s_sleep_off[] PROGMEM = {
 		U8G_ESC_ADR(0), /* instruction mode */
 		U8G_ESC_CS(1), /* enable chip */
-		0x29,/* display on */
 		0x11, //Sleep out
 		U8G_ESC_DLY(50), /* delay 50 ms */
 		U8G_ESC_CS(0),
@@ -215,7 +212,7 @@ uint8_t u8g_dev_st7586s_jlx240160g666_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg
 		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_sleep_on);
 		return 1;
 	case U8G_DEV_MSG_SLEEP_OFF:
-		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_sleep_off);//Need reinit after sleep out
+		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_sleep_off);
 		return 1;
 	}
 	return u8g_dev_pb8h1_base_fn(u8g, dev, msg, arg);
@@ -322,7 +319,7 @@ uint8_t u8g_dev_st7586s_jlx240160g666_20x_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t
 		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_sleep_on);
 		return 1;
 	case U8G_DEV_MSG_SLEEP_OFF:
-		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_sleep_off); //Fail. Need reinit
+		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_sleep_off);
 		return 1;
 	}
 	return u8g_dev_pb32h1_base_fn(u8g, dev, msg, arg);

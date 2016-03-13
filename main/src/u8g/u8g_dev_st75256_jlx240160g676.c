@@ -289,7 +289,7 @@ uint8_t u8g_dev_st75256_jlx240160g676_20x_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t
 		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st75256_sleep_on);
 		return 1;
 	case U8G_DEV_MSG_SLEEP_OFF:
-		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st75256_sleep_off); //Fail. Need reinit
+		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st75256_sleep_off);
 		return 1;
 	}
 	return u8g_dev_pb160v1_base_fn(u8g, dev, msg, arg);
@@ -335,7 +335,7 @@ uint8_t u8g_dev_st75256_jlx240160g676_20x_dma_fn(u8g_t *u8g, u8g_dev_t *dev, uin
 		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st75256_sleep_on);
 		return 1;
 	case U8G_DEV_MSG_SLEEP_OFF:
-		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st75256_sleep_off); //Fail. Need reinit
+		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st75256_sleep_off);
 		return 1;
 	}
 	return u8g_dev_pb160v1_base_fn(u8g, dev, msg, arg);

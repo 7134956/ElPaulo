@@ -5,7 +5,6 @@
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
 
-extern power_t powerControl;
 extern state_t state;
 #endif
 
@@ -86,6 +85,20 @@ void keyInit(uint8_t mode) {
 }
 
 /*******************************************************************************
+ *Прерывания от кнопки при выходе из спящего режима
+ ******************************************************************************/
+#ifdef SYSTEM_STM32
+void EXTI0_IRQHandler(void) {
+//	extern uint8_t stateMain;
+	if (EXTI_GetITStatus(EXTI_Line0) != RESET) { //Если прерывание пришло от линии 0
+		EXTI_ClearITPendingBit(EXTI_Line0);//Сбросим флаг прерывания
+		EXTI->IMR &= ~EXTI_Line0;//Отключаем линию внешенего прерывания 10
+		NVIC_DisableIRQ(EXTI0_IRQn);
+		state.taskList |= TASK_USER | TASK_UPDATETIME;
+	}
+}
+#endif
+/*******************************************************************************
  *Функция чтения состояния кнопок
  ******************************************************************************/
 void readKey(void) {
@@ -106,8 +119,6 @@ void readKey(void) {
 		if(state.button == BUTTON_LOCK)
 				state.button = BUTTON_NULL; //Разрешаем работу
 	} else {
-		powerControl.freqMCU = CLK_72M;
-		SetClock(); //Разогнали микроконтроллер
 		if ((adc_res > 1500) && (adc_res < 2500)) {
 			buttonPushed = BUTTON_UP;
 		} else if ((adc_res > 500) && (adc_res < 1500)) {
@@ -220,8 +231,6 @@ void USART2_IRQHandler(void) {
 	static uint8_t byteCount = 0;	//Счетчик байт в пакете
 	static uint8_t comCount = 0;	//Счетчик команд
 	if (USART_GetITStatus(USART2, USART_IT_RXNE) == SET) { //Если пришел байт
-		USART_ClearITPendingBit(USART2, USART_IT_RXNE); //Сбрасываем флаг прерывания
-		powerControl.freqMCU = CLK_72M; //Просим высокую частоту
 		SetClock(); //Разогнали микроконтроллер
 		state.taskList |= TASK_USER; // Отметим активность пользователя
 		byte = USART_ReceiveData(USART2);

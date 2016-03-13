@@ -94,6 +94,7 @@ void putcUSART(void* p, char c) {
  *Разбор команд из буфера USART
  ******************************************************************************/
 void parseUSART(void) {
+	static uint8_t stage = 0;
 	if (reciveOUT != reciveIN) {
 		if (reciveBuff[reciveOUT] == '8') {
 			printf("%s", "\n\rBUTTON_UP");
@@ -108,22 +109,24 @@ void parseUSART(void) {
 			printf("%s", "\n\rBUTTON_RIGHT");
 			state.button = BUTTON_RIGHT;
 		} else if (reciveBuff[reciveOUT] == 27) {
-			reciveOUT++;
-			if (reciveBuff[reciveOUT] == 91) {
-				reciveOUT++;
-				if (reciveBuff[reciveOUT] == 65) {
-					printf("%s", "\n\rBUTTON_UP");
-					state.button = BUTTON_UP;
-				} else if (reciveBuff[reciveOUT] == 66) {
-					printf("%s", "\n\rBUTTON_DOWN");
-					state.button = BUTTON_DOWN;
-				} else if (reciveBuff[reciveOUT] == 68) {
-					printf("%s", "\n\rBUTTON_LEFT");
-					state.button = BUTTON_LEFT;
-				} else if (reciveBuff[reciveOUT] == 67) {
-					printf("%s", "\n\rBUTTON_RIGHT");
-					state.button = BUTTON_RIGHT;
-				}
+			stage = 1;
+			printf("\n\r27 > stage 1");
+		} else if (reciveBuff[reciveOUT] == 91 && stage == 1) {
+			stage = 2;
+			printf("\n\r91 > stage 2");
+		} else if (stage == 2) {
+			if (reciveBuff[reciveOUT] == 65) {
+				printf("%s", "\n\rBUTTON_UP");
+				state.button = BUTTON_UP;
+			} else if (reciveBuff[reciveOUT] == 66) {
+				printf("%s", "\n\rBUTTON_DOWN");
+				state.button = BUTTON_DOWN;
+			} else if (reciveBuff[reciveOUT] == 68) {
+				printf("%s", "\n\rBUTTON_LEFT");
+				state.button = BUTTON_LEFT;
+			} else if (reciveBuff[reciveOUT] == 67) {
+				printf("%s", "\n\rBUTTON_RIGHT");
+				state.button = BUTTON_RIGHT;
 			}
 		} else {
 			printf("\n\r%X ", reciveBuff[reciveOUT]);
@@ -131,4 +134,27 @@ void parseUSART(void) {
 		}
 		reciveOUT++;
 	}
+}
+
+/*******************************************************************************
+ * Настройка на пробуждение по приему на UART1
+ ******************************************************************************/
+void USARTEXTIInit(void){
+	GPIO_InitTypeDef GPIO_InitStructure; //Структура настройки GPIO
+	EXTI_InitTypeDef EXTI_InitStructure;
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);//Включаем тактирование порта A и альтернативной функции
+
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; //Это свободный вход
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;//
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;// Это PA10
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource10);// выбор порта на котором хотим получить внешнее прерывание
+	EXTI_InitStructure.EXTI_Line = EXTI_Line10;// выбираем линию порта
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;// настраиваем на внешнее прерывание
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	NVIC_EnableIRQ(EXTI15_10_IRQn);//разрешаем прерывание
 }

@@ -69,6 +69,10 @@ void EXTI15_10_IRQHandler(void) {
 		}
 		track.odometr += track.circle; //Прибавляем к общему счетчику длину колеса
 		track.distance += track.circle;//Прибавляем к счетчику пути длину колеса
+	} else if (EXTI_GetITStatus(EXTI_Line10) != RESET) { //Если прерывание пришло от линии 10(UART1)
+		EXTI_ClearITPendingBit(EXTI_Line10);//Сбросим флаг прерывания
+		EXTI->IMR &= ~EXTI_Line10;//Отключаем линию внешенего прерывания 10
+		state.taskList |= TASK_USER | TASK_UPDATETIME;
 	}
 }
 
@@ -117,17 +121,5 @@ void TIM4_IRQHandler(void) {
 		state.taskList |= TASK_REDRAW;	//Перерисовка
 	}
 			RCC->APB1ENR &= ~ RCC_APB1ENR_TIM4EN; //Выключаем тактирование таймера
-}
-
-/*******************************************************************************
- *Прерывания от кнопки при выходе из спящего режима
- ******************************************************************************/
-void EXTI0_IRQHandler(void) {
-	extern uint8_t stateMain;
-	if (EXTI_GetITStatus(EXTI_Line0) != RESET) { //Если прерывание пришло от линии 12
-		EXTI_ClearITPendingBit(EXTI_Line0);//Сбросим флаг прерывания
-		NVIC_DisableIRQ(EXTI0_IRQn);
-		state.taskList |= TASK_USER | TASK_UPDATETIME;
-	}
 }
 #endif

@@ -86,15 +86,16 @@ void sleep(void) {
 			break;
 		case POWERMODE_STOP: { //Разрешено выключить тактировку переферии
 			PWMSet(1, 0); //Гасим подсветку
-#ifdef KEYBOARD_ADC
+//#ifdef KEYBOARD_ADC
 			keyInit(MODE_INT); //Переключили кнопку в режим прерывания
-#endif
+//#endif
+			USARTEXTIInit(); //Настройка порта отладочных сообщений
 			if (config.SleepDisplayOff) {
 				displayOff();
 			} else
 				setAlarm(0); //Установит будильник на следующую минуту
 			while(DMA1_Channel3->CCR & DMA_CCR3_EN){};
-			PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
+			PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFE);
 			if (state.taskList & TASK_ALARM) //Если проснулись по будильнику
 				state.taskList &= ~ TASK_ALARM; //Сбрасываем флаг
 			else {													//иначе
@@ -102,9 +103,9 @@ void sleep(void) {
 				PWMSet(1, config.PWM[1]);
 				powerControl.freqMCU_prev = CLK_NULL;
 				SetClock();
-#ifdef KEYBOARD_ADC
+//#ifdef KEYBOARD_ADC
 				keyInit(MODE_ADC);
-#endif
+//#endif
 				powerControl.sleepMode = POWERMODE_SLEEP;	// Убрали СТОП режим
 				if (config.SleepDisplayOff)
 					drawInit(); //Запуск дисплея
@@ -187,7 +188,7 @@ void MCU_init(void) {
 	i2c_init(); //Запустили i2c шину
 	RTC_init(); //Запуск часов реального времени
 //	keyInit(MODE_ADC); //Настройка портов кнопок
-	USART2Init(); //Настройка входа цифровой клавиатуры
+//	USART2Init(); //Настройка входа цифровой клавиатуры
 	batInit();
 	loadParams(); //Загрузили параметры из EEPROM
 	setStrings(&langEng); //Сначала язык по умолчанию
@@ -211,15 +212,13 @@ void MCU_init(void) {
 void SetClock(void) {
 	if((!powerControl.CloclLockTime && powerControl.freqMCU < powerControl.freqMCU_prev) || (powerControl.freqMCU > powerControl.freqMCU_prev)){
 #ifdef SYSTEM_STM32
-		SetSysClock(powerControl.freqMCU); // Установим частоты шин
-		SystemCoreClockUpdate(); //Обновили значение частоты
-		if (powerControl.freqMCU_prev != powerControl.freqMCU) {
+			SetSysClock(powerControl.freqMCU); // Установим частоты шин
+//	  	SystemCoreClockUpdate(); //Обновили значение частоты
 			SysTickInit(100); //Запуск системного таймера. Вызов 100 раз в секунд
 			beep_init(); //Настройка бипера
 			CircleTimerInit(); //Настройка таймера оборотов колеса и прочего счета
 			USARTInit(); //Настройка порта отладочных сообщений
 			USART2Init(); //Настройка входа цифровой клавиатуры
-		}
 #endif
 		powerControl.freqMCU_prev = powerControl.freqMCU;
 	}
@@ -269,12 +268,12 @@ void SetSysClock(uint8_t clockMode) {
 		FLASH->ACR |= FLASH_ACR_PRFTBE;
 		/* Конфигурируем цикл ожидания Flash */
 		/* Это нужно потому, что Flash не может работать на высокой частоте */
-	//	FLASH->ACR &= (uint32_t)((uint32_t) ~FLASH_ACR_LATENCY);
-	//	if (clockMode == CLK_8M)
-		//	FLASH->ACR |= (uint32_t) FLASH_ACR_LATENCY_0;
-	//	else if (clockMode == CLK_24M)
-	//		FLASH->ACR |= (uint32_t) FLASH_ACR_LATENCY_1;
-	//	else if (clockMode == CLK_72M)
+		FLASH->ACR &= (uint32_t)((uint32_t) ~FLASH_ACR_LATENCY);
+		if (clockMode == CLK_8M)
+			FLASH->ACR |= (uint32_t) FLASH_ACR_LATENCY_0;
+		else if (clockMode == CLK_24M)
+			FLASH->ACR |= (uint32_t) FLASH_ACR_LATENCY_1;
+		else if (clockMode == CLK_72M)
 			FLASH->ACR |= (uint32_t) FLASH_ACR_LATENCY_2;
 
 		/* HCLK = SYSCLK */
@@ -304,21 +303,14 @@ void SetSysClock(uint8_t clockMode) {
 			switch (clockMode) {
 			case CLK_72M: {
 				/*  PLL configuration: PLLCLK = HSE * 9 = 72 MHz */
-				RCC->CFGR &= (uint32_t)(
-						(uint32_t) ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE
-								| RCC_CFGR_PLLMULL));
-				RCC->CFGR |= (uint32_t)(
-						RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLMULL9);
+				RCC->CFGR &= (uint32_t)((uint32_t) ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
+				RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLMULL9);
 			}
 				break;
 			case CLK_24M: {
 				/*  PLL configuration:  = (HSE / 2) * 6 = 24 MHz */
-				RCC->CFGR &= (uint32_t)(
-						(uint32_t) ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE
-								| RCC_CFGR_PLLMULL));
-				RCC->CFGR |= (uint32_t)(
-						RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLXTPRE_HSE_Div2
-								| RCC_CFGR_PLLMULL6);
+				RCC->CFGR &= (uint32_t)((uint32_t) ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL));
+				RCC->CFGR |= (uint32_t)( RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLXTPRE_HSE_Div2 | RCC_CFGR_PLLMULL6);
 			}
 				break;
 			}

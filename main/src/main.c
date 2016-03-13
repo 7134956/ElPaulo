@@ -53,6 +53,7 @@ extern termo_t termo;
 extern BMSinfo_t BMSinfo;
 extern BMS_t BMS;
 extern popup_t popup;
+extern power_t powerControl;
 count_t count;
 track_t track; //Структура с данными текущей езды
 track_t histItem; //Структура с данными сохраненного заезда
@@ -218,6 +219,8 @@ void mainLoop() {
 		state.button = getButton(); //Проверяем нажатия
 #endif
 		if (state.button > 1) {
+			powerControl.freqMCU = CLK_72M;
+		  SetClock(); //Разогнали микроконтроллер
 			beep(2000, 50);
 			buttonsParse(); //Разбор кнопочных нажатий
 			state.taskList |= TASK_REDRAW;

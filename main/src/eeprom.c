@@ -435,7 +435,7 @@ void loadParams(void) {
 		memcpy(&config.maxFPS, &Buffer[32], 1);
 		memcpy(&config.SecInTime, &Buffer[33], 1);
 		memcpy(&config.SleepSec, &Buffer[34], 2);
-		memcpy(&config.SleepDisplayOff, &Buffer[35], 1);
+		memcpy(&config.SleepDisplayOff, &Buffer[36], 1);
 		memcpy(&config.password, &Buffer[37], 2);
 		memcpy(&config.contrast, &Buffer[39], 1);
 		memcpy(&config.bat_kS, &Buffer[40], 4);

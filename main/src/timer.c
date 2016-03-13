@@ -23,20 +23,16 @@ typedef struct systick_t {
 
 systick_t systick;
 
-
 /*******************************************************************************
  *Настройка системного таймера
  ******************************************************************************/
 void SysTickInit(uint16_t x) {
 #ifdef SYSTEM_STM32
-	SystemCoreClockUpdate ();
 	SysTick_Config(SystemCoreClock / x); //x-число раз в секунду
-#endif
-#ifdef SYSTEM_WIN
-SDL_AddTimer(x/10, my_callbackfunc, NULL);
+#elif define SYSTEM_WIN
+	SDL_AddTimer(x/10, my_callbackfunc, NULL);
 #endif
 }
-
 
 /*******************************************************************************
  *Добавление задачи
@@ -107,20 +103,7 @@ void SysTick_Handler(void) {
 #ifdef SYSTEM_WIN
 Uint32 my_callbackfunc(Uint32 interval, void *param)
 {
-//    SDL_Event event;
-//    SDL_UserEvent userevent;
-
     SysTick_Handler();
-
-//    userevent.type = SDL_USEREVENT;
-//    userevent.code = 0;
-//    userevent.data1 = NULL;
-//    userevent.data2 = NULL;
-//
-//    event.type = SDL_USEREVENT;
-//    event.user = userevent;
-//
-//    SDL_PushEvent(&event);
     return(interval);
 }
 #endif

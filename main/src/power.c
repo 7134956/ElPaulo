@@ -37,7 +37,7 @@ void powerService() {
 		/* Выбираем доступный режим сна */
 		if (state.taskList
 	//			& (TASK_REDRAW | TASK_UPDATETIME | TASK_SAVEPARAMS)) {
-				& (TASK_UPDATETIME | TASK_SAVEPARAMS)) {
+				& (TASK_UPDATETIME)) {
 			powerControl.sleepMode = POWERMODE_ACTIVE; //Все работает постоянно
 			powerControl.countToSleep = 0; //А сон отсрочим
 		} else if (state.taskList

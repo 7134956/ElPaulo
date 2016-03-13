@@ -102,7 +102,6 @@ void delay_init(void) {
 
 	/* Настраиваем таймер */
 	TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
-	SystemCoreClockUpdate ();
 	TIM_TimeBaseStructure.TIM_Prescaler = (SystemCoreClock / DELAY_TIM_FREQUENCY) - 1;
 	TIM_TimeBaseStructure.TIM_Period = UINT16_MAX;
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;

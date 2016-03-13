@@ -593,11 +593,11 @@ void buttonsParse() {
 			case BUTTON_DOWN: {
 				changePos(0, 1, 1, ACTION_IS);
 				mtk_Command(state.button);
-				state.taskList |= TASK_SAVEPARAMS;
 			}
 				break;
 			}
 		} else if (!mtk_Command(state.button)) {
+			state.taskList |= TASK_SAVEPARAMS;
 			changePos(0, 0, 0, ACTION_IS);
 			state.button = BUTTON_NULL;
 		}

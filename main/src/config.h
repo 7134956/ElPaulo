@@ -109,7 +109,7 @@
 
 #define EEPROM_WRITE_ADDRESS	0x50
 #define EEPROM_READ_ADDRESS		0x50
-#define I2C_FLASH_PAGESIZE		32
+#define EEPROM_PAGESIZE		32
 #define EEPROM_HW_ADDRESS		0xA0   /* E0 = E1 = E2 = 0 */
 
 /* EEPROM allocated */

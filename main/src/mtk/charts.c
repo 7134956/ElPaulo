@@ -1,10 +1,10 @@
 #include "mtk.h"
-#include "bitmap.h"
+//#include "bitmap.h"
 
 /*******************************************************************************
- *Отрисовка гистограммы
+ * Отрисовка гистограммы
  ******************************************************************************/
-void graphBar(mtk_t * mtk, mtk_graph_t * graph){
+void graphBar(mtk_t * mtk, mtk_graph_t * graph) {
 	char sTemp[30];
 	uint8_t vStart, hStart, vStep, hStep;
 	u8g_t * u8g;

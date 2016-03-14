@@ -171,27 +171,27 @@ void I2C_EE_BufferWrite(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteTo
 	uint8_t NumOfPage = 0, NumOfSingle = 0, count = 0;
 	uint16_t Addr = 0;
 
-	Addr = WriteAddr % I2C_FLASH_PAGESIZE;
-	count = I2C_FLASH_PAGESIZE - Addr;
-	NumOfPage = NumByteToWrite / I2C_FLASH_PAGESIZE;
-	NumOfSingle = NumByteToWrite % I2C_FLASH_PAGESIZE;
+	Addr = WriteAddr % EEPROM_PAGESIZE;
+	count = EEPROM_PAGESIZE - Addr;
+	NumOfPage = NumByteToWrite / EEPROM_PAGESIZE;
+	NumOfSingle = NumByteToWrite % EEPROM_PAGESIZE;
 
 	SysTick_task_add(NVIC_GenerateSystemReset, 1000);
 	
-	/* If WriteAddr is I2C_FLASH_PAGESIZE aligned  */
+	/* If WriteAddr is EEPROM_PAGESIZE aligned  */
 	if (Addr == 0) {
-		/* If NumByteToWrite < I2C_FLASH_PAGESIZE */
+		/* If NumByteToWrite < EEPROM_PAGESIZE */
 		if (NumOfPage == 0) {
 			I2C_EE_PageWrite(pBuffer, WriteAddr, NumOfSingle);
 			I2C_EE_WaitEepromStandbyState();
 		}
-		/* If NumByteToWrite > I2C_FLASH_PAGESIZE */
+		/* If NumByteToWrite > EEPROM_PAGESIZE */
 		else {
 			while (NumOfPage--) {
-				I2C_EE_PageWrite(pBuffer, WriteAddr, I2C_FLASH_PAGESIZE);
+				I2C_EE_PageWrite(pBuffer, WriteAddr, EEPROM_PAGESIZE);
 				I2C_EE_WaitEepromStandbyState();
-				WriteAddr += I2C_FLASH_PAGESIZE;
-				pBuffer += I2C_FLASH_PAGESIZE;
+				WriteAddr += EEPROM_PAGESIZE;
+				pBuffer += EEPROM_PAGESIZE;
 			}
 
 			if (NumOfSingle != 0) {
@@ -200,9 +200,9 @@ void I2C_EE_BufferWrite(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteTo
 			}
 		}
 	}
-	/* If WriteAddr is not I2C_FLASH_PAGESIZE aligned  */
+	/* If WriteAddr is not EEPROM_PAGESIZE aligned  */
 	else {
-		/* If NumByteToWrite < I2C_FLASH_PAGESIZE */
+		/* If NumByteToWrite < EEPROM_PAGESIZE */
 		if (NumOfPage == 0) {
 			/* If the number of data to be written is more than the remaining space
 			 in the current page: */
@@ -219,11 +219,11 @@ void I2C_EE_BufferWrite(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteTo
 				I2C_EE_WaitEepromStandbyState();
 			}
 		}
-		/* If NumByteToWrite > I2C_FLASH_PAGESIZE */
+		/* If NumByteToWrite > EEPROM_PAGESIZE */
 		else {
 			NumByteToWrite -= count;
-			NumOfPage = NumByteToWrite / I2C_FLASH_PAGESIZE;
-			NumOfSingle = NumByteToWrite % I2C_FLASH_PAGESIZE;
+			NumOfPage = NumByteToWrite / EEPROM_PAGESIZE;
+			NumOfSingle = NumByteToWrite % EEPROM_PAGESIZE;
 
 			if (count != 0) {
 				I2C_EE_PageWrite(pBuffer, WriteAddr, count);
@@ -233,10 +233,10 @@ void I2C_EE_BufferWrite(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteTo
 			}
 
 			while (NumOfPage--) {
-				I2C_EE_PageWrite(pBuffer, WriteAddr, I2C_FLASH_PAGESIZE);
+				I2C_EE_PageWrite(pBuffer, WriteAddr, EEPROM_PAGESIZE);
 				I2C_EE_WaitEepromStandbyState();
-				WriteAddr += I2C_FLASH_PAGESIZE;
-				pBuffer += I2C_FLASH_PAGESIZE;
+				WriteAddr += EEPROM_PAGESIZE;
+				pBuffer += EEPROM_PAGESIZE;
 			}
 			if (NumOfSingle != 0) {
 				I2C_EE_PageWrite(pBuffer, WriteAddr, NumOfSingle);

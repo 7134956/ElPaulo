@@ -184,8 +184,8 @@ void MCU_preinit(void) {
  * Настройка перефирии микроконтроллера
  ******************************************************************************/
 void MCU_init(void) {
-	uint8_t langEng = LANGUAGE_ENG;
 #ifdef SYSTEM_STM32
+	uint8_t langEng = LANGUAGE_ENG;
 	i2c_init(); //Запустили i2c шину
 	RTC_init(); //Запуск часов реального времени
 //	keyInit(MODE_ADC); //Настройка портов кнопок

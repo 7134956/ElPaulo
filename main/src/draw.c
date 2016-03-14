@@ -41,7 +41,6 @@ extern mtk_element_t mtkPin;	//Пароль стартового экрана
 		mtkDate,
 		mtkTime;
 */
-
 extern config_t config;
 extern state_t state;
 void drawInit(void);
@@ -71,7 +70,6 @@ void drawSegment(uint8_t, uint8_t, uint8_t, uint8_t);
  *Запуск дисплея и настройка графики
  ******************************************************************************/
 void drawInit(void) {
-
 #ifdef DISPLAY_SDL
 	u8g_Init(&u8g, &u8g_dev_sdl_2bit);
 #elif defined DISPLAY_ST7586S_SPI

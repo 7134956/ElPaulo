@@ -3,6 +3,7 @@
 #include "main.h"
 #include "string.h"
 #include "rtc.h"
+#include "job.h"
 #include "bat.h"
 #include "keyboard.h"
 
@@ -92,14 +93,17 @@ void sleep(void) {
 			USARTEXTIInit(); //Настройка порта отладочных сообщений
 			if (config.SleepDisplayOff) {
 				displayOff();
+				setAlarm(job_next()); //Установит будильник на следующее задание
 			} else
 				setAlarm(0); //Установит будильник на следующую минуту
 			while(DMA1_Channel3->CCR & DMA_CCR3_EN){};
 			PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFE);
-			if (state.taskList & TASK_ALARM) //Если проснулись по будильнику
+			if (state.taskList & TASK_ALARM) { //Если проснулись по будильнику
 				state.taskList &= ~ TASK_ALARM; //Сбрасываем флаг
+				job_exe(RTC_GetCounter());
+			}
 			else {													//иначе
-				setAlarm(0xFFFFFFFF); //Установит будильник на далеко
+				setAlarm(job_next()); //Установит будильник на следующее задание
 				PWMSet(1, config.PWM[1]);
 				powerControl.freqMCU_prev = CLK_NULL;
 				SetClock();
@@ -124,6 +128,9 @@ void sleep(void) {
 			break;
 		}
 	set_leds(LED_BLUE); //Зажгли диод пошли работать
+#endif
+#ifdef SYSTEM_WIN
+	job_exe(RTC_GetCounter());
 #endif
 }
 

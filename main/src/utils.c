@@ -10,16 +10,23 @@
 #include "timer.h"
 #include "rtc.h"
 #include "draw.h"
+#include "job.h"
 //#include <math.h>
 
-void compass(mtk_t * mtk);
+#ifdef SYSTEM_STM32
+#include "stm32f10x.h"
+#endif
+
+void compass(mtk_t *);
+tm_t * alarmClockGetSet(tm_t *);
+void alarmClock(void);
 
 extern uint8_t stateMain;
 extern state_t state;
 mtk_element_t mtkStopwatch,	//Секундомер
 		mtkTimer,		//Таймер
-		mtkCompass;		//Компас
-
+		mtkCompass,		//Компас
+		mtkAlarmClock;	//Будильник
 stopwatch_t sWatch;
 
 tm_t * timerGetSet(tm_t * t);
@@ -28,7 +35,8 @@ void utilInit(void) {
 	mtk_SetRootElement(&mtkStopwatch);
 	mtk_SetupElement(&mtkStopwatch, ELEMENT_GFUNC, NULL, 0, TYPE_CMD_ACCEPT, &stopwatch, &mtkTimer);
 	mtk_SetupElement(&mtkTimer, ELEMENT_TIME, NULL, 3, TYPE_FUNC | TYPE_NEEDOK, &timerGetSet, &mtkCompass);
-	mtk_SetupElement(&mtkCompass, ELEMENT_GFUNC, NULL, 0, TYPE_CMD_ACCEPT, &compass, NULL);
+	mtk_SetupElement(&mtkCompass, ELEMENT_GFUNC, NULL, 0, TYPE_CMD_ACCEPT, &compass, &mtkAlarmClock);
+	mtk_SetupElement(&mtkAlarmClock, ELEMENT_TIME, NULL, 2, TYPE_FUNC | TYPE_NEEDOK, &alarmClockGetSet, NULL);
 }
 
 /*******************************************************************************
@@ -234,3 +242,35 @@ void rotate(uint8_t x, uint8_t y, uint8_t * x1, uint8_t * y1, uint16_t angle) {
 //	*y1=y+(*x1-x)*sin(rad)+(*y1-y)*cos(rad);
 //	*x1 = xt;
 }
+
+/*******************************************************************************
+ * Взятие/установка будильника
+ ******************************************************************************/
+tm_t * alarmClockGetSet(tm_t * t) {
+	static tm_t alarmTime;
+	uint32_t alarmTimeCounter;
+	if (!t) { //Взять время будильника
+		CounterToFtime(job_get(alarmClock), &alarmTime);
+		return &alarmTime;
+	} else { //Установить время будтльника
+		CounterToFtime(RTC_GetCounter(), &alarmTime);
+		alarmTime.tm_hour = t->tm_hour;
+		alarmTime.tm_min = t->tm_min;
+		alarmTime.tm_sec = t->tm_sec;
+		alarmTimeCounter = FtimeToCounter(&alarmTime);
+		if (alarmTimeCounter <= RTC_GetCounter())
+			alarmTimeCounter += 24 * 60 * 60;
+		job_set(alarmClock, alarmTimeCounter);
+	}
+	return 0;
+}
+
+/*******************************************************************************
+* Вызов будильника
+ ******************************************************************************/
+void alarmClock(void) {
+	state.taskList |= TASK_USER;
+	messageCall(NULL, "Alarm clock!", POPUP_ALERT);
+	beep(2000, 1000);
+}
+

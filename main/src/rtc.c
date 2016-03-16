@@ -278,6 +278,8 @@ void RTC_IRQHandler(void) {
 		RTC_ClearITPendingBit(RTC_IT_SEC);
 #endif
 #ifdef SYSTEM_WIN
+//		extern RTC_Counter;
+		RTC_Counter++;
 		{
 #endif
 		if(config.SleepSec && (powerControl.countToSleep < config.SleepSec)) //Приблизим ко сну
@@ -313,9 +315,10 @@ void RTC_IRQHandler(void) {
 }
 /*******************************************************************************
  * Установить через сколько секунд сработает будильник
+ * Вход: секунд до будильника или 0(сработает в начале следующей минуты)
  ******************************************************************************/
-#ifdef SYSTEM_STM32
 void setAlarm(uint32_t count) {
+#ifdef SYSTEM_STM32
 	printf("%s", "setAlarm...");
 	/* Ждем когда все операции будут завершены */
 	RTC_WaitForLastTask();
@@ -327,8 +330,9 @@ void setAlarm(uint32_t count) {
 	/* Ждем завершения операции */
 	RTC_WaitForLastTask();
 	printf("%s", "[OK]\r\n");
-}
 #endif
+}
+
 /*******************************************************************************
  * Затычка для SDL версии
  ******************************************************************************/

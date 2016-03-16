@@ -16,6 +16,7 @@ extern mtk_element_t
 		mtkContrast,	//Настройка контрастности
 		mtkAutoBright,	//Включение автояркости дисплея
 		mtkMenuOdometr,	//Меню настройки одометра
+		mtkService,
 		mtkCircle,		//Настройка длины окружности колеса
 		mtkOdometr,		//Пройденное расстояние в мм
 		mtkPin,			//Пароль стартового экрана
@@ -46,7 +47,8 @@ extern mtk_element_t
 		mtkAbout,
 		mtkStopwatch,
 		mtkTimer,
-		mtkCompass;
+		mtkCompass,
+		mtkAlarmClock;
 
 extern mtk_select_t mtkLangList, mtkRacelistList;
 
@@ -104,6 +106,7 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkMenuOdometr.label = "Odometr";
 		mtkCircle.label = "Circle(mm)";
 		mtkOdometr.label = "Odometr(Km)";
+		mtkService.label = "To service(Km)";
 		mtkPassword.label = "Password";
 		mtkDateTime.label = "Time";
 		mtkDate.label = "Date";
@@ -141,6 +144,7 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkStopwatch.label = "Stopwatch";
 		mtkTimer.label = "Timer";
 		mtkCompass.label = "Compass";
+		mtkAlarmClock.label = "Alarm clock";
 		break;
 	case LANGUAGE_RUS:
 		raceParams[0] = "Макс. скор";
@@ -188,6 +192,7 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkMenuOdometr.label = "Одометр";
 		mtkCircle.label = "Колесо(mm)";
 		mtkOdometr.label = "Одометр(Km)";
+		mtkService.label = "To service(Km)";
 		mtkPassword.label = "Пароль";
 		mtkDateTime.label = "Часы";
 		mtkDate.label = "Дата";
@@ -225,6 +230,7 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkStopwatch.label = "Секундомер";
 		mtkTimer.label = "Таймер";
 		mtkCompass.label = "Компас";
+		mtkAlarmClock.label = "Будильник";
 		break;
 	}
 	mtkLangList.string[0] = "English";

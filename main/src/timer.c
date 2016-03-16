@@ -10,17 +10,6 @@
 Uint32 my_callbackfunc(Uint32, void *);
 #endif
 
-typedef struct slot_func_t {
-	TIMER_CALLBACK func;
-	uint32_t period;
-	uint32_t counter;
-} slot_func_t;
-
-typedef struct systick_t {
-	slot_func_t slots[SYSTICK_SLOTS];
-	uint8_t taskCount;
-} systick_t;
-
 systick_t systick;
 
 /*******************************************************************************
@@ -63,9 +52,9 @@ void SysTick_task_del(TIMER_CALLBACK fp) {
 	uint8_t i;
 	for (i = 0; i < systick.taskCount; i++) {
 		if (systick.slots[i].func == fp) {
-			systick.taskCount--; //Уменьшаем число задач
 			systick.slots[i] = systick.slots[systick.taskCount];//В освободившееся место ставим последнюю
-			systick.slots[systick.taskCount].func = NULL;//Стираем указатель на функцию
+			systick.taskCount--; //Уменьшаем число задач
+//			systick.slots[systick.taskCount].func = NULL;//Стираем указатель на функцию
 		}
 	}
 }

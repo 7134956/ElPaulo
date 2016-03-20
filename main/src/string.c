@@ -17,6 +17,7 @@ extern mtk_element_t
 		mtkAutoBright,	//Включение автояркости дисплея
 		mtkMenuOdometr,	//Меню настройки одометра
 		mtkService,
+		mtkSaveRace, 	//
 		mtkCircle,		//Настройка длины окружности колеса
 		mtkOdometr,		//Пройденное расстояние в мм
 		mtkPin,			//Пароль стартового экрана
@@ -48,15 +49,17 @@ extern mtk_element_t
 		mtkStopwatch,
 		mtkTimer,
 		mtkCompass,
-		mtkAlarmClock;
+		mtkAlarmClock,
+		mtkCountdownTime,
+		mtkCountdownDst;
 
 extern mtk_select_t mtkLangList, mtkRacelistList;
 
-uint8_t currentLang;
 /******************************************************************************
  * Get/set current GUI language
  *****************************************************************************/
 uint8_t setStrings(uint8_t * lang) {
+	static uint8_t currentLang;
 	if(!lang)
 		return currentLang;
 	switch (*lang) {
@@ -107,6 +110,7 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkCircle.label = "Circle(mm)";
 		mtkOdometr.label = "Odometr(Km)";
 		mtkService.label = "To service(Km)";
+		mtkSaveRace.label = "Autosave(min)";
 		mtkPassword.label = "Password";
 		mtkDateTime.label = "Time";
 		mtkDate.label = "Date";
@@ -145,6 +149,8 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkTimer.label = "Timer";
 		mtkCompass.label = "Compass";
 		mtkAlarmClock.label = "Alarm clock";
+		mtkCountdownTime.label = "CDT";
+		mtkCountdownDst.label = "CDD";
 		break;
 	case LANGUAGE_RUS:
 		raceParams[0] = "Макс. скор";
@@ -192,7 +198,8 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkMenuOdometr.label = "Одометр";
 		mtkCircle.label = "Колесо(mm)";
 		mtkOdometr.label = "Одометр(Km)";
-		mtkService.label = "To service(Km)";
+		mtkService.label = "Тех. Обсл.(Km)";
+		mtkSaveRace.label = "Автосохр.(min)";
 		mtkPassword.label = "Пароль";
 		mtkDateTime.label = "Часы";
 		mtkDate.label = "Дата";
@@ -231,6 +238,8 @@ uint8_t setStrings(uint8_t * lang) {
 		mtkTimer.label = "Таймер";
 		mtkCompass.label = "Компас";
 		mtkAlarmClock.label = "Будильник";
+		mtkCountdownTime.label = "Отсчет (вр.)";
+		mtkCountdownDst.label = "Отсчет (км)";
 		break;
 	}
 	mtkLangList.string[0] = "English";

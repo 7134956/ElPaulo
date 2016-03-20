@@ -233,6 +233,7 @@ uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val
 				byte = ((*ptr & 128) / 8) | ((*ptr & 64) * 2); //Старший бит
 				*ptr <<= 2;
 #ifdef SPI_SKIP_BUSY
+				__nop(); //Даем время байту отправиться
 				SPI_UNIT->DR = byte;
 #else				
 				while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {}; 

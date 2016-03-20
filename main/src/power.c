@@ -66,6 +66,10 @@ void powerService() {
 		MCU_preinit();
 		MCU_init();
 	}
+	if (state.taskList & TASK_ALARM) { //Если проснулись по будильнику
+		job_exe(RTC_GetCounter());
+		state.taskList &= ~ TASK_ALARM; //Сбрасываем флаг
+	}
 }
 
 /*******************************************************************************
@@ -82,7 +86,7 @@ void sleep(void) {
 		}
 			break;
 		case POWERMODE_SLEEP: { //Остановим ядро до любого события
-			__WFI();
+			__WFE();
 		}
 			break;
 		case POWERMODE_STOP: { //Разрешено выключить тактировку переферии
@@ -90,7 +94,7 @@ void sleep(void) {
 //#ifdef KEYBOARD_ADC
 			keyInit(MODE_INT); //Переключили кнопку в режим прерывания
 //#endif
-			USARTEXTIInit(); //Настройка порта отладочных сообщений
+			USARTEXTIInit(); //Настройка порта отладочных сообщений на пробуждение
 			if (config.SleepDisplayOff) {
 				displayOff();
 				setAlarm(job_next()); //Установит будильник на следующее задание
@@ -99,8 +103,8 @@ void sleep(void) {
 			while(DMA1_Channel3->CCR & DMA_CCR3_EN){};
 			PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFE);
 			if (state.taskList & TASK_ALARM) { //Если проснулись по будильнику
-				state.taskList &= ~ TASK_ALARM; //Сбрасываем флаг
 				job_exe(RTC_GetCounter());
+				state.taskList &= ~ TASK_ALARM; //Сбрасываем флаг
 			}
 			else {													//иначе
 				setAlarm(job_next()); //Установит будильник на следующее задание

@@ -11,6 +11,7 @@
 #include "rtc.h"
 #include "draw.h"
 #include "job.h"
+#include "beeper.h"
 //#include <math.h>
 
 #ifdef SYSTEM_STM32
@@ -20,13 +21,18 @@
 void compass(mtk_t *);
 tm_t * alarmClockGetSet(tm_t *);
 void alarmClock(void);
+tm_t * countdownRaceTimeGetSet(tm_t * t);
+void countdownRaceTime(void);
 
 extern uint8_t stateMain;
 extern state_t state;
+extern track_t track;
 mtk_element_t mtkStopwatch,	//Секундомер
 		mtkTimer,		//Таймер
 		mtkCompass,		//Компас
-		mtkAlarmClock;	//Будильник
+		mtkAlarmClock,	//Будильник
+		mtkCountdownTime,//Отсчет времени в пути ЧЧ:ММ:CC
+		mtkCountdownDst;//Отсчет расстояния в км
 stopwatch_t sWatch;
 
 tm_t * timerGetSet(tm_t * t);
@@ -36,7 +42,9 @@ void utilInit(void) {
 	mtk_SetupElement(&mtkStopwatch, ELEMENT_GFUNC, NULL, 0, TYPE_CMD_ACCEPT, &stopwatch, &mtkTimer);
 	mtk_SetupElement(&mtkTimer, ELEMENT_TIME, NULL, 3, TYPE_FUNC | TYPE_NEEDOK, &timerGetSet, &mtkCompass);
 	mtk_SetupElement(&mtkCompass, ELEMENT_GFUNC, NULL, 0, TYPE_CMD_ACCEPT, &compass, &mtkAlarmClock);
-	mtk_SetupElement(&mtkAlarmClock, ELEMENT_TIME, NULL, 2, TYPE_FUNC | TYPE_NEEDOK, &alarmClockGetSet, NULL);
+	mtk_SetupElement(&mtkAlarmClock, ELEMENT_TIME, NULL, 2, TYPE_FUNC | TYPE_NEEDOK, &alarmClockGetSet, &mtkCountdownTime);
+	mtk_SetupElement(&mtkCountdownTime, ELEMENT_TIME, NULL, 3, TYPE_FUNC | TYPE_NEEDOK, &countdownRaceTimeGetSet, &mtkCountdownDst);
+	mtk_SetupElement(&mtkCountdownDst, ELEMENT_NUM16, NULL, 4, TYPE_NULL | TYPE_NEEDOK, &track.countdownDst, NULL);
 }
 
 /*******************************************************************************
@@ -266,11 +274,27 @@ tm_t * alarmClockGetSet(tm_t * t) {
 }
 
 /*******************************************************************************
-* Вызов будильника
+* Вызов будильника ( коллбэк функция )
  ******************************************************************************/
 void alarmClock(void) {
 	state.taskList |= TASK_USER;
 	messageCall(NULL, "Alarm clock!", POPUP_ALERT);
-	beep(2000, 1000);
+}
+
+/*******************************************************************************
+ * Взятие/установка времени обратного отсчета
+ * Обработка переменной идет в void circleStep(uint16_t count)
+ ******************************************************************************/
+tm_t * countdownRaceTimeGetSet(tm_t * t) {
+	static tm_t alarmTime;
+	if (!t) { //Взять время отсчетцика
+		alarmTime.tm_hour = track.countdownRaceTime / 3600;
+		alarmTime.tm_min = (track.countdownRaceTime / 60) % 60;
+		alarmTime.tm_sec = track.countdownRaceTime % 60;
+		return &alarmTime;
+	} else { //Установить время отсчетчика
+		track.countdownRaceTime = t->tm_hour * 3600 + t->tm_min * 60 + t->tm_sec;
+	}
+	return 0;
 }
 

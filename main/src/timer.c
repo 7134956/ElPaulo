@@ -52,7 +52,7 @@ void SysTick_task_del(TIMER_CALLBACK fp) {
 	uint8_t i;
 	for (i = 0; i < systick.taskCount; i++) {
 		if (systick.slots[i].func == fp) {
-			systick.slots[i] = systick.slots[systick.taskCount];//В освободившееся место ставим последнюю
+			systick.slots[i] = systick.slots[systick.taskCount - 1];//В освободившееся место ставим последнюю
 			systick.taskCount--; //Уменьшаем число задач
 //			systick.slots[systick.taskCount].func = NULL;//Стираем указатель на функцию
 		}

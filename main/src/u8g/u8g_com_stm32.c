@@ -15,11 +15,12 @@
 #define SPI_PINS			GPIO_Pin_5 | GPIO_Pin_7
 /* Настройка вывода CS */
 #define SPI_PORT_CS			GPIOA
-#define SPI_PIN_CS			GPIO_Pin_6
+#define SPI_PIN_CS			GPIO_Pin_4
 /* Настройка вывода A0 */
 #define SPI_PORT_A0			GPIOA
-#define SPI_PIN_A0			GPIO_Pin_4
+#define SPI_PIN_A0			GPIO_Pin_15
 //#define SPI_SKIP_BUSY /* For speed SPI transfer. If SPI_CLK >= CPU_CLK/2 */
+/* CPOL = 1, CPHA = 1 */
 /*---------------------End configure SPI for display ------------------------*/
 
 #define DELAY_TIM_FREQUENCY 1000000 /* = 1MHZ -> timer runs in microseconds */
@@ -36,19 +37,11 @@
 void SPIInit(uint8_t);
 void DMA1_SPI1_init(void);
 void SPI_DMA_Send(void *source, uint16_t count);
+
 /******************************************************************************
- *Настройка SPI-шины для дисплея
+ * Configure SPI for display
  *****************************************************************************/
 void SPIInit(uint8_t param) {
-	/* configure pins used by SPI1
-	 * PA4 = A0 (RS)
-	 * PA5 = SCK
-	 * PA6 = MISO use as CS
-	 * PA7 = MOSI (SDA)
-	 * CPOL = 1
-	 * CPHA = 1
-	 */
-
 	GPIO_InitTypeDef SPI_Pin_Init; //Настройка пинов SPI1.
 	GPIO_InitTypeDef SPI_Pin_CS_Init; //CS.
 	GPIO_InitTypeDef SPI_Pin_A0_Init; //A0
@@ -92,7 +85,7 @@ void SPIInit(uint8_t param) {
 }
 
 /******************************************************************************
- *set TIM1 to run at DELAY_TIM_FREQUENCY
+ * set TIM1 to run at DELAY_TIM_FREQUENCY
  *****************************************************************************/
 void delay_init(void) {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
@@ -116,16 +109,17 @@ void delay_init(void) {
 }
 
 /******************************************************************************
- *Delay by the provided number of micro seconds.
- *Limitation: "us" * System-Freq in MHz must now overflow in 32 bit.
- *Values between 0 and 1.000.000 (1 second) are ok.
+ * Delay by the provided number of micro seconds.
+ * Limitation: "us" * System-Freq in MHz must now overflow in 32 bit.
+ * Values between 0 and 1.000.000 (1 second) are ok.
  *****************************************************************************/
 void delay_micro_seconds(uint32_t us) {
 	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
-	TIM1->CNT = (uint16_t)0;
+	TIM1->CNT = (uint16_t) 0;
 	/* use 16 bit count wrap around */
-	while ((uint16_t)(TIM1->CNT) <= us);
-	RCC->APB2ENR &=~ RCC_APB2ENR_TIM1EN;
+	while ((uint16_t) (TIM1->CNT) <= us){
+	}
+	RCC->APB2ENR &= ~RCC_APB2ENR_TIM1EN;
 }
 
  /****************************************************************************/
@@ -151,7 +145,7 @@ void u8g_10MicroDelay(void) {
 }
 
 /******************************************************************************
- *st7586s on SPI 8 bit
+ * st7586s on SPI 8 bit
 
 Com_fn unpack page buffer to display
 
@@ -194,10 +188,10 @@ uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val
 		break;
 	case U8G_COM_MSG_ADDRESS: /* define cmd (arg_val = 0) or data mode (arg_val = 1) */
 	{
-		if (arg_val == 0)
-			A0_LOW();
-		if (arg_val == 1)
+		if (arg_val)
 			A0_HIGH();
+		else
+			A0_LOW();
 	}
 		break;
 	case U8G_COM_MSG_CHIP_SELECT: {
@@ -216,12 +210,11 @@ uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val
 	}
 		break;
 	case U8G_COM_MSG_WRITE_BYTE: {
-#ifdef SPI_SKIP_BUSY
-		SPI_UNIT->DR = arg_val;
-#else				
-		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {};
-		SPI_I2S_SendData(SPI1, arg_val);
+#ifndef SPI_SKIP_BUSY
+		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {
+		}
 #endif
+		SPI_UNIT->DR = arg_val;
 	}
 		break;
 	case U8G_COM_MSG_WRITE_SEQ: {
@@ -232,13 +225,12 @@ uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val
 			for (i = 0; i < 4; i++) {
 				byte = ((*ptr & 128) / 8) | ((*ptr & 64) * 2); //Старший бит
 				*ptr <<= 2;
-#ifdef SPI_SKIP_BUSY
+#ifndef SPI_SKIP_BUSY
+				while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {
+				}
+#endif
 				__nop(); //Даем время байту отправиться
 				SPI_UNIT->DR = byte;
-#else				
-				while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {}; 
-				SPI_I2S_SendData(SPI1, byte);
-#endif
 			}
 			ptr++;
 			arg_val--;
@@ -250,7 +242,7 @@ uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val
 }
 
 /******************************************************************************
- *Display on SPI 8 bit
+ * Display on SPI 8 bit
  *****************************************************************************/
 uint8_t u8g_com_stm32_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr) {
 	switch (msg) {
@@ -264,10 +256,10 @@ uint8_t u8g_com_stm32_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *
 		break;
 	case U8G_COM_MSG_ADDRESS: /* define cmd (arg_val = 0) or data mode (arg_val = 1) */
 	{
-		if (arg_val == 0)
-			A0_LOW();
-		if (arg_val == 1)
+		if (arg_val)
 			A0_HIGH();
+		else
+			A0_LOW();
 	}
 		break;
 	case U8G_COM_MSG_CHIP_SELECT: {
@@ -286,23 +278,21 @@ uint8_t u8g_com_stm32_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *
 	}
 		break;
 	case U8G_COM_MSG_WRITE_BYTE: {
-#ifdef SPI_SKIP_BUSY
-		SPI_UNIT->DR = arg_val;
-#else				
-		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {};
-		SPI_I2S_SendData(SPI1, arg_val);
+#ifndef SPI_SKIP_BUSY
+		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {
+		}
 #endif
+		SPI_UNIT->DR = arg_val;
 	}
 		break;
 	case U8G_COM_MSG_WRITE_SEQ: {
 		register uint8_t *ptr = arg_ptr;
 		while (arg_val > 0) {
-#ifdef SPI_SKIP_BUSY
-				SPI_UNIT->DR = u8g_pgm_read(ptr);
-#else				
-				while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {}; 
-				SPI_I2S_SendData(SPI1, u8g_pgm_read(ptr));
+#ifndef SPI_SKIP_BUSY
+			while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {
+			}
 #endif
+			SPI_UNIT->DR = u8g_pgm_read(ptr);
 			ptr++;
 			arg_val--;
 		}
@@ -313,34 +303,33 @@ uint8_t u8g_com_stm32_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *
 }
 
 /*******************************************************************************
- *Работа с дисплеем по SPI с DMA 8 bit
+ * Display on SPI 8 bit DMA
  ******************************************************************************/
 uint8_t u8g_com_stm32_hw_spi_dma_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr) {
 	switch (msg) {
 	case U8G_COM_MSG_STOP:
-		//Остановить устройство
+//Остановить устройство
 		break;
 	case U8G_COM_MSG_INIT: {
-//		u8g_pb_t *pb = (u8g_pb_t *)(u8g->dev->dev_mem);
 		delay_init();
-		SPIInit(SPI_8BIT); //Инициализация SPI1 (stm32f1)
+		SPIInit(SPI_8BIT);
 		DMA1_SPI1_init();
 	}
 		break;
 	case U8G_COM_MSG_ADDRESS: /* define cmd (arg_val = 0) or data mode (arg_val = 1) */
 	{
-		while(DMA1_Channel3->CCR & DMA_CCR3_EN){};
-		if (arg_val == 0)
-			A0_LOW();
-		if (arg_val == 1)
+		while (DMA1_Channel3->CCR & DMA_CCR3_EN) {
+		}
+		if (arg_val)
 			A0_HIGH();
+		else
+			A0_LOW();
 	}
 		break;
 	case U8G_COM_MSG_CHIP_SELECT: {
 		if (arg_val == 0) {
-			while (DMA1_Channel3->CNDTR)
-				// Wait transmit complete
-			;
+			while (DMA1_Channel3->CNDTR) {
+			} // Wait transmit complete
 			/* disable */
 //			RCC->APB2ENR &= ~ RCC_APB2ENR_SPI1EN;
 			CS_OFF();
@@ -356,24 +345,25 @@ uint8_t u8g_com_stm32_hw_spi_dma_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, vo
 	}
 		break;
 	case U8G_COM_MSG_WRITE_BYTE: {
-#ifdef SPI_SKIP_BUSY
-		SPI_UNIT->DR = arg_val;
-#else
-		while (DMA1_Channel3->CNDTR) {}; // Wait transmit complete
-		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {};
+#ifndef SPI_SKIP_BUSY
+		while (DMA1_Channel3->CNDTR) {
+		} // Wait transmit complete
+		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {
+		}
 		SPI_I2S_SendData(SPI1, arg_val);
 #endif
+		SPI_UNIT->DR = arg_val;
 	}
 		break;
 	case U8G_COM_MSG_WRITE_SEQ: {
-				register uint8_t *ptr = arg_ptr;
-#ifdef SPI_SKIP_BUSY
-		SPI_DMA_Send(ptr, arg_val*160);
-#else		
-		while (DMA1_Channel3->CNDTR) {}; // Wait transmit complete
-		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {}; 
-		SPI_DMA_Send(ptr, arg_val*160);
+		register uint8_t *ptr = arg_ptr;
+#ifndef SPI_SKIP_BUSY
+		while (DMA1_Channel3->CNDTR) {
+		} // Wait transmit complete
+		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {
+		}
 #endif
+		SPI_DMA_Send(ptr, arg_val * 160);
 	}
 		break;
 	}
@@ -381,74 +371,72 @@ uint8_t u8g_com_stm32_hw_spi_dma_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, vo
 }
 
 /*******************************************************************************
- *Настройка блока DMA
+ * Configure DMA
  ******************************************************************************/
 void DMA1_SPI1_init() {
 	DMA_InitTypeDef DMA_InitStructure;
 	//Тактирование включается следующим образом:
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE); //Тактирование включается
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
 	//Прежде всего сбросим предыдущие настройки DMA
 	DMA_DeInit(DMA1_Channel3);
-	//Теперь приступим непосредственно к настройке. Она выглядит следующим образом:
 	//Указатель на регистр периферийного устройства
-	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&(SPI1->DR);
-	//Адрес в памяти
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) &(SPI1->DR);
+	//Адрес в памяти потом изменим
 	DMA_InitStructure.DMA_MemoryBaseAddr = 0;
 	//Переферия это приемник
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-	//Размер передаваемого буффера
+	//Размер передаваемого буффера настроим при передаче
 	DMA_InitStructure.DMA_BufferSize = 0;
 	//Не инкрементировать адресс переферии
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	//Инкрементировать адрес в памяти
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	//
+	//Ширина слова переферии
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
-	//
+	//Ширина слова в памяти
 	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
 	//После выполнения работы сработает прерывание
 	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-	//
+	//Низкий приоритет.
 	DMA_InitStructure.DMA_Priority = DMA_Priority_Low;
 	//Отключаем режим передачи из памяти в память
 	DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-	//
+	//Применяем настройки
 	DMA_Init(DMA1_Channel3, &DMA_InitStructure);
 	//Разрешаем SPI1 работать в DMA.
 	SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, ENABLE);
-	//Устанавливаем прерывания от DMA по окончанию передачи
+	//Включаем прерывания от DMA по окончанию передачи
 	DMA_ITConfig(DMA1_Channel3, DMA_IT_TC, ENABLE);
 	//Включаем общие прерывания в NVIC.
 	NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 }
 
 /*******************************************************************************
- *Прерыванеи блока DMA
+ * DMA completion interrupt
  ******************************************************************************/
 void DMA1_Channel3_IRQHandler(void) {
-	if (DMA1->ISR & DMA1_IT_TC3) //If interrupt from Tx complete channel 3
-			{
+	if (DMA1->ISR & DMA1_IT_TC3) { //If interrupt from Tx complete channel 3
 		/* DMA Clear IT Pending Bit */
 		DMA1->IFCR = DMA1_IT_TC3;
 		/* Disable DMA1_Channel3 */
-		DMA1_Channel3->CCR &= (uint16_t) (~DMA_CCR3_EN);
+		DMA1_Channel3->CCR &= ~DMA_CCR3_EN;
 		/* Disable clock DMA1 */
 //		RCC->AHBENR &= ~RCC_AHBENR_DMA1EN;
-		/* Disable CS pin on SPI */		
+		/* Disable CS pin on SPI */
 		CS_OFF();
 	}
 }
 
 /*******************************************************************************
- *Отправка данных в SPI через DMA
+ * Sending data via the SPI DMA
  ******************************************************************************/
 void SPI_DMA_Send(void *source, uint16_t count) {
-	while (DMA1_Channel3->CNDTR) {}; // Wait transmit complete
-		
+	while (DMA1_Channel3->CNDTR) {
+	} // Wait transmit complete
 	/* Enable clock DMA1 */
 //	RCC->AHBENR |= RCC_AHBENR_DMA1EN;
 	/* Set data counter for DMA1 Channel3 */
-	DMA1_Channel3->CMAR = (uint32_t)source;
+	DMA1_Channel3->CMAR = (uint32_t) source;
 	DMA1_Channel3->CNDTR = count;
 	/* Enable DMA1 Channel3 */
 	DMA1_Channel3->CCR |= DMA_CCR3_EN;

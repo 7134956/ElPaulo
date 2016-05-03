@@ -97,22 +97,22 @@
         <Book>
           <Number>3</Number>
           <Title>User Manual (NUCLEO-F103RB)</Title>
-          <Path>d:\!Electronic\!CODING\IDE\Keil_v5\ARM\PACK\Keil\STM32NUCLEO_BSP\1.4.0\Documents\DM00105823.pdf</Path>
+          <Path>d:\!Electronic\!CODING\IDE\Keil_v5\ARM\PACK\Keil\STM32NUCLEO_BSP\1.6.0\Documents\DM00105823.pdf</Path>
         </Book>
         <Book>
           <Number>4</Number>
           <Title>Overview (NUCLEO-F103RB)</Title>
-          <Path>d:\!Electronic\!CODING\IDE\Keil_v5\ARM\PACK\Keil\STM32NUCLEO_BSP\1.4.0\Documents\DM00105918.pdf</Path>
+          <Path>d:\!Electronic\!CODING\IDE\Keil_v5\ARM\PACK\Keil\STM32NUCLEO_BSP\1.6.0\Documents\DM00105918.pdf</Path>
         </Book>
         <Book>
           <Number>5</Number>
           <Title>Getting started (NUCLEO-F103RB)</Title>
-          <Path>d:\!Electronic\!CODING\IDE\Keil_v5\ARM\PACK\Keil\STM32NUCLEO_BSP\1.4.0\Documents\DM00105925.pdf</Path>
+          <Path>d:\!Electronic\!CODING\IDE\Keil_v5\ARM\PACK\Keil\STM32NUCLEO_BSP\1.6.0\Documents\DM00105928.pdf</Path>
         </Book>
         <Book>
           <Number>6</Number>
           <Title>Schematics (NUCLEO-F103RB)</Title>
-          <Path>d:\!Electronic\!CODING\IDE\Keil_v5\ARM\PACK\Keil\STM32NUCLEO_BSP\1.4.0\Documents\MB1136.pdf</Path>
+          <Path>d:\!Electronic\!CODING\IDE\Keil_v5\ARM\PACK\Keil\STM32NUCLEO_BSP\1.6.0\Documents\MB1136.pdf</Path>
         </Book>
         <Book>
           <Number>7</Number>
@@ -210,7 +210,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>&lt;1&gt;RTE\Device\STM32F103C8\system_stm32f10x.c</Filename>
+          <Filename>RTE\Device\STM32F103C8\system_stm32f10x.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression>\\EBikeBMS\RTE/Device/STM32F103C8/system_stm32f10x.c\1004</Expression>
         </Bp>
@@ -226,7 +226,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>&lt;1&gt;RTE\Device\STM32F103C8\startup_stm32f10x_md.s</Filename>
+          <Filename>RTE\Device\STM32F103C8\startup_stm32f10x_md.s</Filename>
           <ExecCommand></ExecCommand>
           <Expression>\\EBikeBMS\RTE/Device/STM32F103C8/startup_stm32f10x_md.s\136</Expression>
         </Bp>
@@ -386,7 +386,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\periph_stm32\led.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\periph_stm32\led.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -402,7 +402,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\periph_stm32\led.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\periph_stm32\led.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -418,7 +418,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\periph_stm32\led.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\periph_stm32\led.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -434,7 +434,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\power.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\power.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -450,7 +450,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\power.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\power.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -466,7 +466,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\power.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\power.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -482,7 +482,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\buttons.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\buttons.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -498,7 +498,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\buttons.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\buttons.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -514,7 +514,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\power.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\power.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -530,7 +530,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\power.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\power.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -546,7 +546,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\power.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\power.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -562,7 +562,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\power.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\power.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -578,7 +578,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\power.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\power.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -594,7 +594,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\rtc.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\rtc.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -610,7 +610,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>&lt;2&gt;..\src\rtc.c</Filename>
+          <Filename>D:\Dropbox\Projects\ElPaulo\BMS\src\rtc.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -647,12 +647,15 @@
       <LintExecutable></LintExecutable>
       <LintConfigFile></LintConfigFile>
       <bLintAuto>0</bLintAuto>
+      <Lin2Executable></Lin2Executable>
+      <Lin2ConfigFile></Lin2ConfigFile>
+      <bLin2Auto>0</bLin2Auto>
     </TargetOption>
   </Target>
 
   <Group>
     <GroupName>main</GroupName>
-    <tvExp>0</tvExp>
+    <tvExp>1</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>

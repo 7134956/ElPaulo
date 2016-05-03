@@ -10,12 +10,15 @@
 #define BAT_FULL 4			//Заряд окончен
 
 void batInit(void);
+void bat_query(void);
+void bat_measure(void);
+void bat_calc(void);
 	
 typedef struct bat_t {	//Глобальная структура состояния батарейки
+	uint16_t value;		//Значение АЦП
 	uint16_t voltage;	//Напряжение на батарейке
 	uint8_t level;		//Уровень заряда батареи
 	uint8_t state;		//Состоянии батарейки
-	float kS;			//Размах чувствительности АЦП
 } bat_t;
 
 #endif /* BAT_H_ */

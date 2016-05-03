@@ -16,13 +16,13 @@ void PWM_init(void) {
 	TIM_OCInitTypeDef TIM_OC_InitStructure;
 
 	//Initialize clocks for TIM2
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+	RCC->APB1ENR |= RCC_APB1Periph_TIM2;
 
-	//Initialize clocks for GPIOA, AFIO
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	//Initialize clocks for GPIOA
+	RCC->APB2ENR |= RCC_APB2Periph_GPIOA;
 
-	//Configure pin TIM2 CH2 = PA1 as alternative function push-pull
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+	//Configure pin TIM2 CH2 = PA1 CH3 = PA2 as alternative function push-pull
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1 | GPIO_Pin_2;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -30,7 +30,7 @@ void PWM_init(void) {
 	//Configure TIM2 time base
 	TIM_TimeBase_InitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBase_InitStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
-	TIM_TimeBase_InitStructure.TIM_Period = 256 - 1;
+	TIM_TimeBase_InitStructure.TIM_Period = PWM_MAX;
 	TIM_TimeBase_InitStructure.TIM_Prescaler = 0;
 
 	TIM_TimeBaseInit(TIM2, &TIM_TimeBase_InitStructure);
@@ -39,48 +39,47 @@ void PWM_init(void) {
 	TIM_OC_InitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OC_InitStructure.TIM_OCIdleState = TIM_OCIdleState_Reset;
 	TIM_OC_InitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Reset;
-	TIM_OC_InitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;
+	TIM_OC_InitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OC_InitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OC_InitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OC_InitStructure.TIM_OutputNState = TIM_OutputNState_Disable;
 
-	TIM_OC1Init(TIM2, &TIM_OC_InitStructure);
 	TIM_OC2Init(TIM2, &TIM_OC_InitStructure);
+	TIM_OC3Init(TIM2, &TIM_OC_InitStructure);
 
 	TIM_Cmd(TIM2, ENABLE);
 	
-	TIM2->CCR1 = 0;
 	TIM2->CCR2 = 0;
-	//TIM2->CCR3 = 0;
+	TIM2->CCR3 = 0;
 	
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, DISABLE);
+	RCC->APB1ENR &= ~RCC_APB1Periph_TIM2;
 #endif
 }
 
 /*******************************************************************************
  * Установка скважности заданного канала ШИМ
  ******************************************************************************/
-void PWMSet(uint8_t num, uint8_t value) {
+void PWMSet(uint8_t num, uint16_t value) {
+	config.PWM[num] = value;
 #ifdef SYSTEM_STM32
-	if(value)
+	if (value)
 		RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
-//	config.PWM[num] = value;
 	switch (num) {
 	case 0:
-		TIM_SetCompare1(TIM2, value);
+		TIM2->CCR2 = value;
 		break;
 	case 1:
-		TIM_SetCompare2(TIM2, value);
+		TIM2->CCR3 = value;
 		break;
 	}
-	if(!TIM2->CCR1 & !TIM2->CCR2)
-		RCC->APB1ENR &=~ RCC_APB1ENR_TIM2EN;
+	if (!TIM2->CCR2 & !TIM2->CCR3)
+		RCC->APB1ENR &= ~RCC_APB1ENR_TIM2EN;
 #endif
 }
 
 /*******************************************************************************
  * Взятие скважности заданного канала ШИМ
  ******************************************************************************/
-uint8_t PWMGet(uint8_t num) {
+uint16_t PWMGet(uint8_t num) {
 	return config.PWM[num];
 }

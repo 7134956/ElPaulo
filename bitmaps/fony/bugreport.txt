@@ -1,0 +1,158 @@
+date/time         : 2015-05-16, 16:49:34, 653ms
+computer name     : ASUS-X55VD
+user name         : Koroleff
+registered owner  : Koroleff
+operating system  : Windows 7 x64 Service Pack 1 build 7601
+system language   : Belarusian
+system up time    : 2 days 21 hours
+program up time   : 2 days 17 hours
+processors        : 2x Intel(R) Celeron(R) CPU B820 @ 1.70GHz
+physical memory   : 2178/3788 MB (free/total)
+free disk space   : (C:) 42,28 GB (D:) 26,83 GB
+display mode      : 1366x768, 32 bit
+process id        : $8b8
+allocated memory  : 85,17 MB
+executable        : Fony.exe
+exec. date/time   : 2013-07-26 14:53
+version           : 1.4.4.0
+compiled with     : Delphi 2010
+madExcept version : 3.0l
+Fony.exe.mad      : $00027f1c, $5ec042fa, $52ce3375
+callstack crc     : $c0c19433, $02a63dae, $02a63dae
+count             : 3
+exception number  : 2
+exception message : The application seems to be frozen.
+
+main thread ($12ec):
+768df5b7 +00e USER32.dll               WaitMessage
+0053c5c9 +149 Fony.exe     segment%67  public%7229
+0053b8af +017 Fony.exe     segment%67  public%7206
+0053bbcd +0c9 Fony.exe     segment%67  public%7211
+006a9d16 +136 Fony.exe     segment%349 public%14518
+75e63378 +010 kernel32.dll             BaseThreadInitThunk
+
+thread $7b0: <priority:2>
+768b7c18 +45 USER32.dll              GetMessageA
+0045f435 +0d Fony.exe     segment%23 public%2294
+0045f49f +37 Fony.exe     segment%23 public%2295
+75e63378 +10 kernel32.dll            BaseThreadInitThunk
+>> created by main thread ($12ec) at:
+723a6c8b +00 winmm.dll
+
+thread $1008:
+77c601a2 +0e ntdll.dll     NtWaitForMultipleObjects
+75e63378 +10 kernel32.dll  BaseThreadInitThunk
+
+thread $1a30:
+768b7908 +26 USER32.dll              GetMessageW
+0045f435 +0d Fony.exe     segment%23 public%2294
+0045f49f +37 Fony.exe     segment%23 public%2295
+75e63378 +10 kernel32.dll            BaseThreadInitThunk
+>> created by thread $133c at:
+769b450f +00 SHLWAPI.dll
+
+thread $1d48:
+77c61f8b +0b ntdll.dll     NtWaitForWorkViaWorkerFactory
+75e63378 +10 kernel32.dll  BaseThreadInitThunk
+
+thread $1860:
+77c61f8b +0b ntdll.dll     NtWaitForWorkViaWorkerFactory
+75e63378 +10 kernel32.dll  BaseThreadInitThunk
+
+date/time         : 2016-01-29, 00:51:42, 270ms
+computer name     : WIN-BSAGD8O5N6P
+user name         : 71349
+operating system  : Windows NT New x64 build 9200
+system language   : Russian
+system up time    : 2 days 1 hour
+program up time   : 5 hours 26 minutes
+processors        : 2x Intel(R) Celeron(R) CPU G530 @ 2.40GHz
+physical memory   : 4550/12234 MB (free/total)
+free disk space   : (C:) 44,48 GB (D:) 21,71 GB
+display mode      : 1920x1080, 32 bit
+process id        : $184c
+allocated memory  : 87,07 MB
+executable        : Fony.exe
+exec. date/time   : 2013-07-26 14:53
+version           : 1.4.4.0
+compiled with     : Delphi 2010
+madExcept version : 3.0l
+callstack crc     : $995e12b8, $567f0b48, $567f0b48
+Fony.exe.mad      : $00027f1c, $5ec042fa, $52ce3375
+exception number  : 1
+exception class   : EStringListError
+exception message : List index out of bounds (551).
+
+main thread ($1180):
+0048fd79 +01d Fony.exe     segment%32  public%3422
+00699a7c +190 Fony.exe     segment%226 public%14304
+004983d3 +00f Fony.exe     segment%32  public%3750
+00527ae5 +031 Fony.exe     segment%66  public%6729
+00528830 +050 Fony.exe     segment%66  public%6787
+00498297 +013 Fony.exe     segment%32  public%3739
+0056db61 +085 Fony.exe     segment%83  public%8192
+00580ea9 +015 Fony.exe     segment%85  public%8649
+0056da66 +0b2 Fony.exe     segment%83  public%8190
+00498a80 +014 Fony.exe     segment%32  public%3772
+740462fb +00b user32.dll               DispatchMessageW
+0053b85d +11d Fony.exe     segment%67  public%7204
+0053b8a2 +00a Fony.exe     segment%67  public%7206
+0053bbcd +0c9 Fony.exe     segment%67  public%7211
+006a9d16 +136 Fony.exe     segment%349 public%14518
+76af38f2 +022 KERNEL32.DLL             BaseThreadInitThunk
+
+thread $1ef8:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $2d9c:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $2d84:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $2d98:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $2d8c:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $2ca4:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $2ca8:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $2df8:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $2774:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $9e4:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $1e08:
+74e4a324 +104 KERNELBASE.dll            WaitForMultipleObjectsEx
+0045f435 +00d Fony.exe       segment%23 public%2294
+0045f49f +037 Fony.exe       segment%23 public%2295
+76af38f2 +022 KERNEL32.DLL              BaseThreadInitThunk
+>> created by thread $2ca4 at:
+76f3484b +000 combase.dll
+
+thread $2ef4:
+74e4a324 +104 KERNELBASE.dll            WaitForMultipleObjectsEx
+0045f435 +00d Fony.exe       segment%23 public%2294
+0045f49f +037 Fony.exe       segment%23 public%2295
+76af38f2 +022 KERNEL32.DLL              BaseThreadInitThunk
+>> created by thread $2d8c at:
+76f3484b +000 combase.dll
+
+thread $2e4c:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $1a84:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $296c:
+76af38f2 +22 KERNEL32.DLL  BaseThreadInitThunk
+

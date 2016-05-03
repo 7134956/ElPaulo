@@ -3,11 +3,11 @@
 
 #include "config.h"
 
-#define PWM_MAX 255
+#define PWM_MAX 512
 #define PWM_COUNT 2
 
 void PWM_init(void);
-void PWMSet(uint8_t, uint8_t);
-uint8_t PWMGet(uint8_t);
+void PWMSet(uint8_t, uint16_t);
+uint16_t PWMGet(uint8_t);
 
 #endif /* _PWM_H_ */

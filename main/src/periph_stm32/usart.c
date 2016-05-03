@@ -7,7 +7,6 @@
 #include "stm32f10x.h"
 #include "usart.h"
 #include "keyboard.h"
-//#include "printf.h"
 
 char transBuff[256] = { "\n\n\rElPaulo 0.1!\n\r" };
 uint8_t transIN = 18, transOUT = 0; //Куда складывать, откуда передавать
@@ -22,6 +21,7 @@ extern state_t state;
 void USARTInit() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
 
 	// Enable GPIOA and GPIOA clock
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_GPIOA, ENABLE);
@@ -58,7 +58,13 @@ void USARTInit() {
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
 	USART_Init(USART1, &USART_InitStructure);
 
-	NVIC_EnableIRQ(USART1_IRQn); //Разрешили общие прерывания USART1
+	//далее идут настройки приоритета прерываний.
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+		
 	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 
 	USART_Cmd(USART1, ENABLE);
@@ -156,5 +162,5 @@ void USARTEXTIInit(void){
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	NVIC_EnableIRQ(EXTI15_10_IRQn);//разрешаем прерывание
+	//Приоритет прерывания в buttons.c
 }

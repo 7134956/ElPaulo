@@ -168,7 +168,7 @@ static const uint8_t u8g_dev_st7586s_sleep_off[] PROGMEM = {
 };
 
 /*******************************************************************************
- *Driver for jlx240160g-666
+ * Driver for jlx240160g-666
  ******************************************************************************/
 uint8_t u8g_dev_st7586s_jlx240160g666_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg) {
 	uint16_t i;

@@ -12,7 +12,7 @@
 #include "draw.h"
 #include "job.h"
 #include "beeper.h"
-//#include <math.h>
+#include <math.h>
 
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
@@ -104,7 +104,7 @@ void stopwatch(mtk_t * mtk) {
 			sWatch.nums = 0;
 			sWatch.select = 0;
 			state.taskList |= TASK_REDRAW;
-			state.taskList &= ~ TASK_STOPWATCH;
+			state.taskList &= ~TASK_STOPWATCH;
 			mtk->command = COMMAND_NULL;
 		}
 			break;
@@ -137,38 +137,47 @@ void stopwatch(mtk_t * mtk) {
 		}
 //Отрисовка верхнего счетчика интервалов.
 		count = sWatch.dsH[sWatch.select] - sWatch.dsH[sWatch.select - 1];
+		if (count / 36000)
+			x = 15;
+		else
+			x = 0;
 		u8g_SetFont(mtk->u8g, u8g_font_elpaulo32n);
 		u8g_SetScale2x2(mtk->u8g);
 		sprintf(sTemp, "%02d:%02d", (count / 600) % 60, (count / 10) % 60);
-		u8g_DrawStr(mtk->u8g, 0, y, sTemp);
+		u8g_DrawStr(mtk->u8g, x, y, sTemp);
 		u8g_UndoScale(mtk->u8g);
-		sprintf(sTemp, ".%01d", count % 10);
-		u8g_DrawStr(mtk->u8g, 205, y * 2, sTemp);
-	}
+		if (count / 36000) {
+			sprintf(sTemp, "%01d:", count / 36000);
+			u8g_DrawStr(mtk->u8g, 0, y * 2, sTemp);
+		} else {
+			sprintf(sTemp, ".%01d", count % 10);
+			u8g_DrawStr(mtk->u8g, 205, y * 2, sTemp);
+		}
 //Отрисовка нижнего/полного счета.
-	if (sWatch.select > 1) {
-		count = sWatch.dsH[sWatch.select];
-		sprintf(sTemp, "%01d:%02d:%02d:%01d", (count / 36000),
-				((count / 600) % 60), ((count / 10) % 60), (count % 10));
-		if(count/360000)
-			x = 43;
-		else
-			x = 67;
-		u8g_DrawStr(mtk->u8g, x, 138, sTemp);
+		if (sWatch.select > 1) {
+			count = sWatch.dsH[sWatch.select];
+			sprintf(sTemp, "%01d:%02d:%02d:%01d", (count / 36000),
+					((count / 600) % 60), ((count / 10) % 60), (count % 10));
+			if (count / 360000)
+				x = 43;
+			else
+				x = 67;
+			u8g_DrawStr(mtk->u8g, x, 138, sTemp);
+			u8g_SetFont(mtk->u8g, u8g_font_elpaulo20);
+			u8g_DrawStr(mtk->u8g, 3, 138, "Total:");
+		}
+		/* Нарисуем подскуазку*/
 		u8g_SetFont(mtk->u8g, u8g_font_elpaulo20);
-		u8g_DrawStr(mtk->u8g, 3, 138, "Total:");
-	}
-	/* Нарисуем подскуазку*/
-	u8g_SetFont(mtk->u8g, u8g_font_elpaulo20);
-	x = 0, y = 158;
-	u8g_DrawStr(mtk->u8g, x, y, "\x0AStart");
-	u8g_DrawStr(mtk->u8g, x + 80, y, "\x0CPause");
-	u8g_DrawStr(mtk->u8g, x + 160, y, "\x0DReset");
-	u8g_DrawLine(mtk->u8g, 0, 140, 239, 140);
-	x = 75;
-	for (i = 0; i < 2; i++) {
-		u8g_DrawLine(mtk->u8g, x, 141, x, 159);
-		x += 80;
+		x = 0, y = 158;
+		u8g_DrawStr(mtk->u8g, x, y, "\x0AStart");
+		u8g_DrawStr(mtk->u8g, x + 80, y, "\x0CPause");
+		u8g_DrawStr(mtk->u8g, x + 160, y, "\x0DReset");
+		u8g_DrawLine(mtk->u8g, 0, 140, 239, 140);
+		x = 75;
+		for (i = 0; i < 2; i++) {
+			u8g_DrawLine(mtk->u8g, x, 141, x, 159);
+			x += 80;
+		}
 	}
 }
 
@@ -192,8 +201,8 @@ void timerTick(void) {
 	}else{
 		SysTick_task_del(timerTick);
 		state.taskList |= TASK_REDRAW;
-		state.taskList &= ~ TASK_TIMER;
-		messageCall(NULL, "Timer: Time is over!", POPUP_ALERT);
+		state.taskList &= ~TASK_TIMER;
+		messageCall("Timer", "Time is over!", POPUP_ALERT);
 	}
 }
 
@@ -245,10 +254,10 @@ void compass(mtk_t * mtk) {
 * Поворот точки
  ******************************************************************************/
 void rotate(uint8_t x, uint8_t y, uint8_t * x1, uint8_t * y1, uint16_t angle) {
-//	float rad = angle / ( 180 / 3.1415926535897932384626433832795 );
-//	uint8_t xt=x+(*x1-x)*cos(rad)-(*y1-y)*sin(rad);
-//	*y1=y+(*x1-x)*sin(rad)+(*y1-y)*cos(rad);
-//	*x1 = xt;
+	float rad = angle / ( 180 / 3.1415926535897932384626433832795 );
+	uint8_t xt=x+(*x1-x)*cos(rad)-(*y1-y)*sin(rad);
+	*y1=y+(*x1-x)*sin(rad)+(*y1-y)*cos(rad);
+	*x1 = xt;
 }
 
 /*******************************************************************************

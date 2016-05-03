@@ -13,9 +13,7 @@ uint32_t RTC_Counter;
 #endif
 
 void Time_Adjust(tm_t*);
-void RTC_Configuration(void);
 void NVIC_Configuration(void);
-void NVIC_GenerateSystemReset(void);
 uint8_t isleapyear(uint16_t);
 
 extern state_t state;
@@ -24,6 +22,7 @@ extern uint32_t i2cTimeLimit;
 extern power_t powerControl;
 
 tm_t dateTime; //Структура с актуальной датой и временем
+
 /*******************************************************************************
  * Сколько дней в месяце
  ******************************************************************************/
@@ -68,7 +67,9 @@ tm_t * timeGetSet(tm_t * t) {
 		return &dateTime;
 	} else {
 #ifdef SYSTEM_STM32
-		Time_Adjust(t);
+		RTC_WaitForLastTask();
+		RTC_SetCounter(FtimeToCounter(t));
+		RTC_WaitForLastTask();
 #endif
 #ifdef SYSTEM_WIN
 		RTC_Counter = FtimeToCounter(t);
@@ -84,8 +85,8 @@ tm_t * timeGetSet(tm_t * t) {
 void RTC_init(void) {
 #ifdef SYSTEM_WIN
 	dateTime.tm_year = 116;
-	dateTime.tm_mon = 1;
-	dateTime.tm_mday = 1;
+	dateTime.tm_mon = 4;
+	dateTime.tm_mday = 11;
 	dateTime.tm_hour = 12;
 	dateTime.tm_min = 0;
 	dateTime.tm_sec = 0;
@@ -93,11 +94,9 @@ void RTC_init(void) {
 #endif
 
 #ifdef SYSTEM_STM32
-
-
 	if (BKP_ReadBackupRegister(BKP_DR1) != 0xA5A5) {
 		/* Если в бекап регистре не установлена верная метка, настроим часы */
-		printf("%s", "\r\n\n RTC not yet configured....");
+//		printf("%s", "\r\n\n RTC not yet configured....");
 
 //		uint8_t	tm_sec;		/* Seconds: 0-59 (K&R says 0-61?) */
 //		uint8_t	tm_min;		/* Minutes: 0-59 */
@@ -119,7 +118,7 @@ void RTC_init(void) {
 		Time_Adjust(&dateTime);
 		state.taskList |= TASK_TIMESETUP;
 	} else {
-		printf("%s", "\r\n No need to configure RTC....");
+//		printf("%s", "\r\n No need to configure RTC....");
 		/* Enable PWR and BKP clocks */
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
 		/* Allow access to BKP Domain */
@@ -149,15 +148,13 @@ void RTC_init(void) {
 void NVIC_Configuration(void) {
 	EXTI_InitTypeDef EXTI_InitStruct;
 	NVIC_InitTypeDef NVIC_InitStructure;
-	/* Настройка группы приоритета прерывания */
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+	
 	/* Включим прерывание от часов */
 	NVIC_InitStructure.NVIC_IRQChannel = RTC_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 15;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 15;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
-
 	/* Настроим внешнее прерывание от будильника */
 	EXTI_ClearITPendingBit(EXTI_Line17);
 	EXTI_InitStruct.EXTI_Line = EXTI_Line17;
@@ -167,84 +164,52 @@ void NVIC_Configuration(void) {
 	EXTI_Init(&EXTI_InitStruct);
 	/* Настроим обработчик */
 	NVIC_InitStructure.NVIC_IRQChannel = RTCAlarm_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 15;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 14;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 }
 
+/*******************************************************************************
+ * Настройка часов
+ ******************************************************************************/
 void Time_Adjust(tm_t* time) {
-	/* RTC Configuration */
-	RTC_Configuration();
-	printf("%s", "\r\n RTC configured....");
-
+	/* Enable PWR and BKP clocks */
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
+	/* Allow access to BKP Domain */
+	PWR_BackupAccessCmd(ENABLE);
+	/* Reset Backup Domain */
+	BKP_DeInit();
+	/* Enable LSE */
+	RCC_LSEConfig(RCC_LSE_ON);
+	/* Wait till LSE is ready */
+	while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET);
+	/* Select LSE as RTC Clock Source */
+	RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);
+	/* Enable RTC Clock */
+	RCC_RTCCLKCmd(ENABLE);
+	/* Wait for RTC registers synchronization */
+	RTC_WaitForSynchro();
+	/* Wait until last write operation on RTC registers has finished */
+	RTC_WaitForLastTask();
+	/* Enable the RTC Second */
+	RTC_ITConfig(RTC_IT_SEC, ENABLE);
+	/* Wait until last write operation on RTC registers has finished */
+	RTC_WaitForLastTask();
+	/* Set RTC prescaler: set RTC period to 1sec */
+	RTC_SetPrescaler(32767); /* RTC period = RTCCLK/RTC_PR = (32.768 KHz)/(32767+1) */
+	/* Wait until last write operation on RTC registers has finished */
+	RTC_WaitForLastTask();
+//	printf("%s", "\r\n RTC configured....");
 	/* Wait until last write operation on RTC registers has finished */
 	RTC_WaitForLastTask();
 	/* Change the current time */
 	RTC_SetCounter(FtimeToCounter(time));
 	/* Wait until last write operation on RTC registers has finished */
 	RTC_WaitForLastTask();
-
 	BKP_WriteBackupRegister(BKP_DR1, 0xA5A5);
-
 	/* Clear reset flags */
 	RCC_ClearFlag();
-
-}
-
-/*******************************************************************************
- * Настройка часов
- ******************************************************************************/
-void RTC_Configuration(void) {
-	/* Enable PWR and BKP clocks */
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
-
-	/* Allow access to BKP Domain */
-	PWR_BackupAccessCmd(ENABLE);
-
-	/* Reset Backup Domain */
-	BKP_DeInit();
-
-	/* Enable LSE */
-	RCC_LSEConfig(RCC_LSE_ON);
-	/* Wait till LSE is ready */
-	while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET) {
-	}
-
-	/* Select LSE as RTC Clock Source */
-	RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);
-
-	/* Enable RTC Clock */
-	RCC_RTCCLKCmd(ENABLE);
-
-	/* Wait for RTC registers synchronization */
-	RTC_WaitForSynchro();
-
-	/* Wait until last write operation on RTC registers has finished */
-	RTC_WaitForLastTask();
-
-	/* Enable the RTC Second */
-	RTC_ITConfig(RTC_IT_SEC, ENABLE);
-
-	/* Wait until last write operation on RTC registers has finished */
-	RTC_WaitForLastTask();
-
-	/* Set RTC prescaler: set RTC period to 1sec */
-	RTC_SetPrescaler(32767); /* RTC period = RTCCLK/RTC_PR = (32.768 KHz)/(32767+1) */
-
-	/* Wait until last write operation on RTC registers has finished */
-	RTC_WaitForLastTask();
-}
-
-//They probably just changed the name. It was in the library source file stm32f10x_nvic.c
-
-#define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
-
-/*******************************************************************************
- * Сброс микроконтроллера.
- ******************************************************************************/
-void NVIC_GenerateSystemReset(void) {
-	SCB->AIRCR = AIRCR_VECTKEY_MASK | (uint32_t) 0x04;
 }
 #endif
 
@@ -253,10 +218,8 @@ void NVIC_GenerateSystemReset(void) {
  ******************************************************************************/
 void RTCAlarm_IRQHandler(void) {
 #ifdef SYSTEM_STM32
-	printf("%s", "RTCAlarm_IRQHandler...");
 	EXTI_ClearITPendingBit(EXTI_Line17);
 	state.taskList |= TASK_REDRAW | TASK_UPDATETIME | TASK_ALARM;
-	printf("%s", "[OK]\r\n");
 #endif
 }
 
@@ -265,33 +228,28 @@ void RTCAlarm_IRQHandler(void) {
  ******************************************************************************/
 extern uint16_t angle;
 void RTC_IRQHandler(void) {
-		printf("%s", "RTC_IRQHandler...");
-	//Fixme bottom
+	//FIXME bottom
 	angle+=360/60;
 
 #ifdef SYSTEM_STM32
-	ADC_SoftwareStartConvCmd(ADC1, ENABLE); //Запуск преобразования ADC1
-//Fixme up
-	
 	if (RTC_GetITStatus(RTC_IT_SEC) != RESET) {
 		/* Снимаем флаг прерывания секунд */
 		RTC_ClearITPendingBit(RTC_IT_SEC);
 #endif
 #ifdef SYSTEM_WIN
-//		extern RTC_Counter;
 		RTC_Counter++;
 		{
 #endif
 		if(config.SleepSec && (powerControl.countToSleep < config.SleepSec)) //Приблизим ко сну
 		powerControl.countToSleep++;
 
-		if(powerControl.CloclLockTime > 0)
+		if(powerControl.CloclLockTime)
 		powerControl.CloclLockTime--;
 
 		/*Обновим время на дисплее*/
 		if (state.taskList & TASK_UPDATETIME) {
 			CounterToFtime(RTC_GetCounter(), &dateTime);
-			state.taskList &=~ TASK_UPDATETIME;
+			state.taskList &= ~TASK_UPDATETIME;
 			state.taskList |= TASK_REDRAW;
 		}
 		else {
@@ -311,7 +269,6 @@ void RTC_IRQHandler(void) {
 			if(config.SecInTime)state.taskList |= TASK_REDRAW; //Перерисовка если показываем секунды
 		}
 	}
-		printf("%s", "[OK]\r\n");
 }
 /*******************************************************************************
  * Установить через сколько секунд сработает будильник
@@ -319,17 +276,12 @@ void RTC_IRQHandler(void) {
  ******************************************************************************/
 void setAlarm(uint32_t count) {
 #ifdef SYSTEM_STM32
-	printf("%s", "setAlarm...");
-	/* Ждем когда все операции будут завершены */
+	/* Ждем когда операции будут завершены */
 	RTC_WaitForLastTask();
-	if(count)
-	/*  */
+	/* Задаем значение счетчика для пробуждения */
 	RTC_SetAlarm(count);
-	else
-	RTC_SetAlarm(RTC_GetCounter()-(RTC_GetCounter()%60)+60);
 	/* Ждем завершения операции */
 	RTC_WaitForLastTask();
-	printf("%s", "[OK]\r\n");
 #endif
 }
 
@@ -350,9 +302,9 @@ void CounterToFtime(uint32_t counter, tm_t * dateTime) {
 	uint8_t b, d, m;
 	ace = (counter / 86400) + 32044 + JD0;
 	b = (4 * ace + 3) / 146097; // может ли произойти потеря точности из-за переполнения 4*ace ??
-	ace = ace - ((146097 * b) / 4);
+	ace -= ((146097 * b) / 4);
 	d = (4 * ace + 3) / 1461;
-	ace = ace - ((1461 * d) / 4);
+	ace -= ((1461 * d) / 4);
 	m = (5 * ace + 2) / 153;
 	dateTime->tm_mday = ace - ((153 * m + 2) / 5) + 1;
 	dateTime->tm_mon = m + 2 - (12 * (m / 10));

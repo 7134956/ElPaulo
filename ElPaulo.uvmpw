@@ -8,13 +8,13 @@
   <WorkspaceName>WorkSpace</WorkspaceName>
 
   <project>
-    <PathAndName>.\BMS\proj_Keil\EBikeBMS.uvprojx</PathAndName>
-  </project>
-
-  <project>
     <PathAndName>.\main\proj_Keil\EBikeMain.uvprojx</PathAndName>
     <NodeIsActive>1</NodeIsActive>
     <NodeIsExpanded>1</NodeIsExpanded>
+  </project>
+
+  <project>
+    <PathAndName>.\boot\proj_Keil\loader.uvprojx</PathAndName>
   </project>
 
 </ProjectWorkspace>

@@ -13,16 +13,23 @@
 
 #define MENU_MAIN_ITEMS 8
 
+#define MESSAGE_SLOTS 4
 #define POPUP_NULL 0
 #define POPUP_ALERT 1
 #define POPUP_ERROR 2
 #define POPUP_QUERY 3
+//#define POPUP_SILENT 4
 
 typedef struct popup_t {
-	uint8_t type; //Флани типа и ответа
+	uint8_t type; //Флаги типа и ответа
 	char * head; //Заголовок
 	char * body; //Сообщение
 } popup_t;
+
+typedef struct message_t {
+	popup_t popup[MESSAGE_SLOTS]; //Флаги типа и ответа
+	uint8_t count; //Число сообщений в стеке
+} message_t;
 
 void drawInit(void);
 void drawTask(void);//Запросить перерисовку экрана
@@ -31,6 +38,5 @@ void displayOff(void);
 void displayOn(void);
 uint32_t contrastGetSet(uint32_t *);
 void messageCall(char *, char *, uint8_t);
-void message(void);
 
 #endif /* _DRAW_H_ */

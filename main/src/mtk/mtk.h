@@ -38,29 +38,29 @@ typedef struct _mtk_select_t mtk_select_t;
 typedef struct _mtk_graph_t mtk_graph_t;
 
 //Флаги свойств
-#define TYPE_NULL 0			//Нередактируемый элемент
-#define TYPE_FUNC 1			//Редактирование параметра через вызов функции
-#define TYPE_NEEDOK 2		//Редактирование  параметра с подтверждением
-#define TYPE_LOCK 4			//Редактирование без возможности выхода
-#define TYPE_CMD_ACCEPT 8	//GFUNC сама обрабатывает команды
-#define TYPE_PRIVATE 16		//Защищено паролем
+#define TYPE_NULL	0		//Нередактируемый элемент
+#define TYPE_FUNC	1		//Редактирование параметра через вызов функции
+#define TYPE_NEEDOK	2		//Редактирование  параметра с подтверждением
+#define TYPE_LOCK	4		//Редактирование без возможности выхода
+#define TYPE_CMD_ACCEPT	8	//GFUNC сама обрабатывает команды
+#define TYPE_PRIVATE	16	//Защищено паролем
 //Флаги состояния
-#define EDITING_UNLOCK 32	//Ввод пароля начат
-#define EDITING_PROCESS 64 //Редактирование начато(Выделен редактируемый разряд или активирована графическая функция)
-#define EDITING_EDITED 128 //Требуется сохранение (число изменено) Выставляется только для TYPE_NEEDOK
+#define EDITING_UNLOCK	32	//Ввод пароля начат
+#define EDITING_PROCESS	64	//Редактирование начато(Выделен редактируемый разряд или активирована графическая функция)
+#define EDITING_EDITED	128 //Требуется сохранение (число изменено) Выставляется только для TYPE_NEEDOK
 
 //Тип элемента
-#define ELEMENT_NULL 0
-#define ELEMENT_NUM8 1 //Редактирование 8 битного числа
-#define ELEMENT_NUM16 2//Редактирование 16 битного числа
-#define ELEMENT_NUM32 3 //Редактирование 32 битного числа
-#define ELEMENT_NUM64X1M 8 //Делит на миллион редактирует умножает и сохряняет
-#define ELEMENT_FLAG 4 //Изминение бинарного пароаметра
-#define ELEMENT_MENU 5 //Элемент меню с подэлементами
-#define ELEMENT_DATE 6	//Редактирование дня месяца года в структуре tm
-#define ELEMENT_TIME 7 //Редактирование часа минут секунд в структуре tm
-#define ELEMENT_SEL 9	//Выбор значения из списка с подписями
-#define ELEMENT_GFUNC 10	//Ссылка на графическую функцию
+#define ELEMENT_NULL	0
+#define ELEMENT_NUM8	1	//Редактирование 8 битного числа
+#define ELEMENT_NUM16	2	//Редактирование 16 битного числа
+#define ELEMENT_NUM32	3	//Редактирование 32 битного числа
+#define ELEMENT_NUM64X1M 8	//Делит на миллион редактирует умножает и сохряняет
+#define ELEMENT_FLAG	4	//Изминение бинарного пароаметра
+#define ELEMENT_MENU	5	//Элемент меню с подэлементами
+#define ELEMENT_DATE 	6	//Редактирование дня месяца года в структуре tm
+#define ELEMENT_TIME	7	//Редактирование часа минут секунд в структуре tm
+#define ELEMENT_SEL		9	//Выбор значения из списка с подписями
+#define ELEMENT_GFUNC	10	//Ссылка на графическую функцию
 
 struct _mtk_struct_t {
  	uint8_t pos_x;			//Позиция меню горизонтиальная
@@ -78,12 +78,13 @@ struct _mtk_struct_t {
 //	uint8_t skip;			//Сколько пунктов меню пропустить не рисуя
 	uint8_t count;			//Какой элемент(строку) по счету рисуем/нарисовали
 	uint8_t select;			//Какой элемент(строка) по счету выбран
-	uint8_t indexHist;		//Указатель на позицию в истории переходов в глубь
+	uint8_t indexHist;		//Номер позиции в истории переходов в глубь
 	mtk_element_p rootHist[10];	//Массив указателей для возврата по меню
 	uint8_t selectHist[10];	//Массив указателей на номера пунктов меню с которых вошли
 	uint32_t tempNum;		//Тут редактируем число до сохранения
 	tm_t tempTime;			//Тут редактируем время до сохранения
 	uint8_t	flags;			//Глобальные флаги для меню
+	uint16_t key;			//Ключ от запароленных меню
 };
 
 struct _mtk_element_t {

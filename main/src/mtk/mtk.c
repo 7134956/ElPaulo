@@ -10,8 +10,7 @@ mtk_element_t mtkUnlock;
 extern config_t config;
 
 void mtk_Init(u8g_t * u8g) {
-
-	mtk_SetupElement(&mtkUnlock, ELEMENT_NUM16, NULL, PASSWORD_LENGHT, EDITING_PROCESS, &mtk.tempNum, NULL);
+	mtk_SetupElement(&mtkUnlock, ELEMENT_NUM16, NULL, PASSWORD_LENGHT, EDITING_PROCESS, &mtk.key, NULL);
 	mtkUnlock.label = 0;
 
 	mtk.pos_x = 0;
@@ -28,13 +27,19 @@ void mtk_Draw(void) {
 	mtk_drawLL(&mtk);
 }
 
+/*******************************************************************************
+ * Если вернет 1 значит вышли из меню
+ ******************************************************************************/
 uint8_t mtk_Command(uint8_t command) {
+	static uint8_t x;
+
 	mtk.command = command;
-	mtk_commandLL(&mtk);
-	if (!mtk.select)
-		return 0;
+	if (mtk.select)
+		x = 0;
 	else
-		return 1;
+		x = 1;
+	mtk_commandLL(&mtk);
+	return x;
 }
 
 void mtk_Pos(uint8_t x, uint8_t y) {
@@ -57,11 +62,12 @@ void mtk_SelectElement(uint8_t select) {
 }
 
 /*******************************************************************************
- *Сборка дерева меню подключением элементов
+ * Сборка дерева меню подключением элементов
  ******************************************************************************/
 void mtk_SetupElement(mtk_element_p element, uint8_t type, char * string, uint8_t lenght, uint8_t flags, void * pointer, mtk_element_p next) {
 	element->type = type;
-	//element->label[0] = string;
+	if(string)
+		element->label = string;
 	element->length = lenght;
 	element->pointer = pointer;
 	element->flags = flags;
@@ -69,7 +75,7 @@ void mtk_SetupElement(mtk_element_p element, uint8_t type, char * string, uint8_
 }
 
 /*******************************************************************************
- *Отрисовка меню и элементов
+ * Отрисовка меню и элементов
  ******************************************************************************/
 void mtk_drawLL(mtk_t *mtk) {
 	char arrowSel[2] = { ARROW_RIGHT, 0 };
@@ -143,9 +149,8 @@ void mtk_drawLL(mtk_t *mtk) {
 					mtk->element = &mtkUnlock;
 					mtk_elementNum(mtk);
 					mtk->element = temp2Element;
-				} else {
-					u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, "\x0E");
 				}
+					u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, "\x0E");
 			} else
 				switch (mtk->element->type) {
 				case ELEMENT_NUM8:
@@ -190,7 +195,7 @@ void mtk_drawLL(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Отрисовка элемента типа NUM
+ * Отрисовка элемента типа NUM
  ******************************************************************************/
 void mtk_elementNum(mtk_t *mtk) {
 	uint32_t x;
@@ -234,7 +239,7 @@ void mtk_elementNum(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Отрисовка элемента типа FLAG
+ * Отрисовка элемента типа FLAG
  ******************************************************************************/
 void mtk_elementFlag(mtk_t *mtk) {
 	uint8_t whide = 2;
@@ -261,7 +266,7 @@ void mtk_elementFlag(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Отрисовка элементов DATE, TIME
+ * Отрисовка элементов DATE, TIME
  ******************************************************************************/
 void mtk_elementDateTime(mtk_t *mtk) {
 	char sTemp[20]; //Переменная для строки
@@ -278,7 +283,7 @@ void mtk_elementDateTime(mtk_t *mtk) {
 	} else
 		tm = mtk->element->pointer;
 	mtk->step_x = u8g_GetStrWidth(mtk->u8g, "00");
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < mtk->element->length; i++) {
 		if ((mtk->pos == i) && (mtk->element->flags & EDITING_PROCESS)) {
 			u8g_DrawBox(mtk->u8g, mtk->pos_x, mtk->pos_y - mtk->ascent, mtk->step_x, mtk->glyph_y); // draw cursor bar
 			u8g_SetDefaultBackgroundColor(mtk->u8g);
@@ -312,19 +317,19 @@ void mtk_elementDateTime(mtk_t *mtk) {
 		}
 		u8g_DrawStr(mtk->u8g, mtk->pos_x, mtk->pos_y, sTemp);
 		u8g_SetDefaultForegroundColor(mtk->u8g);
-		if (i < 2) {
+		if (i < mtk->element->length - 1) {
 			if (mtk->element->type == ELEMENT_TIME)
 				sprintf(sTemp, "%s", ":");
 			if (mtk->element->type == ELEMENT_DATE)
 				sprintf(sTemp, "%s", "/");
 			u8g_DrawStr(mtk->u8g, mtk->pos_x + mtk->step_x, mtk->pos_y, sTemp);
 		}
-		mtk->pos_x += (mtk->step_x*20)/13;
+		mtk->pos_x += mtk->step_x + u8g_GetStrWidth(mtk->u8g, sTemp);
 	}
 }
 
 /*******************************************************************************
- *Отрисовка элемента типа SELECT
+ * Отрисовка элемента типа SELECT
  ******************************************************************************/
 void mtk_elementSelect(mtk_t *mtk) {
 	uint8_t (*fp)(uint8_t *);
@@ -351,7 +356,7 @@ void mtk_elementSelect(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Отрисовка элемента типа GFUNC
+ * Отрисовка элемента типа GFUNC
  ******************************************************************************/
 void mtk_elementGfunc(mtk_t *mtk) {
 	if (mtk->element->flags & EDITING_PROCESS) {
@@ -363,41 +368,41 @@ void mtk_elementGfunc(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Обработчик команд
+ * Обработчик команд
  ******************************************************************************/
 void mtk_commandLL(mtk_t *mtk) {
 	mtk_element_t *temp;
 	uint8_t i;
 	mtk->element = mtk->rootHist[mtk->indexHist]; //Взяли первый элемент выбранного меню
-	i = mtk->select;
-	for (; i > 1; i--)	//Переходим на выбраную строку
+//Переходим на выбраную строку
+	for (i = mtk->select ; i > 1; i--)
 		mtk->element = mtk->element->next;
 //Разблокировщик залоченных пунктов меню
-	if ((mtk->element->flags & TYPE_PRIVATE)
-			&& (mtk->element->flags & EDITING_PROCESS)) //Если заблокированый элемент редактируется
-			{
-		temp = mtk->element;
-		mtk->element = &mtkUnlock;
-		if ((mtk->command == COMMAND_PREV) && (mtk->pos == 0))
-			temp->flags &= ~ EDITING_PROCESS;
-		else {
-			mtk_commandNum(mtk);
-			if (!(mtk->element->flags & EDITING_PROCESS))
+	if (mtk->element->flags & TYPE_PRIVATE) {
+		if (mtk->element->flags & EDITING_PROCESS) { //Если заблокированый элемент редактируется
+			temp = mtk->element;
+			mtk->element = &mtkUnlock;
+			if ((mtk->command == COMMAND_PREV) && (mtk->pos == 0))
 				temp->flags &= ~ EDITING_PROCESS;
+			else {
+				mtk_commandNum(mtk);
+				if (!(mtk->element->flags & EDITING_PROCESS))
+					temp->flags &= ~ EDITING_PROCESS;
+			}
+			mtk->command = 0;
+			mtk->element = temp;
+			if (config.password == mtk->key)
+				mtk->element->flags &= ~(TYPE_PRIVATE | EDITING_PROCESS);
 		}
-		mtk->command = 0;
-		mtk->element = temp;
-		if (config.password == mtk->tempNum)
-			mtk->element->flags &= ~(TYPE_PRIVATE | EDITING_PROCESS);
 	}
 ///
 	if (!(mtk->element->flags & EDITING_PROCESS) || (mtk->element->type == ELEMENT_MENU)) //Если редактирование пераметра не запущено или текщий элемент MENU
 		mtk_commandMenu(mtk); //Обрабатываем команду для меню
 	else {
-		if ((!mtk->pos) && mtk->command == COMMAND_PREV) { //Если нажали назад но позиция нулевая(курсор на первом разряде)
+		if ((mtk->command == COMMAND_PREV) && (!mtk->pos)) { //Если нажали назад но позиция нулевая(курсор на первом разряде)
 			if (mtk->element->flags & TYPE_LOCK)
 				mtk->pos = mtk->rootHist[mtk->indexHist]->length - 1;
-			else
+			else if(mtk->element->type != ELEMENT_GFUNC)//if(mtk->indexHist || (mtk->element->type != ELEMENT_GFUNC)) // Если не в корне //if(mtk->element->type != ELEMENT_GFUNC)
 				mtk->element->flags &= ~(EDITING_PROCESS | EDITING_EDITED);
 		} else {
 			switch (mtk->element->type) {
@@ -432,29 +437,31 @@ void mtk_commandLL(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Обработчик команд навигации в меню
+ * Обработчик команд навигации в меню
  ******************************************************************************/
 void mtk_commandMenu(mtk_t *mtk) {
 	switch (mtk->command) {
 	case COMMAND_NEXT: {
-		if (mtk->element->flags & TYPE_PRIVATE)	//Если заблокированый элемент
-		{
-			mtk->element->flags |= EDITING_PROCESS;
-			mtkUnlock.flags |= EDITING_PROCESS;
-		} else {
-			if (mtk->element->type == ELEMENT_MENU) {
-				mtk->indexHist++;
-				mtk->selectHist[mtk->indexHist] = mtk->select; //Запомнили с какой строки вход
-				mtk->rootHist[mtk->indexHist] = mtk->element->pointer; //Запомнили нынешний корень меню
-				mtk->select = 1;
-			} else {
+		if (mtk->select) {
+			if (mtk->element->flags & TYPE_PRIVATE)	//Если заблокированый элемент
+			{
 				mtk->element->flags |= EDITING_PROCESS;
-				if (mtk->element->type == ELEMENT_GFUNC) {
+				mtkUnlock.flags |= EDITING_PROCESS;
+			} else {
+				if (mtk->element->type == ELEMENT_MENU) {
 					mtk->indexHist++;
 					mtk->selectHist[mtk->indexHist] = mtk->select; //Запомнили с какой строки вход
-					mtk->rootHist[mtk->indexHist] = mtk->element; //Запомнили нынешний корень меню
-					mtk->pos = 2;
+					mtk->rootHist[mtk->indexHist] = mtk->element->pointer; //Запомнили нынешний корень меню
 					mtk->select = 1;
+				} else {
+					mtk->element->flags |= EDITING_PROCESS;
+					if (mtk->element->type == ELEMENT_GFUNC) {
+						mtk->indexHist++;
+						mtk->selectHist[mtk->indexHist] = mtk->select; //Запомнили с какой строки вход
+						mtk->rootHist[mtk->indexHist] = mtk->element; //Запомнили нынешний корень меню
+						mtk->pos = 2;
+						mtk->select = 1;
+					}
 				}
 			}
 		}
@@ -488,7 +495,7 @@ void mtk_commandMenu(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Обработчик команд редактирования числа
+ * Обработчик команд редактирования числа
  ******************************************************************************/
 void mtk_commandNum(mtk_t *mtk) {
 	uint32_t x;
@@ -499,20 +506,23 @@ void mtk_commandNum(mtk_t *mtk) {
 	rank = mtk->element->length - (mtk->pos + 1);
 	if (mtk->element->flags & EDITING_EDITED)
 		x = mtk->tempNum;
-	else if (mtk->element->flags & TYPE_FUNC) {
-		fp = (uint32_t (*)(uint32_t *)) mtk->element->pointer;
-		x = (*fp)(NULL);
-	} else {
-		if (type == ELEMENT_NUM8)
-			x = *((uint8_t*) pointer);
-		else if (type == ELEMENT_NUM16)
-			x = *((uint16_t*) pointer);
-		else if (type == ELEMENT_NUM32)
-			x = *((uint32_t*) pointer);
-		else if (type == ELEMENT_NUM64X1M)
-			x = (*((uint64_t*) pointer)) / 1000000;
+	else {
+		if (mtk->element->flags & TYPE_FUNC) {
+			fp = (uint32_t (*)(uint32_t *)) mtk->element->pointer;
+			x = (*fp)(NULL);
+		} else {
+			if (type == ELEMENT_NUM8)
+				x = *((uint8_t*) pointer);
+			else if (type == ELEMENT_NUM16)
+				x = *((uint16_t*) pointer);
+			else if (type == ELEMENT_NUM32)
+				x = *((uint32_t*) pointer);
+			else if (type == ELEMENT_NUM64X1M)
+				x = (*((uint64_t*) pointer)) / 1000000;
+		}
+		x = x % (power(10, mtk->element->length)); //Убираем лишние старшие разряды
 	}
-	y = (x % power(10, rank + 1)) / power(10, rank); //Переполнится ли
+	y = (x % power(10, rank + 1)) / power(10, rank);
 	switch (mtk->command) {
 	case COMMAND_NEXT: {
 		if (mtk->pos < mtk->element->length - 1)
@@ -569,7 +579,7 @@ void mtk_commandNum(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Обработчик команд для FLAG
+ * Обработчик команд для FLAG
  ******************************************************************************/
 void mtk_commandFlag(mtk_t *mtk) {
 	uint32_t x;
@@ -601,7 +611,7 @@ void mtk_commandFlag(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Обработчик команд редактирования селектора
+ * Обработчик команд редактирования селектора
  ******************************************************************************/
 void mtk_commandSelect(mtk_t *mtk) {
 	uint8_t x;
@@ -655,7 +665,7 @@ void mtk_commandSelect(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Обработчик команд редактирования даты и времени
+ * Обработчик команд редактирования даты и времени
  ******************************************************************************/
 void mtk_commandDateTime(mtk_t *mtk) {
 	tm_t* (*fp)(tm_t *);
@@ -706,7 +716,7 @@ void mtk_commandDateTime(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Обработчик редактора времени
+ * Обработчик редактора времени
  ******************************************************************************/
 void mtk_editDateTime(mtk_t * mtk, uint8_t action) {
 	uint16_t min = 0, max = 59;
@@ -784,7 +794,7 @@ void mtk_editDateTime(mtk_t * mtk, uint8_t action) {
 }
 
 /*******************************************************************************
- *Обработчик типа GFUNC
+ * Обработчик типа GFUNC
  ******************************************************************************/
 void mtk_commamdGfunc(mtk_t *mtk) {
 	//Если вошли в граффическую функцию и она способна обработать команды
@@ -815,7 +825,7 @@ void mtk_commamdGfunc(mtk_t *mtk) {
 }
 
 /*******************************************************************************
- *Возведение числа в степень
+ * Возведение числа в степень
  ******************************************************************************/
 uint32_t power(uint8_t x, uint8_t y) {
 	uint8_t i;

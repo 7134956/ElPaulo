@@ -19,5 +19,6 @@ void loadRacelist(void);
 void saveParams(void);
 void loadParams(void);
 void loadHistItem(void);
+void EEPROM_reset(void);
 
 #endif /* _EEPROM_H_ */

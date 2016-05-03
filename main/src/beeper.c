@@ -1,26 +1,25 @@
 #include "config.h"
 #include "beeper.h"
 
-typedef struct beep_buffer_t{
-	uint16_t time;
-	uint16_t freq;
-}beep_buffer_t;
-
 typedef struct beep_t {
-	beep_buffer_t buf[BEEP_BUF_SIZE];
-	uint8_t idxIN;
-	uint8_t idxOUT;
+	uint16_t * buf;
+	uint8_t pos;
 } beep_t;
 
 beep_t beepTask;
 
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
-void beep_systick_calback(void);
 #endif
 
+void beep_systick_calback(void);
+
+const uint16_t beepOn[] = {10465, 330, 13185, 330, 15680, 330};
+const uint16_t beepOff[] = {15680, 330, 13185, 330,10465, 330};
+const uint16_t beepBeep[] = {15680, 100};
+
 /*******************************************************************************
- *Настройка бипера
+ * Настройка бипера
  ******************************************************************************/
 void beep_init() {
 #ifdef SYSTEM_STM32
@@ -68,41 +67,73 @@ void beep_init() {
 }
 
 /*******************************************************************************
- *Издать писк
- *Вход: Частота(Гц), длительность(мс)
+ * Издать писк
+ * Вход 1:	Частота(Гц)
+ * 			вернуться(1)
+ * 			тишина(2)
+ * Вход 2:	длительность/
+ * 			(на сколько шагов)
  ******************************************************************************/
 void beep(uint16_t f, uint16_t t) {
 #ifdef SYSTEM_STM32
-		if (!BEEP_TIM->BEEP_CCR) //Если пищалка свободна пускаем звук на нее
-		{
-			RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-			SysTick_task_add(&beep_timer_callback, t);
-			BEEP_TIM->BEEP_ARR = 1000000 / f;
-			BEEP_TIM->BEEP_CCR = 100000 / f; //Устанавливаем скважность половина
-		} else //Если зянята откладываем звук
-		{
-			beepTask.buf[beepTask.idxIN].freq = f;
-			beepTask.buf[beepTask.idxIN++].time = t;
-			beepTask.idxIN &= BEEP_BUF_MASK;
-		}
+//		if (!BEEP_TIM->BEEP_CCR) //Если пищалка свободна пускаем звук на нее
+//		{
+//			RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+//			SysTick_task_add(&beep_timer_callback, t*10);
+//			BEEP_TIM->BEEP_ARR = 10000 / f;
+//			BEEP_TIM->BEEP_CCR = 1000 / f; //Устанавливаем скважность
+//		} else //Если зянята откладываем звук
+//		{
+//			beepTask.buf[beepTask.idxIN].freq = f;
+//			beepTask.buf[beepTask.idxIN++].time = t;
+//			beepTask.idxIN &= BEEP_BUF_MASK;
+//		}
 #endif
 }
 
 /*******************************************************************************
- *Вызывается по таймеру после отработки писка
+ * Вызывается по таймеру после отработки писка
  ******************************************************************************/
 void beep_timer_callback(void){
 #ifdef SYSTEM_STM32
-	if (beepTask.idxIN == beepTask.idxOUT) {//Если звук отработал
-		BEEP_TIM->BEEP_CCR = 0; //Устанавливаем скважность 0
-		SysTick_task_del(&beep_timer_callback); //Удаляемся из планировщика
-		RCC->APB1ENR &= ~ RCC_APB1ENR_TIM3EN;
-	} else //Запускаем отложенный звук
-	{
-		BEEP_TIM->BEEP_ARR = 1000000 / beepTask.buf[beepTask.idxOUT].freq;
-		BEEP_TIM->BEEP_CCR = 500000 / beepTask.buf[beepTask.idxOUT].freq;//Устанавливаем скважность половина
-		SysTick_task_add(&beep_timer_callback, beepTask.buf[beepTask.idxOUT++].time);
-		beepTask.idxOUT &= BEEP_BUF_MASK;
-	}
+////	if (beepTask.idxIN == beepTask.idxOUT) {//Если звук отработал
+////		BEEP_TIM->BEEP_CCR = 0; //Устанавливаем скважность 0
+////		SysTick_task_del(&beep_timer_callback); //Удаляемся из планировщика
+////		RCC->APB1ENR &= ~ RCC_APB1ENR_TIM3EN;
+////	} else {//Запускаем отложенный звук
+//		if(beepTask.buf[beepTask.pos].freq == 1)
+//			beepTask.pos -= beepTask.buf[pos].time;
+//		if(beepTask.buf[beepTask.pos].freq == 2)
+//			BEEP_TIM->BEEP_CCR = 0;
+//		else
+//			BEEP_TIM->BEEP_CCR = 500000 / beepTask.buf[beepTask.pos].freq;//Устанавливаем скважность половина
+//		BEEP_TIM->BEEP_ARR = 1000000 / beepTask.buf[beepTask.pos].freq;
+//		SysTick_task_add(&beep_timer_callback, beepTask.buf[beepTask.pos++].time);
+//		beepTask.idxOUT &= BEEP_BUF_MASK;
+//	}
 #endif
 }
+
+/*******************************************************************************
+ * Играть мелодию из массива
+ * Вход: Указатель на массив uint16_t melody[частота (Гц)][длительность (мс)]
+ ******************************************************************************/
+void beepPlay(const uint16_t * melody) {
+#ifdef SYSTEM_STM32
+//	if(melody)
+//		beepTask.buf = melody;
+//		SysTick_task_add(&beep_timer_callback, 0);
+//	else
+//		SysTick_task_del(&beep_timer_callback); //Удаляемся из планировщика
+#endif
+}
+
+/*******************************************************************************
+ * Остановить воспроизведение массива
+ ******************************************************************************/
+void beepStop(void) {
+#ifdef SYSTEM_STM32
+	SysTick_task_del(&beep_timer_callback); //Удаляемся из планировщика
+#endif
+}
+

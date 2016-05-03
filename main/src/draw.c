@@ -5,13 +5,14 @@
 #include "bat.h"
 #include "utils.h"
 #include "power.h"
+#include "beeper.h"
 
 #ifdef SYSTEM_STM32
 #include "stm32f10x.h"
 #endif
 
 uint8_t hStart, vStart, hStep, vStep, j, k;
-popup_t popup;
+message_t message;
 extern char *month[12];
 extern char *days[7];
 
@@ -20,9 +21,9 @@ u8g_t u8g;
 tm_t * time_p; //Указатель на структуру со временем
 extern uint32_t timer;
 extern calendar_t calendar;
-extern racelist_t racelist; //Информация о заездах
+extern racelistDay_t racelistDay; //Информация о заездах
 extern track_t track; //Параметры текущего заезда
-extern BMSinfo_t BMSinfo;
+extern BMS_info_t BMS_info;
 extern BMS_t BMS;	//Силовая батарея
 extern bat_t bat;	//Батарейка питания велокомпа
 extern track_t histItem;
@@ -31,18 +32,9 @@ extern uint8_t stateMain;
 extern stopwatch_t sWatch;
 extern power_t powerControl;
 extern mtk_element_t mtkPin;	//Пароль стартового экрана
-/*		mtkPassword,	//Пароль
-		mtkDisplay,		//Меню настройки дисплея
-		mtkContrast,	//Настройка контрастности
-		mtkAutoBright,	//Включение автояркости дисплея
-		mtkOdometr,		//Меню настройки одометра
-		mtkCircle,		//Настройка длины окружности колеса
-		mtkDateTime,
-		mtkDate,
-		mtkTime;
-*/
 extern config_t config;
 extern state_t state;
+
 void drawInit(void);
 void draw(void); //Функция отрисовки дисплея
 void drawMain(void);
@@ -52,7 +44,7 @@ void drawLight(void);
 void drawRacelist(void);
 void drawHistItem(void);
 void drawStat(void);
-void drawBar(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t);
+void drawBar(uint8_t, uint8_t, uint8_t, uint8_t, uint16_t, uint16_t, uint8_t);
 void drawStart(void);
 void drawTemp(void);
 void drawTempChart(void);
@@ -65,13 +57,16 @@ void drawScrSvr(void);
 void drawDigit(uint8_t, uint8_t, uint8_t, uint8_t);
 void drawNum(uint8_t *, uint8_t, uint8_t, uint8_t);
 void drawSegment(uint8_t, uint8_t, uint8_t, uint8_t);
+void drawMessage(void);
+void drawCalibration(void);
+void drawTest(void);
 
 /*******************************************************************************
- *Запуск дисплея и настройка графики
+ * Запуск дисплея и настройка графики
  ******************************************************************************/
 void drawInit(void) {
 #ifdef DISPLAY_SDL
-	u8g_Init(&u8g, &u8g_dev_sdl_2bit);
+	u8g_Init(&u8g, &u8g_dev_sdl_2bit);//For PC
 #elif defined DISPLAY_ST7586S_SPI
 	u8g_InitComFn(&u8g, &u8g_dev_st7586s_jlx240160g666_hw_spi, u8g_com_stm32_st7586s_hw_spi_fn); //Minimal RAM mode
 #elif defined DISPLAY_ST7586S_4X_SPI
@@ -142,17 +137,14 @@ void redrawDisplay(void) {
  * Рисует экран в зависимости от текущего состояния
  ******************************************************************************/
 void draw(void) {
-//	u8g_SetFontPosBaseline( &u8g );
-//	u8g_SetFontPosBottom( &u8g);
-//	u8g_SetFontPosCenter( &u8g );
-//	u8g_SetFontPosTop( &u8g );
 	u8g_SetFontPosBaseline(&u8g);
-
 	if (powerControl.sleepMode == POWERMODE_STOP)
 		drawScrSvr();
+	else if(stateMain == STATE_CALIB)
+		drawCalibration();
 	else {
 		if ((stateMain != STATE_START) && (stateMain != STATE_OFF)
-				&& (stateMain != STATE_SILENT))
+				&& (stateMain != STATE_SILENT) && (stateMain != STATE_CALIB) && (stateMain != STATE_WARNING))
 			drawTabs();
 		u8g_SetDefaultForegroundColor(&u8g);
 		switch (stateMain) {
@@ -171,10 +163,11 @@ void draw(void) {
 			drawLight();
 		}
 			break;
-		case 5: {
-			drawScrSvr();
+		case STATE_WARNING: {
+			drawTest();
 		}
 			break;
+
 		case STATE_SETUP:
 		case STATE_UTIL: {
 			mtk_Pos(16, 35);
@@ -193,12 +186,17 @@ void draw(void) {
 		}
 			break;
 		case STATE_CALENDAR: {
-			if (navigate[3]) {
-				drawHistItem();
-			} else if (navigate[2]) {
-				drawRacelist();
+			if (config.racelistType) {
+				mtk_Pos(0, 35);
+				mtk_Draw();
 			} else {
-				drawCalendar();
+				if (navigate[3]) {
+					drawHistItem();
+				} else if (navigate[2]) {
+					drawRacelist();
+				} else {
+					drawCalendar();
+				}
 			}
 		}
 			break;
@@ -215,8 +213,8 @@ void draw(void) {
 			break;
 		}
 		if (stateMain != STATE_START)
-			if (popup.type)
-				message();
+			if (message.count)
+				drawMessage();
 	}
 }
 
@@ -232,18 +230,17 @@ void drawStart(void) {
 	u8g_DrawStr(&u8g, 36, 95, "PIN:");
 	u8g_DrawFrame(&u8g, 10, 110, 220, 40);
 	u8g_SetFont(&u8g, u8g_font_ncenR10);
-//	w = 10 + u8g_GetStrWidth(&u8g, popup.body);
-//	h = 66;
-//	x = (DISPLAY_WIDTH - w) / 2;
-	//u8g_DrawStr(&u8g, 15, 125, "Normal start. No errors.");
-	//u8g_DrawStr(&u8g, 15, 145, "Please enter PIN code");
-	u8g_DrawStr(&u8g, 15, 125, popup.head);
-	u8g_DrawStr(&u8g, 15, 145, popup.body);
+	if (message.count) {
+		u8g_DrawStr(&u8g, 15, 125, message.popup[message.count - 1].head);
+		u8g_DrawStr(&u8g, 15, 145, message.popup[message.count - 1].body);
+	} else {
+		u8g_DrawStr(&u8g, 15, 125, "All excellent ;-)");
+		u8g_DrawStr(&u8g, 15, 145, "Please enter PIN code");
+	}
 	u8g_SetFont(&u8g, u8g_font_elpaulo32n);
 	mtk_SetRootElement(&mtkPin);
 	mtk_Pos(108, 97);
 	mtk_Draw();
-
 }
 
 /*******************************************************************************
@@ -295,10 +292,11 @@ void drawTabs(void) {
  * Рисует главную вкладку
  ******************************************************************************/
 void drawMain(void) {
+	uint8_t x1, x2;
 	char sTemp[15];
 	uint8_t i;
 	uint8_t barAH; //Емкость батареи в палочках
-	uint8_t amps; //Значение тока в палочках
+	int8_t amps; //Значение тока в палочках
 
 	u8g_SetFont(&u8g, u8g_font_elpaulo32n);
 	if (state.taskList & TASK_DRIVE) {
@@ -337,9 +335,10 @@ void drawMain(void) {
 	if (!(state.taskList & (TASK_STOPWATCH | TASK_TIMER)))
 		u8g_DrawStr(&u8g, 176, 136, "km");
 	hStep = 50;
-	if (BMSinfo.maxCap)
-		barAH = 15 - (155 * BMS.capacity) / (BMSinfo.maxCap * 10);
-	else barAH = 15;
+	/* Левый бар заряда батареи */
+	if (BMS_info.maxCap)
+		barAH = (155 * BMS.capacity) / (BMS_info.maxCap * 10);
+	else barAH = bat.level * 15 / 100; //Заряд батареи велокомпа
 	for (i = 0; i < 15; i++) {
 		vStart = 22 + i * 8;
 		hStep--;
@@ -350,37 +349,47 @@ void drawMain(void) {
 		if (i < 13)
 			hStep--;
 
-		if (i >= barAH)
+		if (i >= 15 - barAH)
 			u8g_DrawBox(&u8g, 0, vStart, hStep, 6);
 		else
 			u8g_DrawFrame(&u8g, 0, vStart, hStep, 6);
 	}
-
-#ifdef DEBUG_DISPLAY
-	if (track.circleTics != 0) {
-		sprintf(sTemp, "%d.%d FPS", 32768 / track.circleTics,
-				(327680 / track.circleTics) % 10);
-		u8g_DrawStr(&u8g, 20, 160, sTemp);
-	}
-
-	sprintf(sTemp,"%d Tics",track.circleTics);
-	u8g_DrawStr(&u8g, 120, 160, sTemp);
+#ifdef SYSTEM_WIN
+	if(0) { //FIXME Если нет данных бмс
 #else
-	sprintf(sTemp, "%02d.%02dAh", BMS.capacity / 1000,
-			(BMS.capacity % 1000) / 10);
-	u8g_DrawStr(&u8g, 0, 160, sTemp); //Текущий остаток заряда
-	sprintf(sTemp, "%02d.%02dV", BMS.voltage / 1000, (BMS.voltage % 1000) / 10);
-	u8g_DrawStr(&u8g, 90, 160, sTemp); //Текущее напряжение
-	sprintf(sTemp, "%02d.%02dA", BMS.current / 1000, (BMS.current % 1000) / 10);
-	u8g_DrawStr(&u8g, 176, 160, sTemp); //Текущий расход тока
+	if (1) { //Если есть бмс
+		sprintf(sTemp, "%d.%d MHz", SystemCoreClock / 1000000, SystemCoreClock % 1000000);
+		u8g_DrawStr(&u8g, 20, 160, sTemp);
 #endif
-	if (BMSinfo.maxCurrent)
-		amps = 15 - ((155 * BMS.current) / (BMSinfo.maxCurrent * 10));
+	} else {
+		sprintf(sTemp, "%02d.%02dAh", BMS.capacity / 1000,
+				(BMS.capacity % 1000) / 10);
+		u8g_DrawStr(&u8g, 0, 160, sTemp); //Текущий остаток заряда
+		sprintf(sTemp, "%02d.%02dV", BMS.voltage / 1000,
+				(BMS.voltage % 1000) / 10);
+		u8g_DrawStr(&u8g, 90, 160, sTemp); //Текущее напряжение
+		sprintf(sTemp, "%02d.%02dA", BMS.current / 1000,
+				(BMS.current % 1000) / 10);
+		u8g_DrawStr(&u8g, 176, 160, sTemp); //Текущий расход тока
+	}
+	if (BMS_info.maxCurrent)
+		amps = ((155 * BMS.current) / (BMS_info.maxCurrent * 10));
+	else if (track.accelerationMax)
+		amps = ((155 * track.acceleration) / (track.accelerationMax * 10));
+	else
+		amps = 0;
+	/* Правый бар индикатор ускорения */
+	if (amps >= 0) {
+		x1 = 29; x2 = 20;
+	} else {
+		amps = -amps;
+		x1 = 20; x2 = 29;
+	}
 	for (i = 0; i < 15; i++) {
 		for (j = 0; j < 6; j++) {
-			u8g_DrawLine(&u8g, 220, 20 + j + i * 8, 239, 29 + j + i * 8);
-			u8g_DrawLine(&u8g, 201, 29 + j + i * 8, 220, 20 + j + i * 8);
-			if (i < amps)
+			u8g_DrawLine(&u8g, 220, x2 + j + i * 8, 239, x1 + j + i * 8);
+			u8g_DrawLine(&u8g, 201, x1 + j + i * 8, 220, x2 + j + i * 8);
+			if (i < 15 - amps)
 				j = 6;
 		}
 	}
@@ -398,25 +407,33 @@ void drawLight(void) {
 	vStep = 60;
 	x = hStart + 60;
 	for (i = 0; i < PWM_COUNT; i++) {
-		sprintf(sTemp, "%d.%d", (100 * PWMGet(i)) / PWM_MAX,  ((1000 * PWMGet(i)) / PWM_MAX)%10);
-
 		if (PWMGet(i))
-			u8g_DrawStr(&u8g, x, vStart - 2 + vStep * i, sTemp);
+			//sprintf(sTemp, "%d.%d", (100 * PWMGet(i)) / PWM_MAX,  ((1000 * PWMGet(i)) / PWM_MAX) % 10); //Проценты
+			sprintf(sTemp, "1/%d", PWM_MAX / PWMGet(i)); //Доли
 		else
-			u8g_DrawStr(&u8g, x, vStart - 2 + vStep * i, "Off");
-
+			sprintf(sTemp, "Off");
+		u8g_DrawStr(&u8g, x, vStart - 2 + vStep * i, sTemp);
 		drawBar(hStart + 20, vStart + vStep * i, 100, 16, PWM_MAX, PWMGet(i), 0);
 	}
 	x = hStart + hStep + 10;
 	y = vStart - 8;
-	u8g_DrawXBM(&u8g, x, y + vStep * 0, 32, 32, u8g_neighbor_bits);
-	u8g_DrawXBM(&u8g, x, y + vStep * 1, 32, 32, u8g_lightdisplay_bits);
+	u8g_DrawXBM(&u8g, x, y + vStep * 0, 32, 32, u8g_lightdisplay_bits);
+	u8g_DrawXBM(&u8g, x, y + vStep * 1, 32, 32, u8g_neighbor_bits);
 	if (navigate[0]) {
 		sTemp[0] = ARROW_RIGHT;
 		sTemp[1] = 0;
 		y = vStart + 16 + vStep * (navigate[0] - 1);
 		u8g_DrawStr(&u8g, hStart, y, sTemp);
 	}
+}
+
+/*******************************************************************************
+ * Рисуем прогрессбар
+ ******************************************************************************/
+void drawBar(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t max,
+		uint16_t curr, uint8_t type) {
+	u8g_DrawFrame(&u8g, x, y, w, h);
+	u8g_DrawBox(&u8g, x + 2, y + 2, ((w - 4) * curr) / max, h - 4);
 }
 
 /*******************************************************************************
@@ -461,7 +478,7 @@ void drawCalendar(void) {
 			u8g_DrawFrame(&u8g, hStart + 2 + hStep * j,
 					vStart + 2 + (vStep * k), hStep - 3, vStep - 3);
 		}
-		if (VB(racelist.dayActiv_f, i+1) && VB(racelist.dayActiv_f, 0)) { //Если есть поездка и флаг готовности установлен рисуем пометку на дню
+		if (VB(racelistDay.dayActiv_f, i+1) && VB(racelistDay.dayActiv_f, 0)) { //Если есть поездка и флаг готовности установлен рисуем пометку на дню
 			u8g_DrawTriangle(&u8g, hStart + 2 + hStep * j,
 					vStart + 2 + k * vStep, hStart + 10 + hStep * j,
 					vStart + 2 + k * vStep, hStart + 2 + hStep * j,
@@ -494,7 +511,7 @@ void drawCalendar(void) {
 }
 
 /*******************************************************************************
- * Рисует список заездов
+ * Рисует дневной список заездов
  ******************************************************************************/
 void drawRacelist(void) {
 	char sTemp[10];
@@ -505,37 +522,23 @@ void drawRacelist(void) {
 	u8g_DrawStr(&u8g, hStart - 20, vStart - 19, col[0]);
 	for (i = 1; i < 4; i++) {
 		u8g_DrawStr(&u8g, hStart - 64 + hStep * i, vStart - 21, col[i]);
-		u8g_DrawLine(&u8g, hStart - 6 + hStep * (i - 1), vStart - 37,
-				hStart - 6 + hStep * (i - 1),
-				vStart - 18 + racelist.itemsDisplay * vStep);
+		u8g_DrawLine(&u8g, hStart - 6 + hStep * (i - 1), vStart - 37, hStart - 6 + hStep * (i - 1), vStart - 18 + racelistDay.itemsDisplay * vStep);
 	}
 	u8g_DrawFrame(&u8g, 0, vStart - 17, 240, 2);
 	u8g_DrawStr(&u8g, hStart - 35, vStart - 19 + navigate[2] * vStep, str);
-	if(racelist.itemsDisplay)
-	for (i = 0; i < racelist.itemsDisplay; i++) {
-		u8g_DrawLine(&u8g, hStart - 20, vStart + 3 + vStep * i, 239,
-				vStart + 3 + vStep * i);
+	if(racelistDay.itemsDisplay)
+	for (i = 0; i < racelistDay.itemsDisplay; i++) {
+		u8g_DrawLine(&u8g, hStart - 20, vStart + 3 + vStep * i, 239, vStart + 3 + vStep * i);
 		str[0] = i + 49;
 		u8g_DrawStr(&u8g, hStart - 20, vStart + i * vStep, str);
-		sprintf(sTemp, "%02d:%02d", racelist.startTime[i] / 100, racelist.startTime[i] % 100);
+		sprintf(sTemp, "%02d:%02d", racelistDay.startTime[i] / 100, racelistDay.startTime[i] % 100);
 		u8g_DrawStr(&u8g, hStart + hStep * 0, vStart + i * vStep, sTemp);
-		sprintf(sTemp, "%03d.%02d", racelist.distance[i] / 1000000,
-				(racelist.distance[i] % 1000000) / 10000);
+		sprintf(sTemp, "%03d.%02d", racelistDay.distance[i] / 1000000, (racelistDay.distance[i] % 1000000) / 10000);
 		u8g_DrawStr(&u8g, hStart + hStep * 1, vStart + i * vStep, sTemp);
-		sprintf(sTemp, "%02d.%02d", racelist.averSpeed[i] / 100,
-				racelist.averSpeed[i] % 100);
+		sprintf(sTemp, "%02d.%02d", racelistDay.averSpeed[i] / 100, racelistDay.averSpeed[i] % 100);
 		u8g_DrawStr(&u8g, hStart + hStep * 2, vStart + i * vStep, sTemp);
 	}else
 		u8g_DrawStr(&u8g, hStart, vStart, "Empty");
-}
-
-/*******************************************************************************
- * Рисуем прогрессбар
- ******************************************************************************/
-void drawBar(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t max,
-		uint8_t curr, uint8_t type) {
-	u8g_DrawFrame(&u8g, x, y, w, h);
-	u8g_DrawBox(&u8g, x + 2, y + 2, ((w - 4) * curr) / max, h - 4);
 }
 
 /*******************************************************************************
@@ -624,7 +627,7 @@ void drawTempChart(void) {
 }
 
 /*******************************************************************************
- * Быстрое меню
+ * Быстрое меню 1
  ******************************************************************************/
 void drawMainQuickMenu(void) {
 	char sTemp[2];
@@ -644,7 +647,7 @@ void drawMainQuickMenu(void) {
 }
 
 /*******************************************************************************
- * Быстрое меню
+ * Быстрое меню 2
  ******************************************************************************/
 void drawStatQuickMenu(void) {
 	char sTemp[2];
@@ -668,19 +671,15 @@ void drawStatQuickMenu(void) {
  * Вкладка с параметрами батареи
  ******************************************************************************/
 void drawBat(void) {
-	char sTemp[10];
+	char sTemp[13];
 	uint8_t x, y, v;
+	
 	x = 0;
 	y = 38;
 	v = 20;
-
 	u8g_DrawStr(&u8g, x, y, "Control");
 	drawCell(x, 40, bat.level/10);
 	x = 115;
-	sprintf(sTemp, "%d%%", bat.level);
-	u8g_DrawStr(&u8g, x, y, sTemp);
-	sprintf(sTemp, "%d.%03d", bat.voltage / 1000, bat.voltage % 1000);
-	u8g_DrawStr(&u8g, x, y += v, sTemp);
 	switch (bat.state) {
 	case BAT_DISCHARGE:		//Используется
 		sprintf(sTemp, "Use");
@@ -698,18 +697,46 @@ void drawBat(void) {
 		sprintf(sTemp, "NULL");
 		break;
 	}
+	u8g_DrawStr(&u8g, x, y, sTemp);
+	sprintf(sTemp, "%d%%", bat.level);
+	u8g_DrawStr(&u8g, x, y += v, sTemp);
+	sprintf(sTemp, "%d.%03d (%04d)", bat.voltage / 1000, bat.voltage % 1000, bat.value);
 	u8g_DrawStr(&u8g, x, y += v, sTemp);
 	x = 0;
 	y = 108;
 	u8g_DrawLine(&u8g, x, 88, 239, 88);
 
 	u8g_DrawStr(&u8g, x, y, "Power");
-	drawCell(x, 111, 6);
+	drawCell(x, 111, BMS.percents / 10);
 	x = 115;
-	u8g_DrawStr(&u8g, x, y, "60%");
-	u8g_DrawStr(&u8g, x, y += v, "9000mA\xB7h");
-
-	u8g_DrawStr(&u8g, x, y += v, "State");
+	switch (BMS.state) {
+	case BMS_NOTFOUND:		//Используется
+		sprintf(sTemp, "Not found");
+		break;
+	case BMS_USE:		//Заряжается
+		sprintf(sTemp, "Use");
+		break;
+	case BMS_CHARGE:			//Заряд окончен
+		sprintf(sTemp, "Charge");
+		break;
+	case BMS_FULL:		//Не используется
+		sprintf(sTemp, "Full");
+		break;
+	case BMS_AVAILABLE:
+		sprintf(sTemp, "Available");
+		break;
+	}
+	u8g_DrawStr(&u8g, x, y, sTemp);
+	if(BMS.state)
+		sprintf(sTemp, "%02d%%", BMS.percents);
+	else
+		sprintf(sTemp, "__%%");
+	u8g_DrawStr(&u8g, x, y += v, sTemp);
+	if(BMS.state)
+		sprintf(sTemp, "%04dmA\xB7h", BMS.capacity);
+	else
+		sprintf(sTemp, "____mA\xB7h");
+	u8g_DrawStr(&u8g, x, y += v, sTemp);
 }
 
 /*******************************************************************************
@@ -717,6 +744,7 @@ void drawBat(void) {
  ******************************************************************************/
 void drawCell(uint8_t x, uint8_t y, uint8_t val) {
 	uint8_t i;
+	
 	u8g_DrawFrame(&u8g, x + 72, y + 10, 6, 20);
 	u8g_DrawFrame(&u8g, x, y, 73, 40);
 	x -= 5;
@@ -743,6 +771,7 @@ void drawStat(void) {
 	uint32_t timeSec;
 	char sTemp[15];
 	extern char *raceParams[7];
+	
 	hStart = 0;
 	vStart = 36;
 	hStep = 0;
@@ -756,23 +785,23 @@ void drawStat(void) {
 	u8g_DrawLine(&u8g, 115, 18, 115, 159);
 	//Максимальная скорость за заезд.
 	sprintf(sTemp, "%02d.%02d km/h", track.peakSpeed / 100, track.peakSpeed % 100);
-	u8g_DrawStr(&u8g, 120, vStart + 0 * vStep, sTemp);
+	u8g_DrawStr(&u8g, 120, vStart + 2 * vStep, sTemp);
 	// Расход на километр
 	sprintf(sTemp, "%02d.%03d Ah/km", track.expense / 1000, track.expense % 1000);
-	u8g_DrawStr(&u8g, 120, vStart + 1 * vStep, sTemp);
+	u8g_DrawStr(&u8g, 120, vStart + 4 * vStep, sTemp);
 	// Время в пути до 36 часов
 	timeSec = track.tics / 32768;
 	sprintf(sTemp, "%02d:%02d:%02d", timeSec / 3600, (timeSec / 60) % 60, timeSec % 60);
-	u8g_DrawStr(&u8g, 120, vStart + 2 * vStep, sTemp);
+	u8g_DrawStr(&u8g, 120, vStart + 0 * vStep, sTemp);
 	// Потрачено емкости за заезд
 	sprintf(sTemp, "%02d.%03d Ah", track.discharge / 1000, track.discharge % 1000);
 	u8g_DrawStr(&u8g, 120, vStart + 3 * vStep, sTemp);
 	// Предпологаемый пробег до разряда
 	sprintf(sTemp, "%02d.%01d km", track.toCharging / 10, track.toCharging % 10);
-	u8g_DrawStr(&u8g, 120, vStart + 4 * vStep, sTemp);
+	u8g_DrawStr(&u8g, 120, vStart + 5 * vStep, sTemp);
 	//Средняя скорость.  32768 тиков в секунду.
 	sprintf(sTemp, "%02d.%02d km/h", track.averageSpeed / 100, track.averageSpeed % 100);
-	u8g_DrawStr(&u8g, 120, vStart + 5 * vStep, sTemp);
+	u8g_DrawStr(&u8g, 120, vStart + 1 * vStep, sTemp);
 	// Пройдено километров за все время
 	sprintf(sTemp, "%06lu.%02u km", (uint32_t)(track.odometr / 1000000), (uint16_t)((track.odometr % 1000000) / 10000));
 	u8g_DrawStr(&u8g, 120, vStart + 6 * vStep, sTemp);
@@ -786,55 +815,79 @@ void drawHistItem(void) {
 	uint8_t i;
 	extern char *raceParams[7];
 	uint32_t timeSec;
+	
 	hStart = 0;
 	vStart = 36;
 	hStep = 0;
 	vStep = 20;
 	u8g_SetFont(&u8g, u8g_font_elpaulo20);
-	for (i = 0; i < 4; i++) {
-		u8g_DrawLine(&u8g, 0, vStart + 3 + vStep * i, 239,
-				vStart + 3 + vStep * i);
+	for (i = 0; i < 5; i++) {
+		u8g_DrawLine(&u8g, 0, vStart + 3 + vStep * i, 239, vStart + 3 + vStep * i);
 		u8g_DrawStr(&u8g, hStart, vStart + i * vStep, raceParams[i]);
 	}
 	//Максимальная скорость за заезд.
 	u8g_DrawLine(&u8g, 115, 18, 115, 18 + vStep * i);
 	sprintf(sTemp, "%02d.%02d km/h", histItem.peakSpeed / 100, histItem.peakSpeed % 100);
-	u8g_DrawStr(&u8g, 120, vStart + 0 * vStep, sTemp);
+	u8g_DrawStr(&u8g, 120, vStart + 2 * vStep, sTemp);
 	// Расход на километр
 	sprintf(sTemp, "%02d.%03d Ah/km", histItem.expense / 1000, histItem.expense % 1000);
-	u8g_DrawStr(&u8g, 120, vStart + 1 * vStep, sTemp);
-	// Время в пути заезда
+	u8g_DrawStr(&u8g, 120, vStart + 4 * vStep, sTemp);
+	// Время в пути
 	timeSec = histItem.tics / 32768;
 	sprintf(sTemp, "%02d:%02d:%02d", timeSec / 3600, (timeSec / 60) % 60, timeSec % 60);
-	u8g_DrawStr(&u8g, 120, vStart + 2 * vStep, sTemp);
+	u8g_DrawStr(&u8g, 120, vStart + 0 * vStep, sTemp);
 	// Потрачено емкости за заезд
 	sprintf(sTemp, "%02d.%03d Ah", histItem.discharge / 1000, histItem.discharge % 1000);
 	u8g_DrawStr(&u8g, 120, vStart + 3 * vStep, sTemp);
+	//Средняя скорость.  32768 тиков в секунду.
+	sprintf(sTemp, "%02d.%02d km/h", histItem.averageSpeed / 100, histItem.averageSpeed % 100);
+	u8g_DrawStr(&u8g, 120, vStart + 1 * vStep, sTemp);
 }
 
 /*******************************************************************************
  * Вызов сообщения
  ******************************************************************************/
 void messageCall(char * head, char * body, uint8_t type){
-	if(head)
-		popup.head = head;
-	popup.body = body;
-	popup.type = type;
+	static const uint16_t beepAlert[] = {5,1,20,15,2,15,20,15,2,55,1,4};
+	static const uint16_t beepError[] = {5,1,20,15,2,15,20,15,2,15,20,15,2,15,20,15,2,55,1,8};
+	static const uint16_t beepQuery[] = {5,1,20,15,2,55,1,2};
+	
+	if (message.count < MESSAGE_SLOTS) {
+		message.popup[message.count].head = head;
+		message.popup[message.count].body = body;
+		message.popup[message.count].type = type;
+		message.count++;
+	}
+	switch (type) {
+	case POPUP_ALERT: {
+		beepPlay(beepAlert);
+	}
+		break;
+	case POPUP_ERROR: {
+		beepPlay(beepError);
+	}
+		break;
+	case POPUP_QUERY: {
+		beepPlay(beepQuery);
+	}
+		break;
+	}
 }
 
 /*******************************************************************************
  * Выводит всплывающее окно
  ******************************************************************************/
-void message(void) {
+void drawMessage(void) {
 	char sTemp[2];
 	uint8_t x, y, x2, y2, w, h, i, j;
 	char *str1[4] = {"", "\x14 Alert \x14", "\x12 Error \x12", "\x13 Query \x13"};
-	if(!popup.head)
-		popup.head = str1[popup.type];
-	if(!popup.body)
-		popup.body = "Empty message!";
+	
+	if(!message.popup[message.count - 1].head)
+		message.popup[message.count - 1].head = str1[message.popup[message.count - 1].type];
+	if(!message.popup[message.count - 1].body)
+		message.popup[message.count - 1].body = "Empty message!";
 	u8g_SetFont(&u8g, u8g_font_elpaulo20);
-	w = 10 + u8g_GetStrWidth(&u8g, popup.body);
+	w = 10 + u8g_GetStrWidth(&u8g, message.popup[message.count - 1].body);
 	if(w < 130)
 		w = 130;
 	h = 66;
@@ -846,14 +899,14 @@ void message(void) {
 	u8g_DrawFrame(&u8g, x, y, w, h);
 	u8g_DrawFrame(&u8g, x + 2, y + 2, w - 4, h - 4);
 	u8g_DrawLine(&u8g, x + 3, y + 20, x + w - 4, y + 20);
-	u8g_DrawStr(&u8g, x + ((w - u8g_GetStrWidth(&u8g, popup.head)) / 2), y + 17, popup.head);
-	u8g_DrawStr(&u8g, x + 5, y + 37, popup.body);
+	u8g_DrawStr(&u8g, x + ((w - u8g_GetStrWidth(&u8g, message.popup[message.count - 1].head)) / 2), y + 17, message.popup[message.count - 1].head);
+	u8g_DrawStr(&u8g, x + 5, y + 37, message.popup[message.count - 1].body);
 
 	sTemp[1] = 0;
 	y2 = y + h - 24;
 	u8g_DrawLine(&u8g, x + 3, y2, x + w - 4, y2);
 	y2 = y+h-7;
-	if(popup.type == POPUP_QUERY)
+	if(message.popup[message.count - 1].type == POPUP_QUERY)
 	u8g_DrawStr(&u8g, x+15, y2, "Cancel");
 	else
 		u8g_DrawStr(&u8g, x+15, y2, "Ok");
@@ -863,7 +916,6 @@ void message(void) {
 	u8g_DrawStr(&u8g, x, y2, sTemp);
 	sTemp[0] = ARROW_RIGHT;
 	u8g_DrawStr(&u8g, x+w-17, y2, sTemp);
-
 	for (i = 0; i < 8; i++) {
 		y2 = y + h + i;
 		for (j = 8 + x; j < w + x; j++) {
@@ -879,19 +931,27 @@ void message(void) {
 }
 
 /*******************************************************************************
+ * Тестирование
+ ******************************************************************************/
+void drawTest(void) {
+
+}
+
+/*******************************************************************************
  * Заставка для спящего режима в виде стильизованных часов
  ******************************************************************************/
 void drawScrSvr(void) {
 	extern char *days[7];
 	uint8_t i, x, y, s, step;
+	
 	x=5;
 	y=15;
 	u8g_SetFont(&u8g, u8g_font_elpaulo20);
 	for(i=0; i<7; i++){
 		u8g_DrawStr(&u8g, x+35 * i, y, days[i]);
 	}
-	u8g_DrawBox(&u8g, x - 5 + 35*time_p->tm_wday, y + 3, 30, 5);
-
+	u8g_DrawBox(&u8g, x - 5 + 35 * time_p->tm_wday, y + 3, 30, 5);
+	
 	x = 4;
 	y = 35;
 	s = 36;
@@ -909,11 +969,11 @@ void drawScrSvr(void) {
 	step = s*1.5;
 	drawNum(&x, y, s, time_p->tm_mday);
 	x += step-2;
-	u8g_DrawBox(&u8g, x+5, y + 31, 4, 4);
+	u8g_DrawBox(&u8g, x + 5, y + 31, 4, 4);
 	x += step-2;
 	drawNum(&x, y, s, time_p->tm_mon+1);
 	x += step-2;
-	u8g_DrawBox(&u8g, x+5, y + 31, 4, 4);
+	u8g_DrawBox(&u8g, x + 5, y + 31, 4, 4);
 	x += step-2;
 	drawDigit(x, y, s, 2);
 	x += step;
@@ -1001,7 +1061,7 @@ void drawDigit(uint8_t x, uint8_t y, uint8_t s, uint8_t n) {
 }
 
 /*******************************************************************************
- * Выводит сегмент стилизованную под ЖК
+ * Выводит сегмент стилизованный под ЖК
  ******************************************************************************/
 void drawSegment(uint8_t x, uint8_t y, uint8_t h, uint8_t w) {
 	uint8_t i;
@@ -1016,4 +1076,38 @@ void drawSegment(uint8_t x, uint8_t y, uint8_t h, uint8_t w) {
 			u8g_DrawLine(&u8g, x + i, y + i, x + w - i, y + i);
 			u8g_DrawLine(&u8g, x + i, y - i, x + w - i, y - i);
 		}
+}
+
+/*******************************************************************************
+ * Диалог калибровки джойстика
+ ******************************************************************************/
+extern uint8_t keyReq;
+void drawCalibration(void) {
+	char sTemp[2];
+	sTemp[1] = 0;
+	u8g_SetFont(&u8g, u8g_font_elpaulo20);
+	u8g_DrawStr(&u8g, 63, 60, "Calibration!");
+	u8g_DrawStr(&u8g, 73, 100, "Push:");
+
+	switch (keyReq) {
+	case 0: {
+		sTemp[0] = ARROW_UP;
+	}
+		break;
+	case 1: {
+		sTemp[0] = ARROW_DOWN;
+	}
+		break;
+	case 2: {
+		sTemp[0] = ARROW_LEFT;
+	}
+		break;
+	case 3: {
+		sTemp[0] = ARROW_RIGHT;
+	}
+		break;
+	default:
+		sTemp[0] = 0;
+	}
+	u8g_DrawStr(&u8g, 140, 100, sTemp);
 }

@@ -4,11 +4,17 @@
  *      *** Do not modify ! ***
  *
  * Project: 'EBikeMain' 
- * Target:  'Main' 
+ * Target:  'JLX240160G-666-PC' 
  */
 
 #ifndef RTE_COMPONENTS_H
 #define RTE_COMPONENTS_H
+
+
+/*
+ * Define the Device Header File: 
+ */
+#define CMSIS_device_header "stm32f10x.h"
 
 #define RTE_DEVICE_STDPERIPH_ADC
 #define RTE_DEVICE_STDPERIPH_BKP

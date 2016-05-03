@@ -6,7 +6,11 @@
 #include "stm32f10x.h"
 
 extern state_t state;
+extern uint8_t stateMain;
 #endif
+
+uint16_t keyVal[4]; /* Отсортированные по возрастанию,
+значения ADC границ между кнопками 6:4 биты, назначенное действие 3:0 биты */
 
 /*******************************************************************************
  * Инициализация портов кнопок
@@ -26,8 +30,6 @@ void keyInit(uint8_t mode) {
 		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;// Это ADC2 нога PA0
 		GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-		RCC_ADCCLKConfig(RCC_PCLK2_Div2);//Частота ADC (max 14MHz --> 72/2=9MHz)
-
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC2, ENABLE);//Включаем тактирование АЦП
 
 		//Определяем конфигурацию ADC
@@ -35,7 +37,7 @@ void keyInit(uint8_t mode) {
 		ADC_InitStructure.ADC_ScanConvMode = DISABLE;
 		ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;//Работаем в режиме одноразового преобразования
 		ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
-		ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
+		ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Left;
 		ADC_InitStructure.ADC_NbrOfChannel = 1;
 
 		ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 1, ADC_SampleTime_1Cycles5);//Время выборки АЦП
@@ -52,14 +54,13 @@ void keyInit(uint8_t mode) {
 		// start conversion
 		ADC_Cmd(ADC2, ENABLE);//enable ADC2
 		ADC_SoftwareStartConvCmd(ADC2, ENABLE);// start conversion (will be endless as we are in continuous mode)
-
-		SysTick_task_add(&readKey, 10); //Заряжаем таймер на чтение кнопок через каждые 10 миллисекунд
+		SysTick_task_add(&readKey, 10);//Заряжаем таймер на чтение кнопок через каждые 10 миллисекунд
 	} else if(mode == MODE_INT) {
 		SysTick_task_del(&readKey); //Удаляем задачу чтения нажатий
 
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);//Включаем тактирование порта A и альтернативной функции
 
-		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; //Это свободный вход
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;//Это свободный вход
 		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;//
 		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;// Это PA0
 		GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -73,14 +74,31 @@ void keyInit(uint8_t mode) {
 
 		//далее идут настройки приоритета прерываний.
 		NVIC_InitStructure.NVIC_IRQChannel = EXTI0_IRQn;
-		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 13;
-		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 15;
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
 		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 		NVIC_Init(&NVIC_InitStructure);
 
-		NVIC_EnableIRQ(EXTI0_IRQn);//разрешаем прерывание
 	}
 	state.button = BUTTON_LOCK; //Блокируем первое нажатие клавиши
+#endif
+}
+
+/*******************************************************************************
+ * Загрузить значения кнопок
+ ******************************************************************************/
+void keyInitVal(void) {
+#ifdef SYSTEM_STM32
+	uint8_t i;
+
+	for (i = 0; i < 4; i++) {
+		keyVal[i] = BKP_ReadBackupRegister(BKP_DR3 + i * 4);
+		if (!keyVal[i]) {
+			stateMain = STATE_CALIB;
+			keyAdjust();
+			break;
+		}
+	}
 #endif
 }
 
@@ -89,7 +107,6 @@ void keyInit(uint8_t mode) {
  ******************************************************************************/
 #ifdef SYSTEM_STM32
 void EXTI0_IRQHandler(void) {
-//	extern uint8_t stateMain;
 	if (EXTI_GetITStatus(EXTI_Line0) != RESET) { //Если прерывание пришло от линии 0
 		EXTI_ClearITPendingBit(EXTI_Line0);//Сбросим флаг прерывания
 		EXTI->IMR &= ~EXTI_Line0;//Отключаем линию внешенего прерывания 10
@@ -98,46 +115,139 @@ void EXTI0_IRQHandler(void) {
 	}
 }
 #endif
+
+/*******************************************************************************
+ * Процесс калибровки джойстика
+ ******************************************************************************/
+uint8_t keyReq = 0;
+void keyAdjust(void) {
+#ifdef SYSTEM_STM32
+#define ADC_BUF_SIZE 8
+#define ADC_BUF_MASK (ADC_BUF_SIZE-1)
+	uint8_t i, j;	//Счетчики циклов
+	uint16_t tmp;	//Буфер для перестановки
+	static uint8_t count = 0;	//Сколько раз повторилось значение
+	static uint8_t stage = 0;	//Этапы обработки
+	static uint32_t value;	//Значение АЦП
+	static uint16_t valuePrev;	//Предыдущее значение АЦП
+	static uint8_t act[4] = { BUTTON_UP, BUTTON_DOWN, BUTTON_LEFT, BUTTON_RIGHT }; //Действия для значений
+	static uint16_t refer[5] = { 0, 0, 0, 0, 0 }; //Считанные значения кнопок
+	static uint16_t measBuff[ADC_BUF_SIZE]; //Значения последних измерений
+	static uint8_t index = 0;
+
+	state.taskList |= TASK_USER; // Не спать пока не откалибруешь
+	value = ADC_GetConversionValue(ADC2); //Считываем значение АЦП
+	ADC_SoftwareStartConvCmd(ADC2, ENABLE); // Запускаем преобразование. Пускай готовится новое значение
+	switch (stage) {
+	case 0: { //Ничанаем калибровку
+		SysTick_task_del(&readKey);
+		SysTick_task_add(&keyAdjust, 10);
+		stage = 1;
+	}
+		break;
+	case 1: { //Запоминаем значение кнопки и привязываем к ней действие
+		if (keyReq == 4) {
+			stage = 3;
+			break;
+		}
+		if (value > 8192) {
+			measBuff[index++] = value;
+			index &= ADC_BUF_MASK;
+			if (value > valuePrev)
+				tmp = value - valuePrev;
+			else
+				tmp = valuePrev - value;
+			if (tmp < 500) {
+				if (count > 100) {
+					count = 0;
+					stage = 2;
+					value = 0;
+					for (i = 0; i < 8; i++) {
+						value += measBuff[i];
+					}
+					refer[++keyReq] = value / 8;
+					beep(1000, 100);
+					state.taskList |= TASK_REDRAW;
+				} else {
+					count++;
+				}
+			}
+		} else {
+			count = 0;
+		}
+		valuePrev = value;
+	}
+		break;
+	case 2: { // Ждем отпускания кнопки
+		if (value < 8192)
+			stage = 1;
+	}
+		break;
+	case 3: { //Сортируем значения АЦП кнопок
+		for (i = 1; i < 6 - 1; i++) {
+			for (j = 1; j < 6 - i - 1; j++) {
+				if (refer[j] > refer[j + 1]) {
+					tmp = refer[j];	refer[j] = refer[j + 1];	refer[j + 1] = tmp;
+					tmp = act[j - 1];	act[j - 1] = act[j];	act[j] = tmp;
+				}
+			}
+		}
+		//Сохраняем в память значение границ между кнопок и привязываем действие
+		for (i = 0; i < 4; i++) {
+			BKP_WriteBackupRegister(BKP_DR3 + i * 4, (((refer[i] + refer[i + 1]) / 2) & (uint16_t) ~0xF) + act[i]);
+		}
+		keyInitVal();
+		SysTick_task_del(&keyAdjust);
+		SysTick_task_add(&readKey, 10); //Заряжаем таймер на чтение кнопок через каждые 10 миллисекунд
+		stateMain = STATE_START;
+		state.taskList |= TASK_REDRAW;
+	}
+		break;
+	}
+#endif
+}
+
 /*******************************************************************************
  * Чтение состояния кнопок
  ******************************************************************************/
 void readKey(void) {
 #ifdef SYSTEM_STM32
+	uint8_t i;
 	static uint8_t button_count = 0; //Счетчик цыклов чтения
-	static uint8_t buttonPushed = BUTTON_NULL; //В данный момент нажато
-	static uint8_t buttonPushedPrev = BUTTON_NULL; //Было нажато в прошлом цыкле
+	static uint8_t buttonPushed = BUTTON_NULL;//В данный момент нажато
+	static uint8_t buttonPushedPrev = BUTTON_NULL;//Было нажато в прошлом цыкле
 	uint16_t adc_res;
-	adc_res = ADC_GetConversionValue(ADC2); //Считываем значение АЦП
-	ADC_SoftwareStartConvCmd(ADC2, ENABLE); // Запускаем преобразование. Пускай готовится новое значение
-#ifdef DEBUG_KEYBOARD
-			printf("\r\n%d", adc_res); //Печатаем значение
-#endif
-//Определяем текущее нажатие
-	if (adc_res < 500) {
+	
+	adc_res = ADC_GetConversionValue(ADC2);//Считываем значение АЦП
+	ADC_SoftwareStartConvCmd(ADC2, ENABLE);// Запускаем преобразование. Пускай готовится новое значение
+//  printf("\r\n%d", adc_res); //Печатаем значение
+	if (adc_res < keyVal[0]) {
 		buttonPushedPrev = BUTTON_NULL;
-		button_count = 0; //Сбрасываем счетчик
+		button_count = 0;
 		if(state.button == BUTTON_LOCK)
-				state.button = BUTTON_NULL; //Разрешаем работу
+		state.button = BUTTON_NULL; //Разрешаем работу
 	} else {
-		if ((adc_res > 1500) && (adc_res < 2500)) {
-			buttonPushed = BUTTON_UP;
-		} else if ((adc_res > 500) && (adc_res < 1500)) {
-			buttonPushed = BUTTON_DOWN;
-		} else if ((adc_res > 2500) && (adc_res < 3500)) {
-			buttonPushed = BUTTON_LEFT;
-		} else if (adc_res > 3500) {
-			buttonPushed = BUTTON_RIGHT;
-		}
+		i = 4;
+		do {
+			i--;
+			if(adc_res > keyVal[i]) {//Первые 12 байт значение границы между кнопками
+				buttonPushed = keyVal[i] & 0xF;//В последних 4 байтай действие кнопки
+				break;
+			}
+		}while(i);
 		//Если нажатие продолжается увеличиваем счетчик. Иначе обнуляем
 		if (buttonPushed == buttonPushedPrev) { //Сравниваем с предыдущим цыклом
-			button_count++; //Если совпала прибавляем счетчик
+			button_count++;//Если совпала прибавляем счетчик
 		} else {
-			button_count = 0; //и сбрасываем счетчик
 			buttonPushedPrev = buttonPushed; // Иначе сохраняем новое значение
+			button_count = 0;//и сбрасываем счетчик
 		}
 		if (button_count == BUTTON_VERIF_COUNT) { //Заданное число раз считалось одно значение
 			if(state.button != BUTTON_LOCK)
-				state.button = buttonPushed; //Записываем подтвержденное нажатие
+			state.button = buttonPushed;//Записываем подтвержденное нажатие
+			state.taskList |= TASK_USER;
+		//	powerControl.freqMCU = CLK_24M;
+		 // SetClock(); //Разогнали микроконтроллер
 		}
 		if (button_count == BUTTON_REPEAT_DELAY) {
 			state.button = buttonPushed;
@@ -153,12 +263,17 @@ void readKey(void) {
 #ifdef SYSTEM_WIN
 uint8_t getButton(void) {
 	int8_t key = BUTTON_NULL;
+	
 	key = u8g_sdl_get_key() - 16;
-	switch(key){
-	case 1: return BUTTON_UP;
-	case 2: return BUTTON_DOWN;
-	case 3: return BUTTON_RIGHT;
-	case 4: return BUTTON_LEFT;
+	switch (key) {
+	case 1:
+		return BUTTON_UP;
+	case 2:
+		return BUTTON_DOWN;
+	case 3:
+		return BUTTON_RIGHT;
+	case 4:
+		return BUTTON_LEFT;
 	}
 	if (key > 0) {
 		printf("Key:  %d\n", key);
@@ -167,132 +282,3 @@ uint8_t getButton(void) {
 	return BUTTON_NULL;
 }
 #endif
-
-/*******************************************************************************
- * Настройка последовательного порта клавиатуры
- ******************************************************************************/
-#ifdef SYSTEM_STM32
-void USART2Init() {
-	GPIO_InitTypeDef GPIO_InitStructure;
-	USART_InitTypeDef USART_InitStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
-
-	// Enable USART2 clock
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
-
-	// Enable GPIOA clock
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
-
-	// Configure USART2 Rx (PA3) as input floating
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-	/* USART1 configured as follow:
-	 - BaudRate = 18000 baud
-	 - Word Length = 8 Bits
-	 - One Stop Bit
-	 - No parity
-	 - Hardware flow control disabled (RTS and CTS signals)
-	 - Receive and transmit enabled
-	 - USART Clock disabled
-	 - USART CPOL: Clock is active low
-	 - USART CPHA: Data is captured on the middle
-	 - USART LastBit: The clock pulse of the last data bit is not output to
-	 the SCLK pin
-	 */
-	USART_InitStructure.USART_BaudRate = 18000;
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-	USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	USART_InitStructure.USART_Parity = USART_Parity_No;
-	USART_InitStructure.USART_HardwareFlowControl =	USART_HardwareFlowControl_None;
-	USART_InitStructure.USART_Mode = USART_Mode_Rx;
-	USART_Init(USART2, &USART_InitStructure);
-
-	NVIC_EnableIRQ(USART2_IRQn); //Разрешили общие прерывания USART1
-	USART_ITConfig(USART2, USART_IT_RXNE, ENABLE); //Прерывание по приходу байта
-
-	//далее идут настройки приоритета прерываний.
-	NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 14;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 14;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-
-	USART_Cmd(USART2, ENABLE);
-}
-
-/*******************************************************************************
- * Обработка прерывания USART2
- ******************************************************************************/
-void USART2_IRQHandler(void) {
-	uint8_t byte;
-	static uint8_t lock = 0; 		//Клавиша еще нажата
-	static uint8_t byteCount = 0;	//Счетчик байт в пакете
-	static uint8_t comCount = 0;	//Счетчик команд
-	if (USART_GetITStatus(USART2, USART_IT_RXNE) == SET) { //Если пришел байт
-		SetClock(); //Разогнали микроконтроллер
-		state.taskList |= TASK_USER; // Отметим активность пользователя
-		byte = USART_ReceiveData(USART2);
-		switch (byteCount) {
-		case 0:
-			if (byte == 0xFF)
-				byteCount = 1;
-			break;
-		case 1:
-			if (byte == 0x55)
-				byteCount = 2;
-			else
-				byteCount = 0;
-			break;
-		case 2:
-			if (byte == 0x03)
-				byteCount = 3;
-			else
-				byteCount = 0;
-			break;
-		case 3:
-			if (byte == 0x02)
-				byteCount = 4;
-			else
-				byteCount = 0;
-			break;
-		case 4:
-			if (byte == 0x00)
-				byteCount = 5;
-			else
-				byteCount = 0;
-			break;
-		case 5:
-			if ((!lock || comCount == 5) && !state.button) {
-				comCount = 0;
-				switch (byte) {
-				case 0x02:
-					state.button = BUTTON_UP;
-					break;
-				case 0x04:
-					state.button = BUTTON_DOWN;
-					break;
-				case 0x08:
-					state.button = BUTTON_RIGHT;
-					break;
-				case 0x10:
-					state.button = BUTTON_LEFT;
-					break;
-				}
-				if (byte)
-					lock = 1;
-			} else if (!byte) {
-				lock = 0;
-			} else
-				comCount++;
-			byteCount = 6;
-			break;
-		case 6:
-			byteCount = 0;
-			break;
-		}
-	}
-}
-#endif
-
